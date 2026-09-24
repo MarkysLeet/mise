@@ -101,5 +101,5 @@ export async function verifyDriveFolder(formData: FormData) {
     return { error: "Kullanıcı bilgileri güncellenemedi." };
   }
 
-  redirect("/panel");
+  redirect("/dashboard");
 }
