@@ -1,0 +1,25 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+
+export async function loginUser(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return { error: "Lütfen tüm alanları doldurun." };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message || "Giriş başarısız oldu." };
+  }
+
+  return { success: true };
+}

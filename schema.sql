@@ -33,3 +33,31 @@ CREATE POLICY "Enable all access for all authenticated users" ON workspaces FOR 
 
 CREATE POLICY "Enable read access for all authenticated users" ON profiles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Enable all access for all authenticated users" ON profiles FOR ALL TO authenticated USING (true);
+
+-- Drop tutanaks table if it exists
+DROP TABLE IF EXISTS tutanaks;
+
+-- Create Tutanaks table
+CREATE TABLE tutanaks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    created_by UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    document_url TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for Tutanaks
+ALTER TABLE tutanaks ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for Tutanaks (read/write only for their own workspace_id)
+CREATE POLICY "Enable read access for users in the same workspace" ON tutanaks FOR SELECT TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable insert access for users in the same workspace" ON tutanaks FOR INSERT TO authenticated WITH CHECK (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
