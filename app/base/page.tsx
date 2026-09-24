@@ -59,7 +59,7 @@ export default function BasePage() {
             <BookOpen className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">F&B Base</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Bilgi Bankası</h1>
             <p className="text-muted-foreground mt-1">Official hotel knowledge base and standard operating procedures.</p>
           </div>
         </div>

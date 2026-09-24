@@ -27,7 +27,7 @@ export default function TutanakPage() {
           </div>
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tutanak Generator</h1>
-            <p className="text-muted-foreground mt-1">Create and log official F&B incident reports.</p>
+            <p className="text-muted-foreground mt-1">Create and log official Operasyon incident reports.</p>
           </div>
         </div>
       </header>
