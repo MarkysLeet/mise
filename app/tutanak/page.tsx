@@ -1,20 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Calendar as CalendarIcon, User, AlertTriangle, Save, Download } from "lucide-react";
+import { FileText, User, AlertTriangle, Download, CheckCircle, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { generateTutanak } from "@/actions/tutanak";
+import Link from "next/link";
 
 export default function TutanakPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successUrl, setSuccessUrl] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => setIsSubmitting(false), 1000);
+    setError(null);
+    setSuccessUrl(null);
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const result = await generateTutanak(formData);
+
+      if (result.error) {
+        setError(result.error);
+      } else if (result.success && result.documentUrl) {
+        setSuccessUrl(result.documentUrl);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bilinmeyen hata");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -26,8 +46,8 @@ export default function TutanakPage() {
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tutanak Generator</h1>
-            <p className="text-muted-foreground mt-1">Create and log official Operasyon incident reports.</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tutanak Oluşturucu</h1>
+            <p className="text-muted-foreground mt-1">Standart tutanak belgeleri oluşturun ve kaydedin.</p>
           </div>
         </div>
       </header>
@@ -36,85 +56,124 @@ export default function TutanakPage() {
       <Card className="border-none shadow-sm rounded-2xl">
         <form onSubmit={handleSubmit}>
           <CardHeader className="pb-6 border-b border-border/50">
-            <CardTitle>Incident Details</CardTitle>
-            <CardDescription>Fill out the form below to generate a standardized PDF report.</CardDescription>
+            <CardTitle>Olay Detayları</CardTitle>
+            <CardDescription>Aşağıdaki formu doldurarak resmi tutanak belgenizi otomatik oluşturun.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-8 pt-6">
             
+            {error && (
+              <div className="p-4 bg-destructive/10 text-destructive text-sm rounded-xl">
+                {error}
+              </div>
+            )}
+
+            {successUrl && (
+              <div className="p-4 bg-green-500/10 text-green-700 text-sm rounded-xl flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span>Belge başarıyla oluşturuldu!</span>
+                </div>
+                <Link href={successUrl} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" type="button" className="text-green-700 border-green-200 hover:bg-green-50">
+                    Doküman Hazır — Aç <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="date" className="text-muted-foreground">Date of Incident</Label>
+                <Label htmlFor="olayTarihi" className="text-muted-foreground">Olay Tarihi ve Saati</Label>
                 <div className="relative">
-                  <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    id="date" 
-                    type="date" 
-                    className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                    defaultValue={new Date().toISOString().split('T')[0]}
+                    id="olayTarihi"
+                    name="olayTarihi"
+                    type="datetime-local"
+                    required
+                    className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="employee" className="text-muted-foreground">Involved Employee / Guest</Label>
+                <Label htmlFor="olayYeri" className="text-muted-foreground">Olay Yeri</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    id="employee" 
-                    placeholder="e.g. Ahmet Yilmaz (Room Service)" 
-                    className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                    id="olayYeri"
+                    name="olayYeri"
+                    placeholder="Örn. Ana Restoran, Kat 3"
+                    required
+                    className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                   />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type" className="text-muted-foreground">Incident Type</Label>
+              <Label htmlFor="konu" className="text-muted-foreground">Konu (Tema)</Label>
               <div className="relative">
                 <AlertTriangle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <select 
-                  id="type"
-                  className="w-full pl-10 h-11 bg-stone-50/50 border border-border/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
-                >
-                  <option value="" disabled selected>Select category...</option>
-                  <option value="breakage">Equipment Breakage (Glassware, Plates)</option>
-                  <option value="guest_complaint">Severe Guest Complaint</option>
-                  <option value="no_show">Staff No-Show / Late Arrival</option>
-                  <option value="policy">Policy Violation (Hygiene, Uniform)</option>
-                  <option value="other">Other</option>
-                </select>
+                <Input
+                  id="konu"
+                  name="konu"
+                  placeholder="Tutanak Konusu"
+                  required
+                  className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="adSoyad" className="text-muted-foreground">Personel Adı Soyadı</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="adSoyad"
+                    name="adSoyad"
+                    placeholder="Örn. Ahmet Yılmaz"
+                    required
+                    className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="depPos" className="text-muted-foreground">Departman & Pozisyon</Label>
+                <div className="relative">
+                  <Input
+                    id="depPos"
+                    name="depPos"
+                    placeholder="Örn. F&B / Garson"
+                    required
+                    className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-muted-foreground">Detailed Description</Label>
+              <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
               <textarea 
-                id="description" 
+                id="aciklama"
+                name="aciklama"
                 rows={6}
-                placeholder="Please describe the incident objectively..."
+                required
+                placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
                 className="w-full p-4 bg-stone-50/50 border border-border/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
               />
             </div>
 
           </CardContent>
-          <CardFooter className="border-t border-border/50 pt-6 flex justify-between">
-            <Button variant="ghost" type="button" className="text-muted-foreground rounded-xl">
-              Clear Form
+          <CardFooter className="border-t border-border/50 pt-6 flex justify-end">
+            <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-sm">
+              {isSubmitting ? (
+                "Oluşturuluyor..."
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" /> Tutanak Oluştur
+                </>
+              )}
             </Button>
-            <div className="flex gap-3">
-              <Button variant="outline" type="button" className="rounded-xl border-border shadow-sm">
-                <Save className="mr-2 h-4 w-4" /> Save Draft
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-sm">
-                {isSubmitting ? (
-                  "Generating..."
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" /> Generate Tutanak
-                  </>
-                )}
-              </Button>
-            </div>
           </CardFooter>
         </form>
       </Card>

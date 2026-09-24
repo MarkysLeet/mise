@@ -29,7 +29,7 @@ export default function OnboardingPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (e) {
+    } catch {
       setError("Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.");
       setLoading(false);
     }
@@ -48,8 +48,8 @@ export default function OnboardingPage() {
           <div className="mb-6 space-y-4 rounded-lg bg-secondary/50 p-4 text-sm text-secondary-foreground">
             <h3 className="font-semibold">Nasıl Yapılır?</h3>
             <ol className="list-decimal space-y-2 pl-4">
-              <li>Google Drive'da yeni bir klasör oluşturun (örn: "Anex Operasyon - Ön Büro").</li>
-              <li>Klasöre sağ tıklayıp "Paylaş" seçeneğini seçin.</li>
+              <li>Google Drive&apos;da yeni bir klasör oluşturun (örn: &quot;Anex Operasyon - Ön Büro&quot;).</li>
+              <li>Klasöre sağ tıklayıp &quot;Paylaş&quot; seçeneğini seçin.</li>
               <li>Şu adrese düzenleyici erişimi verin: <br />
                 <code className="mt-1 block rounded bg-background p-1 text-primary">
                   mise-service-account@mise-project.iam.gserviceaccount.com
@@ -61,7 +61,7 @@ export default function OnboardingPage() {
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="folderLink">Klasör Linki (veya ID'si)</Label>
+              <Label htmlFor="folderLink">Klasör Linki (veya ID&apos;si)</Label>
               <Input 
                 id="folderLink" 
                 name="folderLink" 
