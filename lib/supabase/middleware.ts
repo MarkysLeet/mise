@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Public routes
-  if (path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/auth')) {
+  if (path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/auth') || path.startsWith('/privacy')) {
     return supabaseResponse
   }
 
