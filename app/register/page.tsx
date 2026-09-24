@@ -6,7 +6,7 @@ import { registerUser } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle,  } from "@/components/ui/card";
 import { Playfair_Display } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +33,7 @@ export default function RegisterPage() {
       } else {
         router.push("/onboarding");
       }
-    } catch (e) {
+    } catch {
       setError("Bir hata oluştu. Lütfen tekrar deneyin.");
       setLoading(false);
     }
