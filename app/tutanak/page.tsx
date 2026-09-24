@@ -31,7 +31,7 @@ export default function TutanakPage() {
         setSuccessUrl(result.documentUrl);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Bir hata oluştu.");
+      setError(err instanceof Error ? err.message : "Bilinmeyen hata");
     } finally {
       setIsSubmitting(false);
     }
