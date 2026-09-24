@@ -10,8 +10,8 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Command Center</h1>
-          <p className="text-muted-foreground mt-1">Good morning, Shift A is active.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Kontrol Paneli</h1>
+          <p className="text-muted-foreground mt-1">Günaydın, Vardiya A aktif.</p>
         </div>
         
         <div className="flex items-center gap-4 flex-1 max-w-md">

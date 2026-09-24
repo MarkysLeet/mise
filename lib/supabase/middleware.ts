@@ -27,23 +27,39 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    // const url = request.nextUrl.clone()
-    // url.pathname = '/login'
-    // return NextResponse.redirect(url)
+  const path = request.nextUrl.pathname
+
+  // Public routes
+  if (path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/auth')) {
+    return supabaseResponse
+  }
+
+  // If no user, redirect to login
+  if (!user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login' // Assuming /login exists, otherwise maybe /register
+    return NextResponse.redirect(url)
+  }
+
+  // Check onboarding status from user_metadata
+  const isOnboarded = user.user_metadata?.is_onboarded === true;
+
+  // If user is NOT onboarded and trying to access protected areas, redirect to /onboarding
+  if (!isOnboarded && path !== '/onboarding') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/onboarding'
+    return NextResponse.redirect(url)
+  }
+
+  // If user IS onboarded and trying to access /onboarding, redirect to /dashboard
+  if (isOnboarded && path === '/onboarding') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse

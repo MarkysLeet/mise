@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Clock, FileText, BookOpen, Settings, ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Playfair_Display } from "next/font/google";
+
+const playfair = Playfair_Display({ subsets: ["latin"] });
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Puntaj", href: "/puntaj", icon: Clock },
+  { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Puantaj", href: "/puantaj", icon: Clock },
   { name: "Tutanak", href: "/tutanak", icon: FileText },
-  { name: "Base", href: "/base", icon: BookOpen },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Bilgi Bankası", href: "/base", icon: BookOpen },
+  { name: "Ayarlar", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -23,8 +26,8 @@ export function Sidebar() {
           <ChefHat className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Mise</h1>
-          <p className="text-xs text-muted-foreground">F&B Command Center</p>
+          <h1 className={cn("text-2xl font-semibold text-foreground tracking-wide", playfair.className)}>Mise</h1>
+          <p className="text-xs text-muted-foreground">Operasyon Merkezi</p>
         </div>
       </div>
 
@@ -57,11 +60,11 @@ export function Sidebar() {
       <div className="mt-auto px-2">
         <div className="flex items-center gap-3 rounded-xl border border-border p-3">
           <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-foreground">
-            OT
+            AD
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">Order Taker</span>
-            <span className="text-xs text-muted-foreground">Shift: Morning</span>
+            <span className="text-sm font-medium text-foreground">Admin</span>
+            <span className="text-xs text-muted-foreground">Otel Grubu</span>
           </div>
         </div>
       </div>

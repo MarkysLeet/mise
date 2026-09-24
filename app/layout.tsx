@@ -6,8 +6,8 @@ import { Sidebar } from "@/components/layout/Sidebar";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Mise | F&B Command Center",
-  description: "Centralized workspace for F&B Order Takers",
+  title: "Mise | Operasyon Merkezi",
+  description: "Centralized workspace for Operations",
 };
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground flex h-screen overflow-hidden`}>
         <Sidebar />
         <main className="flex-1 h-screen overflow-y-auto bg-stone-50/50">
