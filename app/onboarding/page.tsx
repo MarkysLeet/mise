@@ -1,22 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { verifyDriveFolder } from "./actions";
+import { verifyDriveFolder } from "@/actions/drive";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setError(null);
 
     const formData = new FormData(event.currentTarget);
     
@@ -24,13 +21,12 @@ export default function OnboardingPage() {
       const result = await verifyDriveFolder(formData);
       
       if (result?.error) {
-        setError(result.error);
+        toast.error(result.error);
         setLoading(false);
-      } else {
-        router.push("/dashboard");
       }
+      // If success, verifyDriveFolder handles the redirect.
     } catch {
-      setError("Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+      toast.error("Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.");
       setLoading(false);
     }
   }
@@ -52,7 +48,7 @@ export default function OnboardingPage() {
               <li>Klasöre sağ tıklayıp &quot;Paylaş&quot; seçeneğini seçin.</li>
               <li>Şu adrese düzenleyici erişimi verin: <br />
                 <code className="mt-1 block rounded bg-background p-1 text-primary">
-                  mise-service-account@mise-project.iam.gserviceaccount.com
+                  service@mise-509607.iam.gserviceaccount.com
                 </code>
               </li>
               <li>Klasörün linkini kopyalayıp aşağıdaki alana yapıştırın.</li>
@@ -70,10 +66,6 @@ export default function OnboardingPage() {
                 disabled={loading}
               />
             </div>
-
-            {error && (
-              <div className="text-sm text-destructive">{error}</div>
-            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Doğrulanıyor..." : "Doğrula ve Bağlan"}
