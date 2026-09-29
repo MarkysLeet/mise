@@ -59,6 +59,8 @@ export async function generateTutanak(formData: FormData) {
     const searchResponse = await drive.files.list({
       q: query,
       fields: "files(id, name)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     let templateFile = searchResponse.data.files?.[0];
@@ -70,6 +72,8 @@ export async function generateTutanak(formData: FormData) {
       const globalSearchResponse = await drive.files.list({
         q: globalQuery,
         fields: "files(id, name, parents)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
       });
 
       const files = globalSearchResponse.data.files;
@@ -94,7 +98,8 @@ export async function generateTutanak(formData: FormData) {
             try {
               const parentRes = await drive.files.get({
                 fileId: currentFile.parents[0],
-                fields: "id, parents"
+                fields: "id, parents",
+                supportsAllDrives: true,
               });
               currentFile = parentRes.data;
             } catch {
@@ -142,6 +147,7 @@ export async function generateTutanak(formData: FormData) {
         name: newFileName,
         parents: [workspace.drive_folder_id],
       },
+      supportsAllDrives: true,
     });
 
     const newDocumentId = copyResponse.data.id;
@@ -176,6 +182,7 @@ export async function generateTutanak(formData: FormData) {
         type: "anyone",
         role: "reader",
       },
+      supportsAllDrives: true,
     });
 
     const documentUrl = `https://docs.google.com/document/d/${newDocumentId}/edit`;
