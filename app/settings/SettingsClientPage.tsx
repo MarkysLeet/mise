@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings as SettingsIcon, Cloud, FolderOpen, Plug, CheckCircle2, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Cloud, FolderOpen, CheckCircle2, Copy, ExternalLink, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { verifyDriveFolder } from "@/actions/drive";
 
-export default function SettingsClientPage({ initialWorkspace }: { initialWorkspace: any }) {
+export default function SettingsClientPage({ initialWorkspace }: { initialWorkspace: { drive_folder_id?: string } }) {
   const router = useRouter();
   const [folderId, setFolderId] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
