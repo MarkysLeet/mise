@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Clock, FileText, BookOpen, Settings, ChefHat } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Playfair_Display } from "next/font/google";
+import { logoutUser } from "@/actions/auth";
 
 const playfair = Playfair_Display({ subsets: ["latin"] });
 
@@ -57,7 +59,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto px-2">
+      <div className="mt-auto px-2 space-y-2">
         <div className="flex items-center gap-3 rounded-xl border border-border p-3">
           <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-foreground">
             AD
@@ -67,6 +69,14 @@ export function Sidebar() {
             <span className="text-xs text-muted-foreground">Otel Grubu</span>
           </div>
         </div>
+
+        <button
+          onClick={() => logoutUser()}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          Çıkış Yap
+        </button>
       </div>
     </div>
   );
