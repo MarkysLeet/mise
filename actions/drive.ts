@@ -48,7 +48,11 @@ export async function checkDriveFolderAccess(folderLink: string) {
 
   try {
     const drive = await getDriveClient();
-    await drive.files.get({ fileId: folderId, fields: "id, name" });
+    await drive.files.get({
+      fileId: folderId,
+      fields: "id, name",
+      supportsAllDrives: true,
+    });
     return { success: true, folderId };
   } catch (error: unknown) {
     if (error instanceof Error && error.message?.includes("File not found")) {
@@ -79,6 +83,8 @@ export async function getMasterFolderStructure() {
           q: `'${currentParentId}' in parents and trashed=false`,
           fields: "nextPageToken, files(id, name, mimeType)",
           pageToken: pageToken,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
         });
 
         const files = listRes.data.files || [];
@@ -120,6 +126,8 @@ export async function syncDriveItem(
     const existingRes = await drive.files.list({
       q: `'${destParentId}' in parents and name='${escapedName}' and mimeType='${item.mimeType}' and trashed=false`,
       fields: "files(id)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     const existingFile =
@@ -137,6 +145,7 @@ export async function syncDriveItem(
           parents: [destParentId],
         },
         fields: "id",
+        supportsAllDrives: true,
       });
       return { success: true, destId: newFolder.data.id };
     } else {
@@ -151,6 +160,7 @@ export async function syncDriveItem(
           parents: [destParentId],
         },
         fields: "id",
+        supportsAllDrives: true,
       });
       return { success: true, destId: newFile.data.id };
     }
@@ -241,7 +251,11 @@ export async function verifyDriveFolder(formData: FormData) {
     const drive = google.drive({ version: "v3", auth });
 
     // Check if we have access to the user's provided folder
-    await drive.files.get({ fileId: folderId, fields: "id, name" });
+    await drive.files.get({
+      fileId: folderId,
+      fields: "id, name",
+      supportsAllDrives: true,
+    });
 
     // Copy contents of master folder to the user's folder
     const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
@@ -255,6 +269,8 @@ export async function verifyDriveFolder(formData: FormData) {
       const res = await drive.files.list({
         q: `'${sourceId}' in parents and trashed=false`,
         fields: "files(id, name, mimeType)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
       });
 
       const files = res.data.files;
@@ -267,6 +283,8 @@ export async function verifyDriveFolder(formData: FormData) {
         const existingRes = await drive.files.list({
           q: `'${destId}' in parents and name='${escapedName}' and mimeType='${file.mimeType}' and trashed=false`,
           fields: "files(id)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
         });
 
         const existingFile = existingRes.data.files && existingRes.data.files.length > 0 ? existingRes.data.files[0] : null;
@@ -284,6 +302,7 @@ export async function verifyDriveFolder(formData: FormData) {
             const newFolder = await drive.files.create({
               requestBody: folderMetadata,
               fields: "id",
+              supportsAllDrives: true,
             });
             newFolderId = newFolder.data.id;
           }
@@ -300,6 +319,7 @@ export async function verifyDriveFolder(formData: FormData) {
                 name: file.name, // Ensure the copied file has the original name
                 parents: [destId],
               },
+              supportsAllDrives: true,
             });
           }
         }
