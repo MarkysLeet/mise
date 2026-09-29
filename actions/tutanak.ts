@@ -54,16 +54,64 @@ export async function generateTutanak(formData: FormData) {
       return { error: "Google Master Folder ID yapılandırılmamış." };
     }
 
-    // 4. Find the template file 'Tutanak_Taslak'
-    const query = `name='Tutanak_Taslak' and trashed=false`;
+    // 4. Find the template file 'Tutanak_Taslak' in the user's workspace drive folder
+    const query = `name='Tutanak_Taslak' and '${workspace.drive_folder_id}' in parents and trashed=false`;
     const searchResponse = await drive.files.list({
       q: query,
       fields: "files(id, name)",
     });
 
-    const templateFile = searchResponse.data.files?.[0];
+    let templateFile = searchResponse.data.files?.[0];
+
+    // Fallback: If not found in the immediate parent, search globally but ensure it traces back to user's workspace
+    // This handles the case where it is in a subfolder like 'Anex/Tutanak/Tutanak_Taslak'
     if (!templateFile || !templateFile.id) {
-      return { error: "Şablon dosyası ('Tutanak_Taslak') bulunamadı." };
+      const globalQuery = `name='Tutanak_Taslak' and trashed=false`;
+      const globalSearchResponse = await drive.files.list({
+        q: globalQuery,
+        fields: "files(id, name, parents)",
+      });
+
+      const files = globalSearchResponse.data.files;
+      if (files && files.length > 0) {
+        // Find one that traces back to the workspace folder
+        for (const file of files) {
+          if (!file.id) continue;
+
+          let currentFile = file;
+          let isBelongingToWorkspace = false;
+
+          // Climb up the tree up to 5 levels to prevent infinite loops
+          for (let i = 0; i < 5; i++) {
+            if (!currentFile.parents || currentFile.parents.length === 0) {
+              break;
+            }
+            if (currentFile.parents.includes(workspace.drive_folder_id)) {
+              isBelongingToWorkspace = true;
+              break;
+            }
+            // get parent file to continue climbing
+            try {
+              const parentRes = await drive.files.get({
+                fileId: currentFile.parents[0],
+                fields: "id, parents"
+              });
+              currentFile = parentRes.data;
+            } catch {
+              break;
+            }
+          }
+
+          if (isBelongingToWorkspace) {
+            templateFile = file;
+            break;
+          }
+        }
+      }
+
+      if (!templateFile || !templateFile.id) {
+        return { error: "Şablon dosyası ('Tutanak_Taslak') kullanıcının klasöründe bulunamadı." };
+      }
     }
 
     // Form Data Extraction
