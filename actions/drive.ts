@@ -100,27 +100,43 @@ export async function verifyDriveFolder(formData: FormData) {
       if (!files || files.length === 0) return;
 
       for (const file of files) {
-        if (file.mimeType === "application/vnd.google-apps.folder") {
-          // Create new folder in destination
-          const folderMetadata = {
-            name: file.name,
-            mimeType: "application/vnd.google-apps.folder",
-            parents: [destId],
-          };
-          const newFolder = await drive.files.create({
-            requestBody: folderMetadata,
-            fields: "id",
-          });
+        const escapedName = file.name?.replace(/'/g, "\\'") || "";
 
-          if (newFolder.data.id && file.id) {
-            await copyFolderContents(file.id, newFolder.data.id);
+        // Check if item already exists in destination
+        const existingRes = await drive.files.list({
+          q: `'${destId}' in parents and name='${escapedName}' and mimeType='${file.mimeType}' and trashed=false`,
+          fields: "files(id)",
+        });
+
+        const existingFile = existingRes.data.files && existingRes.data.files.length > 0 ? existingRes.data.files[0] : null;
+
+        if (file.mimeType === "application/vnd.google-apps.folder") {
+          let newFolderId = existingFile?.id;
+
+          if (!newFolderId) {
+            // Create new folder in destination
+            const folderMetadata = {
+              name: file.name,
+              mimeType: "application/vnd.google-apps.folder",
+              parents: [destId],
+            };
+            const newFolder = await drive.files.create({
+              requestBody: folderMetadata,
+              fields: "id",
+            });
+            newFolderId = newFolder.data.id;
+          }
+
+          if (newFolderId && file.id) {
+            await copyFolderContents(file.id, newFolderId);
           }
         } else {
-          // Copy file to destination
-          if (file.id) {
+          // Copy file to destination if it doesn't exist
+          if (!existingFile && file.id) {
             await drive.files.copy({
               fileId: file.id,
               requestBody: {
+                name: file.name, // Ensure the copied file has the original name
                 parents: [destId],
               },
             });
