@@ -1,34 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { verifyDriveFolder } from "@/actions/drive";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SyncModal } from "@/components/SyncModal";
+import { useRouter } from "next/navigation";
 
 export default function OnboardingPage() {
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [folderLink, setFolderLink] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-
-    const formData = new FormData(event.currentTarget);
-    
-    try {
-      const result = await verifyDriveFolder(formData);
-      
-      if (result?.error) {
-        toast.error(result.error);
-        setLoading(false);
-      }
-      // If success, verifyDriveFolder handles the redirect.
-    } catch {
-      toast.error("Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.");
-      setLoading(false);
-    }
+    if (!folderLink) return;
+    setIsModalOpen(true);
   }
 
   return (
@@ -63,16 +51,28 @@ export default function OnboardingPage() {
                 name="folderLink" 
                 placeholder="https://drive.google.com/drive/folders/..." 
                 required 
-                disabled={loading}
+                value={folderLink}
+                onChange={(e) => setFolderLink(e.target.value)}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Doğrulanıyor..." : "Doğrula ve Bağlan"}
+            <Button type="submit" className="w-full">
+              Doğrula ve Bağlan
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {isModalOpen && (
+        <SyncModal
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          folderLink={folderLink}
+          onSuccess={() => {
+            router.push("/dashboard");
+          }}
+        />
+      )}
     </div>
   );
 }
