@@ -13,29 +13,190 @@ const supabaseAdmin = createSupabaseClient(
 
 function extractFolderId(input: string): string {
   const cleanInput = input.trim();
-
-  // Try to match standard Google Drive folder URLs
-  // e.g., https://drive.google.com/drive/folders/1EZOaP-383rRVAEmqE1Hy...
   let match = cleanInput.match(/folders\/([a-zA-Z0-9-_]+)/);
   if (match && match[1]) return match[1];
-
-  // Try to match ?id= URL parameter
   match = cleanInput.match(/id=([a-zA-Z0-9-_]+)/);
   if (match && match[1]) return match[1];
-
-  // Try to match /d/ URL path
   match = cleanInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (match && match[1]) return match[1];
-
-  // If no URL pattern matched, and it looks like an ID, return it
   const finalMatch = cleanInput.match(/^([a-zA-Z0-9-_]+)$/);
-  if (finalMatch && finalMatch[1]) {
-    return finalMatch[1];
-  }
-
+  if (finalMatch && finalMatch[1]) return finalMatch[1];
   return cleanInput;
 }
 
+async function getDriveClient() {
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+  if (!clientEmail || !privateKey) {
+    throw new Error("Missing Google Drive credentials.");
+  }
+
+  const auth = new google.auth.GoogleAuth({
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey,
+    },
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+
+  return google.drive({ version: "v3", auth });
+}
+
+export async function checkDriveFolderAccess(folderLink: string) {
+  const folderId = extractFolderId(folderLink);
+
+  try {
+    const drive = await getDriveClient();
+    await drive.files.get({ fileId: folderId, fields: "id, name" });
+    return { success: true, folderId };
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message?.includes("File not found")) {
+      return { error: "Klasör bulunamadı veya erişim izni yok. Lütfen doğru klasör linkini girdiğinizden ve e-posta adresine düzenleyici yetkisi verdiğinizden emin olun." };
+    }
+    return { error: "Klasöre erişim sağlanırken bir hata oluştu." };
+  }
+}
+
+export async function getMasterFolderStructure() {
+  const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
+  if (!masterFolderId) {
+    return { error: "Sistem yapılandırma hatası: Google Master Folder ID eksik." };
+  }
+
+  try {
+    const drive = await getDriveClient();
+    const items = [];
+    const queue = [masterFolderId];
+
+    while (queue.length > 0) {
+      const currentParentId = queue.shift()!;
+      let pageToken: string | undefined = undefined;
+
+      do {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const listRes: any = await drive.files.list({
+          q: `'${currentParentId}' in parents and trashed=false`,
+          fields: "nextPageToken, files(id, name, mimeType)",
+          pageToken: pageToken,
+        });
+
+        const files = listRes.data.files || [];
+        for (const file of files) {
+          if (file.id && file.name) {
+            const isFolder = file.mimeType === "application/vnd.google-apps.folder";
+            items.push({
+              sourceId: file.id,
+              name: file.name,
+              mimeType: file.mimeType || "",
+              masterParentId: currentParentId,
+              isFolder,
+            });
+            if (isFolder) {
+              queue.push(file.id);
+            }
+          }
+        }
+        pageToken = listRes.data.nextPageToken || undefined;
+      } while (pageToken);
+    }
+
+    return { success: true, items, masterFolderId };
+  } catch (error: unknown) {
+    console.error("Master folder fetch error:", error);
+    return { error: "Master klasör yapısı alınamadı." };
+  }
+}
+
+export async function syncDriveItem(
+  item: { sourceId: string; name: string; mimeType: string; isFolder: boolean },
+  destParentId: string
+) {
+  try {
+    const drive = await getDriveClient();
+    const escapedName = item.name.replace(/'/g, "\\'");
+
+    // Check if it already exists
+    const existingRes = await drive.files.list({
+      q: `'${destParentId}' in parents and name='${escapedName}' and mimeType='${item.mimeType}' and trashed=false`,
+      fields: "files(id)",
+    });
+
+    const existingFile =
+      existingRes.data.files && existingRes.data.files.length > 0 ? existingRes.data.files[0] : null;
+
+    if (item.isFolder) {
+      if (existingFile?.id) {
+        return { success: true, destId: existingFile.id };
+      }
+
+      const newFolder = await drive.files.create({
+        requestBody: {
+          name: item.name,
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [destParentId],
+        },
+        fields: "id",
+      });
+      return { success: true, destId: newFolder.data.id };
+    } else {
+      if (existingFile?.id) {
+        return { success: true, destId: existingFile.id };
+      }
+
+      const newFile = await drive.files.copy({
+        fileId: item.sourceId,
+        requestBody: {
+          name: item.name,
+          parents: [destParentId],
+        },
+        fields: "id",
+      });
+      return { success: true, destId: newFile.data.id };
+    }
+  } catch (error: unknown) {
+    console.error("Sync item error:", error);
+    return { error: `Senkronizasyon hatası: ${item.name}` };
+  }
+}
+
+export async function completeDriveOnboarding(folderId: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Kullanıcı oturumu bulunamadı." };
+  }
+
+  const workspaceId = user.user_metadata?.workspace_id;
+  if (!workspaceId) {
+    return { error: "Çalışma alanı bulunamadı." };
+  }
+
+  const { error: workspaceError } = await supabaseAdmin
+    .from("workspaces")
+    .update({ drive_folder_id: folderId, is_onboarded: true })
+    .eq("id", workspaceId);
+
+  if (workspaceError) {
+    console.error("Workspace update failed:", workspaceError);
+    return { error: "Çalışma alanı güncellenemedi." };
+  }
+
+  const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(
+    user.id,
+    { user_metadata: { ...user.user_metadata, is_onboarded: true } }
+  );
+
+  if (updateAuthError) {
+    console.error("User metadata update failed:", updateAuthError);
+    return { error: "Kullanıcı bilgileri güncellenemedi." };
+  }
+
+  return { success: true };
+}
+
+// Retain old for backwards compatibility temporarily
 export async function verifyDriveFolder(formData: FormData) {
   const folderLink = formData.get("folderLink") as string;
 

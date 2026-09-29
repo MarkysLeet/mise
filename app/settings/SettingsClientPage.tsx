@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Settings as SettingsIcon, Cloud, FolderOpen, CheckCircle2, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, Cloud, FolderOpen, CheckCircle2, Copy, ExternalLink, RefreshCw, FileSearch } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { verifyDriveFolder } from "@/actions/drive";
+import { SyncModal } from "@/components/SyncModal";
 
 export default function SettingsClientPage({ initialWorkspace }: { initialWorkspace: { drive_folder_id?: string } }) {
   const router = useRouter();
   const [folderId, setFolderId] = useState("");
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [syncFolderLink, setSyncFolderLink] = useState("");
 
   const isConnected = !!initialWorkspace?.drive_folder_id;
   const connectedFolderId = initialWorkspace?.drive_folder_id;
@@ -23,29 +24,16 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
     ? `${connectedFolderId.substring(0, 4)}••••••••••••••••${connectedFolderId.substring(connectedFolderId.length - 4)}`
     : "";
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     if (!folderId) return;
-    setIsConnecting(true);
+    setSyncFolderLink(folderId);
+    setSyncModalOpen(true);
+  };
 
-    try {
-      const formData = new FormData();
-      formData.append("folderLink", folderId);
-
-      const result = await verifyDriveFolder(formData);
-
-      if (result?.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Klasör başarıyla bağlandı!");
-        setFolderId("");
-        // Refresh the page data
-        router.refresh();
-      }
-    } catch {
-      toast.error("Bağlantı sırasında bir hata oluştu.");
-    } finally {
-      setIsConnecting(false);
-    }
+  const handleCheckFolder = () => {
+    if (!connectedFolderId) return;
+    setSyncFolderLink(connectedFolderId);
+    setSyncModalOpen(true);
   };
 
   const copyToClipboard = () => {
@@ -131,6 +119,9 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
                     <Button variant="outline" size="icon" onClick={openDriveFolder} title="Yeni Sekmede Aç" className="h-11 w-11 shrink-0 rounded-xl">
                       <ExternalLink className="h-4 w-4" />
                     </Button>
+                    <Button variant="outline" size="icon" onClick={handleCheckFolder} title="Проверка папки" className="h-11 w-11 shrink-0 rounded-xl">
+                      <FileSearch className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
 
@@ -147,21 +138,14 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
                           className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                           value={folderId}
                           onChange={(e) => setFolderId(e.target.value)}
-                          disabled={isConnecting}
                         />
                       </div>
                       <Button
                         onClick={handleConnect}
-                        disabled={!folderId || isConnecting}
+                        disabled={!folderId}
                         className="h-11 px-6 rounded-xl shadow-sm"
                       >
-                        {isConnecting ? (
-                          "Bağlanıyor..."
-                        ) : (
-                          <>
-                            <RefreshCw className="mr-2 h-4 w-4" /> Değiştir
-                          </>
-                        )}
+                        <RefreshCw className="mr-2 h-4 w-4" /> Değiştir
                       </Button>
                     </div>
                   </div>
@@ -176,6 +160,18 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
           )}
         </Card>
       </div>
+
+      {syncModalOpen && (
+        <SyncModal
+          isOpen={syncModalOpen}
+          onOpenChange={setSyncModalOpen}
+          folderLink={syncFolderLink}
+          onSuccess={() => {
+            setFolderId("");
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
