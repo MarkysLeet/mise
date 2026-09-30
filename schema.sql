@@ -8,6 +8,7 @@ CREATE TABLE workspaces (
     name TEXT NOT NULL, -- Department Name
     hotel_group TEXT DEFAULT 'Anex Hotels',
     drive_folder_id TEXT,
+    google_refresh_token TEXT,
     is_onboarded BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

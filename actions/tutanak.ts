@@ -37,17 +37,22 @@ export async function generateTutanak(formData: FormData) {
     // 2. Generate Tutanak Number
     const tutanakNumber = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    if (!workspace.google_refresh_token) {
+      return { error: "Google Drive bağlantısı bulunamadı. Lütfen hesabınızı bağlayın.", resetAuth: true };
+    }
+
     // 3. Initialize googleapis
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      },
-      scopes: ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/documents"],
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: workspace.google_refresh_token,
     });
 
-    const drive = google.drive({ version: "v3", auth });
-    const docs = google.docs({ version: "v1", auth });
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const docs = google.docs({ version: "v1", auth: oauth2Client });
 
     const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
     if (!masterFolderId) {
@@ -201,8 +206,39 @@ export async function generateTutanak(formData: FormData) {
 
     // 9. Return URL
     return { success: true, documentUrl };
-  } catch (error: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     console.error("Error generating Tutanak:", error);
+
+    // Self-healing: if token is revoked or expired
+    if (error?.response?.status === 401 || error?.response?.status === 403 || error?.message?.includes("invalid_grant")) {
+      try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from("profiles").select("workspace_id").eq("id", user.id).single();
+          if (profile && profile.workspace_id) {
+            const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
+            const supabaseAdmin = createSupabaseClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+            await supabaseAdmin.from("workspaces").update({
+              is_onboarded: false,
+              google_refresh_token: null
+            }).eq("id", profile.workspace_id);
+
+            await supabaseAdmin.auth.admin.updateUserById(user.id, {
+              user_metadata: { ...user.user_metadata, is_onboarded: false }
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Error resetting auth state:", e);
+      }
+      return { error: "Google Drive oturumunuzun süresi doldu veya erişim izni iptal edildi. Lütfen tekrar giriş yapın.", resetAuth: true };
+    }
+
     return { error: error instanceof Error ? error.message : "Tutanak oluşturulurken beklenmeyen bir hata oluştu." };
   }
 }
