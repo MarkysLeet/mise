@@ -20,8 +20,8 @@ import {
   Download,
   UploadCloud,
   Eraser,
-  LogOut,
-  Trash2,
+
+
   ChevronLeft,
   ChevronRight,
   ExternalLink,
