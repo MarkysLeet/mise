@@ -27,7 +27,7 @@ export default async function PuantajPage({
   const entries = await getPuantajEntries(currentYear, currentMonth);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full">
       <PuantajClient
         initialEmployees={employees}
         initialEntries={entries}

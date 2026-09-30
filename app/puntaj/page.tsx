@@ -3,7 +3,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 
 export default function PuntajPage() {
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
       {/* Header */}
       <header>
         <div className="flex items-center gap-3">
