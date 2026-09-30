@@ -339,8 +339,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
         emp.full_name,
         emp.role_title || "",
         formatDate(emp.hire_date),
-        formatDate(emp.termination_date),
-        "" // Spacer for Column G (Çıkış Tarihi) to H (1st Day) is not needed, we will specify range B:AL
+        formatDate(emp.termination_date)
       ];
 
       // Add days
@@ -356,7 +355,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
       employeeDataRows.push(row);
     } else {
       // Empty row to clear old data
-      const emptyRow = ["", "", "", "", "", ""];
+      const emptyRow = [i + 1, "", "", "", "", ""];
       for(let day=1; day<=31; day++) emptyRow.push("");
       employeeDataRows.push(emptyRow);
     }
@@ -364,7 +363,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
 
   dataToUpdate.push({
     range: `'${monthName}'!B6:AL${5 + maxRows}`,
-    values: employeeDataRows
+    values: employeeDataRows.map(row => row.slice(0, 37))
   });
 
   await sheetsApi.spreadsheets.values.batchUpdate({
@@ -378,13 +377,14 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   // Second Batch update for Colors
   const formatRequests: any[] = [];
 
-  // First clear background colors for all cells in the grid H6:AL{5+maxRows}
+  // First clear background colors for all cells in the grid H6:AL{110} (or maxRows if higher)
+  // We want to clear all the way down to at least row 110 to erase left-over colors from deleted employees
   formatRequests.push({
     repeatCell: {
       range: {
         sheetId,
         startRowIndex: 5,
-        endRowIndex: 5 + maxRows,
+        endRowIndex: Math.max(110, 5 + maxRows),
         startColumnIndex: 7, // H
         endColumnIndex: 38 // AL + 1
       },
