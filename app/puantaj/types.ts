@@ -1,0 +1,53 @@
+export interface Employee {
+  id: string;
+  full_name: string;
+  role_title?: string | null;
+  sicil_no?: string | null;
+  is_active?: boolean | null;
+  seq_no: number;
+}
+
+export interface Entry {
+  employee_id: string | null;
+  date: string;
+  status: string;
+}
+
+export interface Status {
+  code: string;
+  label: string;
+  color: string;
+}
+
+export interface PendingChanges {
+  [employeeId: string]: {
+    [day: number]: string;
+  };
+}
+
+export interface DesktopPuantajTableProps {
+  employees: Employee[];
+  entries: Entry[];
+  currentMonth: number;
+  currentYear: number;
+  daysArray: number[];
+  daysInMonth: number;
+  STATUSES: Status[];
+  pendingChanges: PendingChanges;
+  activeBrush: string | null;
+  calculateTotals: (employeeId: string) => Record<string, number>;
+  setEmployeeToTerminate: (employee: Employee | null) => void;
+  setIsTerminateOpen: (open: boolean) => void;
+  setEmployeeToDelete: (employee: Employee | null) => void;
+  setIsDeleteOpen: (open: boolean) => void;
+  setIsMouseDown: (isDown: boolean) => void;
+  isMouseDown: boolean;
+  applyBrush: (employeeId: string, day: number) => void;
+}
+
+export interface MobilePuantajDailyProps {
+  daysArray: number[];
+  daysInMonth: number;
+  currentMonth: number;
+  currentYear: number;
+}

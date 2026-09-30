@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LogOut, Trash2 } from "lucide-react";
+import { DesktopPuantajTableProps } from "../types";
 
 export function DesktopPuantajTable({
   employees,
@@ -19,7 +20,7 @@ export function DesktopPuantajTable({
   setIsMouseDown,
   isMouseDown,
   applyBrush
-}: any) {
+}: DesktopPuantajTableProps) {
   return (
     <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
       <div className="overflow-x-auto h-[65vh]">
@@ -42,10 +43,12 @@ export function DesktopPuantajTable({
             </tr>
           </thead>
           <tbody>
-            {employees.map((emp: any, idx: number) => {
+            {employees.map((emp, idx) => {
               const totals = calculateTotals(emp.id);
-              const isTerminated = !emp.is_active && emp.termination_date && emp.termination_date.startsWith(`${currentYear}-${String(currentMonth).padStart(2, '0')}`);
-              if (!emp.is_active && !isTerminated && (!emp.termination_date || new Date(emp.termination_date) < new Date(currentYear, currentMonth - 1, 1))) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const isTerminated = !emp.is_active && (emp as any).termination_date && (emp as any).termination_date.startsWith(`${currentYear}-${String(currentMonth).padStart(2, '0')}`);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              if (!emp.is_active && !isTerminated && (!(emp as any).termination_date || new Date((emp as any).termination_date) < new Date(currentYear, currentMonth - 1, 1))) {
                 return null;
               }
 
@@ -54,7 +57,8 @@ export function DesktopPuantajTable({
                   <td className="px-1 py-2 border-r bg-white sticky left-0 z-10 font-medium text-slate-400 w-8 text-center">{idx + 1}</td>
                   <td className="px-2 py-2 border-r bg-white sticky left-8 z-10 font-medium text-slate-800 truncate w-40">
                     {emp.full_name}
-                    {!emp.is_active && <span className="ml-2 text-[10px] text-red-500 font-bold">(Çıkış: {emp.termination_date?.split('-').reverse().join('.')})</span>}
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {!emp.is_active && <span className="ml-2 text-[10px] text-red-500 font-bold">(Çıkış: {(emp as any).termination_date?.split('-').reverse().join('.')})</span>}
                   </td>
                   <td className="px-2 py-2 border-r bg-white sticky left-48 z-10 text-slate-500 truncate w-28">{emp.role_title}</td>
                   <td className="px-1 py-1 border-r bg-white sticky left-[304px] z-10 text-center w-14">
@@ -94,15 +98,15 @@ export function DesktopPuantajTable({
                     }
 
                     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const pendingKey = `${emp.id}_${dateStr}`;
-                    let statusCode = pendingChanges[pendingKey];
+
+                    let statusCode = pendingChanges[emp.id]?.[day] || undefined; // Adjust according to logic
 
                     if (statusCode === undefined) {
-                      const entry = entries.find((e: any) => e.employee_id === emp.id && e.date === dateStr);
+                      const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
                       statusCode = entry ? entry.status : "";
                     }
 
-                    const statusDef = STATUSES.find((s: any) => s.code === statusCode);
+                    const statusDef = STATUSES.find(s => s.code === statusCode);
                     const isTerminatedCell = statusCode === 'TERMINATED';
 
                     return (

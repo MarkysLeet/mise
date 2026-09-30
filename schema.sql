@@ -139,3 +139,32 @@ CREATE POLICY "Enable delete access for users in the same workspace" ON puantaj_
         SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
     )
 );
+-- Create Notes table
+CREATE TABLE IF NOT EXISTS workspace_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID UNIQUE REFERENCES workspaces(id) ON DELETE CASCADE,
+    content TEXT DEFAULT '',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS for Notes
+ALTER TABLE workspace_notes ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for Notes
+CREATE POLICY "Enable read access for users in the same workspace" ON workspace_notes FOR SELECT TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable insert access for users in the same workspace" ON workspace_notes FOR INSERT TO authenticated WITH CHECK (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable update access for users in the same workspace" ON workspace_notes FOR UPDATE TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
