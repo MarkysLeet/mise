@@ -254,16 +254,36 @@ export async function getPuantajEntries(year: number, month: number) {
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-  const { data, error } = await supabase
-    .from("puantaj_entries")
-    .select("*")
-    .eq("workspace_id", profile.workspace_id)
-    .gte("date", startDate)
-    .lte("date", endDate);
+  let allData: PuantajEntry[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
 
-  if (error) throw new Error(error.message);
+  while (hasMore) {
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from("puantaj_entries")
+      .select("*")
+      .eq("workspace_id", profile.workspace_id)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .range(from, to);
 
-  return data as PuantajEntry[];
+    if (error) throw new Error(error.message);
+
+    if (data && data.length > 0) {
+      allData = allData.concat(data as PuantajEntry[]);
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        from += pageSize;
+      }
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
 }
 
 export async function bulkUpsertPuantaj(entries: { employee_id: string; date: string; status: string }[]) {

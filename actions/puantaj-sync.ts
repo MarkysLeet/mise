@@ -163,7 +163,8 @@ export async function importEmployeesFromSheet(year: number, month: number) {
   const existingMap = new Map(existingEmployees?.map(e => [`${e.sicil_no || ''}-${e.full_name}`, e]));
 
   const employeesToUpsert = [];
-  const entriesToInsert = [];
+  const employeesToInsert = [];
+  const validRows = [];
 
   const VALID_STATUSES = new Set(["X", "Hİ", "Üİ", "D", "R", "Yİ", "SZ", "ÜR"]);
 
@@ -209,23 +210,41 @@ export async function importEmployeesFromSheet(year: number, month: number) {
       is_active: is_active
     };
 
-    let empId: string;
-
     if (existingEmp) {
       // Update existing
       employeesToUpsert.push({ ...employeeObj, id: existingEmp.id });
-      empId = existingEmp.id;
     } else {
-      // For new ones, we will generate UUID in supabase or upsert.
-      // Supabase upsert without ID requires a unique constraint, but we might not have one on sicil_no+full_name.
-      // So let's insert new employees first, then get their IDs.
-      const { data: newEmp } = await supabase.from("employees").insert(employeeObj).select().single();
-      empId = newEmp!.id;
-      existingMap.set(key, newEmp!);
+      // Insert new
+      employeesToInsert.push(employeeObj);
     }
 
+    validRows.push({ key, row });
+  }
+
+  // Update existing employees in bulk
+  if (employeesToUpsert.length > 0) {
+    await supabase.from("employees").upsert(employeesToUpsert);
+  }
+
+  // Insert new employees in bulk
+  if (employeesToInsert.length > 0) {
+    const { data: newEmployees } = await supabase.from("employees").insert(employeesToInsert).select();
+    if (newEmployees) {
+      for (const emp of newEmployees) {
+        const key = `${emp.sicil_no || ''}-${emp.full_name}`;
+        existingMap.set(key, emp);
+      }
+    }
+  }
+
+  const entriesToInsert = [];
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  for (const { key, row } of validRows) {
+    const emp = existingMap.get(key);
+    if (!emp) continue;
+
     // Process entries (days 1-31 are indexes 6-36)
-    const daysInMonth = new Date(year, month, 0).getDate();
     for (let i = 0; i < 31; i++) {
       const day = i + 1;
       if (day > daysInMonth) continue;
@@ -237,7 +256,7 @@ export async function importEmployeesFromSheet(year: number, month: number) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         entriesToInsert.push({
           workspace_id: workspace.id,
-          employee_id: empId,
+          employee_id: emp.id,
           date: dateStr,
           status: status
         });
@@ -245,15 +264,8 @@ export async function importEmployeesFromSheet(year: number, month: number) {
     }
   }
 
-  // Update existing employees
-  if (employeesToUpsert.length > 0) {
-    // Upsert works best if we provide ID
-    await supabase.from("employees").upsert(employeesToUpsert);
-  }
-
   // Clear existing entries for this month
   const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
-  const daysInMonth = new Date(year, month, 0).getDate();
   const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
 
   await supabase
@@ -263,17 +275,24 @@ export async function importEmployeesFromSheet(year: number, month: number) {
     .gte("date", startDateStr)
     .lte("date", endDateStr);
 
-  // Insert new entries
+  // Insert new entries in chunks
   if (entriesToInsert.length > 0) {
-    // Split into chunks if there are too many (Supabase limit is usually high, but just in case)
     const chunkSize = 1000;
     for (let i = 0; i < entriesToInsert.length; i += chunkSize) {
       await supabase.from("puantaj_entries").insert(entriesToInsert.slice(i, i + chunkSize));
     }
   }
 
+  // Fetch updated employees and entries for immediate UI update
+  const { getEmployees, getPuantajEntries } = await import('./puantaj');
+
+  // We need to fetch without the auth check from the other file if we are already authenticated here,
+  // but since getEmployees uses createClient which uses the same auth context, it should work fine.
+  const updatedEmployees = await getEmployees();
+  const updatedEntries = await getPuantajEntries(year, month);
+
   revalidatePath("/puantaj");
-  return { success: true, count: seq_no - 1 };
+  return { success: true, count: seq_no - 1, employees: updatedEmployees, entries: updatedEntries };
  } catch (err: any) {
    console.error("importEmployeesFromSheet error:", err);
    return { success: false, error: err.message || "Bir hata oluştu" };
