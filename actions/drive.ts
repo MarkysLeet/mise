@@ -155,11 +155,11 @@ export async function syncDriveItem(
     const existingFile =
       existingRes.data.files && existingRes.data.files.length > 0 ? existingRes.data.files[0] : null;
 
-    if (item.isFolder) {
-      if (existingFile?.id) {
-        return { success: true, destId: existingFile.id };
-      }
+    if (existingFile?.id) {
+      return { success: true, destId: existingFile.id };
+    }
 
+    if (item.isFolder) {
       const newFolder = await drive.files.create({
         requestBody: {
           name: item.name,
@@ -171,10 +171,6 @@ export async function syncDriveItem(
       });
       return { success: true, destId: newFolder.data.id };
     } else {
-      if (existingFile?.id) {
-        return { success: true, destId: existingFile.id };
-      }
-
       const newFile = await drive.files.copy({
         fileId: item.sourceId,
         requestBody: {

@@ -53,26 +53,62 @@ export async function GET(request: NextRequest) {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Create a root folder for the workspace on the user's Drive
+    // Handle workspace root folder to avoid duplicates
+    let folderId = workspace.drive_folder_id;
     const folderName = `Mise - ${workspace.name}`;
+    let isFolderValid = false;
 
-    const folderMetadata = {
-      name: folderName,
-      mimeType: "application/vnd.google-apps.folder",
-    };
+    if (folderId) {
+      try {
+        const checkFolder = await drive.files.get({
+          fileId: folderId,
+          fields: "id, trashed",
+          supportsAllDrives: true,
+        });
+        if (checkFolder.data && !checkFolder.data.trashed) {
+          isFolderValid = true;
+        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        // Folder might be deleted or not found
+        console.warn("Existing folder not valid or accessible:", err.message);
+      }
+    }
 
-    const folder = await drive.files.create({
-      requestBody: folderMetadata,
-      fields: "id",
-      supportsAllDrives: true,
-    });
+    if (!isFolderValid) {
+      // Search root for existing folder by name to prevent duplicates
+      const escapedName = folderName.replace(/'/g, "\\'");
+      const searchRes = await drive.files.list({
+        q: `name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and 'root' in parents and trashed = false`,
+        fields: "files(id)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+      });
 
-    const folderId = folder.data.id;
+      if (searchRes.data.files && searchRes.data.files.length > 0 && searchRes.data.files[0].id) {
+        folderId = searchRes.data.files[0].id;
+      } else {
+        // Create new folder
+        const folderMetadata = {
+          name: folderName,
+          mimeType: "application/vnd.google-apps.folder",
+        };
+
+        const folder = await drive.files.create({
+          requestBody: folderMetadata,
+          fields: "id",
+          supportsAllDrives: true,
+        });
+
+        folderId = folder.data.id;
+      }
+    }
+
     if (!folderId) {
        return NextResponse.redirect(`${origin}/onboarding?error=Klasör oluşturulamadı`);
     }
 
-    // Update database with the refresh token and new folder ID
+    // Update database with the refresh token and (new or existing) folder ID
     // We use the admin client since RLS might not let us update the workspace directly or it's just safer
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

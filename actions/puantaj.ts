@@ -45,6 +45,7 @@ export async function addEmployee(employeeData: {
   role_title: string;
   hire_date: string;
 }) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -75,10 +76,16 @@ export async function addEmployee(employeeData: {
   if (error) throw new Error(error.message);
 
   revalidatePath("/puantaj");
-  return data;
+  return { success: true, data };
+
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ } catch (err: any) {
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
 
 export async function updateEmployee(id: string, employeeData: Partial<Employee>) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -94,10 +101,15 @@ export async function updateEmployee(id: string, employeeData: Partial<Employee>
   if (error) throw new Error(error.message);
 
   revalidatePath("/puantaj");
-  return data;
+  return { success: true, data };
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ } catch (err: any) {
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
 
 export async function terminateEmployee(id: string, terminationDate: string) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -154,7 +166,12 @@ export async function terminateEmployee(id: string, terminationDate: string) {
   }
 
   revalidatePath("/puantaj");
-  return true;
+  return { success: true };
+
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ } catch (err: any) {
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
 
 export async function getPuantajEntries(year: number, month: number) {
@@ -188,6 +205,7 @@ export async function getPuantajEntries(year: number, month: number) {
 }
 
 export async function bulkUpsertPuantaj(entries: { employee_id: string; date: string; status: string }[]) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -230,5 +248,9 @@ export async function bulkUpsertPuantaj(entries: { employee_id: string; date: st
   }
 
   revalidatePath("/puantaj");
-  return true;
+  return { success: true };
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ } catch (err: any) {
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
