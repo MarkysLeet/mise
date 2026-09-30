@@ -298,8 +298,14 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     setIsImporting(true);
     try {
       const res = await importEmployeesFromSheet(currentYear, currentMonth);
-      toast.success(`${res.count} personel başarıyla içe aktarıldı`);
-      router.refresh();
+      if (res.success) {
+        toast.success(`${res.count} personel başarıyla içe aktarıldı`);
+        if (res.employees) setEmployees(res.employees);
+        if (res.entries) setEntries(res.entries);
+        router.refresh();
+      } else {
+        toast.error(res.error || "İçe aktarma hatası");
+      }
     } catch (err: any) {
       toast.error(err.message || "İçe aktarma hatası");
     } finally {
