@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +38,6 @@ const MONTH_NAMES = [
 
 const STATUSES = [
   { code: "X", label: "Çalıştı", color: "bg-blue-100" },
-  { code: "A", label: "Vardiya A", color: "bg-indigo-100" },
-  { code: "B", label: "Vardiya B", color: "bg-indigo-100" },
-  { code: "C", label: "Vardiya C", color: "bg-indigo-100" },
   { code: "Hİ", label: "Hafta İzni", color: "bg-green-100" },
   { code: "Üİ", label: "Ücretsiz İzin", color: "bg-orange-100" },
   { code: "D", label: "Devamsızlık", color: "bg-red-100 text-red-600 font-bold" },
@@ -74,6 +71,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const [pendingChanges, setPendingChanges] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const daysArray = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -90,7 +88,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     router.push(`/puantaj?month=${m}&year=${y}`);
   };
 
-  const handleCellClick = (employeeId: string, day: number) => {
+  const applyBrush = (employeeId: string, day: number) => {
     if (day > daysInMonth) return; // Ignore invalid days
     if (activeBrush === null) return;
 
@@ -102,31 +100,41 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         const tDate = new Date(emp.termination_date);
         const cellDate = new Date(dateStr);
         if (cellDate > tDate) {
-            toast.error("İşten çıkarılan personelin çıkış tarihinden sonraki günleri değiştirilemez.");
             return;
         }
     }
 
     const valueToSet = activeBrush === "ERASER" ? "" : activeBrush;
 
-    setPendingChanges(prev => ({
-      ...prev,
-      [`${employeeId}_${dateStr}`]: valueToSet
-    }));
+    setPendingChanges(prev => {
+      const existingEntry = entries.find(e => e.employee_id === employeeId && e.date === dateStr);
+      const existingStatus = prev[`${employeeId}_${dateStr}`] !== undefined ? prev[`${employeeId}_${dateStr}`] : (existingEntry?.status || "");
+
+      if (existingStatus === valueToSet) return prev;
+
+      return {
+        ...prev,
+        [`${employeeId}_${dateStr}`]: valueToSet
+      };
+    });
 
     // Optimistic UI update
     setEntries(prev => {
-      const existing = prev.filter(e => !(e.employee_id === employeeId && e.date === dateStr));
-      if (valueToSet === "") return existing;
-      return [...existing, { employee_id: employeeId, date: dateStr, status: valueToSet }];
+      const existingEntry = prev.find(e => e.employee_id === employeeId && e.date === dateStr);
+      const existingStatus = existingEntry?.status || "";
+      if (existingStatus === valueToSet) return prev;
+
+      const filtered = prev.filter(e => !(e.employee_id === employeeId && e.date === dateStr));
+      if (valueToSet === "") return filtered;
+      return [...filtered, { employee_id: employeeId, date: dateStr, status: valueToSet }];
     });
   };
 
-  const savePendingChanges = async () => {
-    if (Object.keys(pendingChanges).length === 0) return;
+  const savePendingChanges = useCallback(async (changesToSave = pendingChanges) => {
+    if (Object.keys(changesToSave).length === 0) return;
     setIsSaving(true);
 
-    const changesArray = Object.entries(pendingChanges).map(([key, status]) => {
+    const changesArray = Object.entries(changesToSave).map(([key, status]) => {
       const [employee_id, date] = key.split('_');
       return { employee_id, date, status };
     });
@@ -140,7 +148,25 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [pendingChanges]);
+
+  const pendingChangesRef = useRef(pendingChanges);
+  useEffect(() => {
+    pendingChangesRef.current = pendingChanges;
+  }, [pendingChanges]);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (isMouseDown) {
+        setIsMouseDown(false);
+        if (Object.keys(pendingChangesRef.current).length > 0) {
+           savePendingChanges(pendingChangesRef.current);
+        }
+      }
+    };
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, [isMouseDown, savePendingChanges]);
 
   // Add Employee
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -241,6 +267,44 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     }
   };
 
+  const fillEmptyWithX = async () => {
+    const changes: { [key: string]: string } = {};
+    const newEntries = [...entries];
+
+    employees.forEach(emp => {
+       if (!emp.is_active && (!emp.termination_date || new Date(emp.termination_date) < new Date(currentYear, currentMonth - 1, 1))) {
+           return; // Skipped employee
+       }
+
+       for (let day = 1; day <= daysInMonth; day++) {
+           const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+           if (!emp.is_active && emp.termination_date) {
+               const tDate = new Date(emp.termination_date);
+               const cellDate = new Date(dateStr);
+               if (cellDate > tDate) continue;
+           }
+
+           const existingEntry = newEntries.find(e => e.employee_id === emp.id && e.date === dateStr);
+           if (!existingEntry || existingEntry.status === "") {
+               changes[`${emp.id}_${dateStr}`] = "X";
+               newEntries.push({ employee_id: emp.id, date: dateStr, status: "X" });
+           }
+       }
+    });
+
+    if (Object.keys(changes).length === 0) {
+       toast.info("Doldurulacak boş gün bulunamadı.");
+       return;
+    }
+
+    setPendingChanges(prev => ({ ...prev, ...changes }));
+    setEntries(newEntries);
+
+    // We auto-save to ensure it's persisted immediately
+    savePendingChanges(changes);
+  };
+
   // View Calculation
   const calculateTotals = useCallback((employeeId: string) => {
     const empEntries = entries.filter(e => e.employee_id === employeeId);
@@ -251,7 +315,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       const entryDay = parseInt(entry.date.split('-')[2]);
       if (entryDay > daysInMonth) return;
 
-      if (["X", "A", "B", "C"].includes(entry.status)) work++;
+      if (entry.status === "X") work++;
       else if (entry.status === "Hİ") hi++;
       else if (entry.status === "Üİ") ui++;
       else if (entry.status === "D") d++;
@@ -260,7 +324,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   }, [entries, daysInMonth]);
 
   return (
-    <div className="flex-1 p-6 space-y-6 max-w-full overflow-hidden bg-gray-50/50">
+    <div className="flex-1 w-full px-4 py-4 space-y-4 max-w-full overflow-hidden bg-gray-50/50">
 
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -312,7 +376,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       </div>
 
       {/* Brush Palette */}
-      <div className="flex items-center gap-2 p-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
         <span className="text-sm font-medium text-slate-500 mr-2">Fırça:</span>
         {brushStatuses.map(status => (
           <Button
@@ -334,32 +398,43 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
           <Eraser className="h-4 w-4 mr-1" /> Silici
         </Button>
 
-        {Object.keys(pendingChanges).length > 0 && (
-          <Button size="sm" onClick={savePendingChanges} disabled={isSaving} className="ml-auto bg-green-600 hover:bg-green-700">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Değişiklikleri Kaydet"}
+        <div className="ml-auto flex items-center gap-2">
+          {Object.keys(pendingChanges).length > 0 && (
+            <Button size="sm" onClick={() => savePendingChanges()} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Değişiklikleri Kaydet"}
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            onClick={fillEmptyWithX}
+            variant="secondary"
+            title="Tüm boş günleri 'X' olarak doldur"
+          >
+            Boşlukları &apos;X&apos; Doldur
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Matrix Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
         <div className="overflow-x-auto h-[65vh]">
-          <table className="w-full text-sm text-left border-collapse min-w-max">
+          <table className="w-full text-sm text-left border-collapse table-fixed">
             <thead className="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 z-20">
               <tr>
-                <th className="px-4 py-3 border-b border-r bg-slate-50 sticky left-0 z-30 w-12">No</th>
-                <th className="px-4 py-3 border-b border-r bg-slate-50 sticky left-12 z-30 w-48">Adı Soyadı</th>
-                <th className="px-4 py-3 border-b border-r bg-slate-50 sticky left-60 z-30 w-40">Görevi</th>
-                <th className="px-2 py-3 border-b border-r bg-slate-50 sticky left-[400px] z-30 w-10"></th>
+                <th className="px-1 py-3 border-b border-r bg-slate-50 sticky left-0 z-30 w-8 text-center">No</th>
+                <th className="px-2 py-3 border-b border-r bg-slate-50 sticky left-8 z-30 w-40 truncate">Adı Soyadı</th>
+                <th className="px-2 py-3 border-b border-r bg-slate-50 sticky left-48 z-30 w-28 truncate">Görevi</th>
+                <th className="px-1 py-3 border-b border-r bg-slate-50 sticky left-[304px] z-30 w-14"></th>
                 {daysArray.map(day => (
-                  <th key={day} className={`px-1 py-3 text-center border-b border-r w-8 ${day > daysInMonth ? 'bg-gray-200' : ''}`}>
+                  <th key={day} className={`px-0 py-1.5 text-center text-xs font-medium border-b border-r w-7 min-w-[26px] max-w-[28px] ${day > daysInMonth ? 'bg-gray-200' : ''}`}>
                     {day}
                   </th>
                 ))}
-                <th className="px-2 py-3 text-center border-b border-r bg-blue-50" title="Çalışma">Ç</th>
-                <th className="px-2 py-3 text-center border-b border-r bg-green-50" title="Hafta İzni">Hİ</th>
-                <th className="px-2 py-3 text-center border-b border-r bg-orange-50" title="Ücretsiz İzin">Üİ</th>
-                <th className="px-2 py-3 text-center border-b bg-red-50" title="Devamsızlık">D</th>
+                <th className="px-1 py-3 text-center text-xs border-b border-r bg-blue-50 w-8" title="Çalışma">Ç</th>
+                <th className="px-1 py-3 text-center text-xs border-b border-r bg-green-50 w-8" title="Hafta İzni">Hİ</th>
+                <th className="px-1 py-3 text-center text-xs border-b border-r bg-orange-50 w-8" title="Ücretsiz İzin">Üİ</th>
+                <th className="px-1 py-3 text-center text-xs border-b bg-red-50 w-8" title="Devamsızlık">D</th>
               </tr>
             </thead>
             <tbody>
@@ -373,13 +448,13 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
                 return (
                   <tr key={emp.id} className={`border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
-                    <td className="px-4 py-2 border-r bg-white sticky left-0 z-10 font-medium text-slate-400">{idx + 1}</td>
-                    <td className="px-4 py-2 border-r bg-white sticky left-12 z-10 font-medium text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">
+                    <td className="px-1 py-2 border-r bg-white sticky left-0 z-10 font-medium text-slate-400 w-8 text-center">{idx + 1}</td>
+                    <td className="px-2 py-2 border-r bg-white sticky left-8 z-10 font-medium text-slate-800 truncate w-40">
                       {emp.full_name}
-                      {!emp.is_active && <span className="ml-2 text-xs text-red-500 font-bold">(Çıkış: {emp.termination_date?.split('-').reverse().join('.')})</span>}
+                      {!emp.is_active && <span className="ml-2 text-[10px] text-red-500 font-bold">(Çıkış: {emp.termination_date?.split('-').reverse().join('.')})</span>}
                     </td>
-                    <td className="px-4 py-2 border-r bg-white sticky left-60 z-10 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{emp.role_title}</td>
-                    <td className="px-1 py-1 border-r bg-white sticky left-[400px] z-10 text-center">
+                    <td className="px-2 py-2 border-r bg-white sticky left-48 z-10 text-slate-500 truncate w-28">{emp.role_title}</td>
+                    <td className="px-1 py-1 border-r bg-white sticky left-[304px] z-10 text-center w-14">
                       <div className="flex justify-center gap-1">
                         {emp.is_active && (
                           <Button
@@ -436,17 +511,24 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
                             ${isTerminatedCell ? 'bg-black text-black' : (statusDef?.color || '')}
                             ${activeBrush ? 'hover:ring-2 hover:ring-inset hover:ring-indigo-400' : ''}
                           `}
-                          onClick={() => handleCellClick(emp.id, day)}
+                          onMouseDown={() => {
+                            if (!activeBrush) return;
+                            setIsMouseDown(true);
+                            applyBrush(emp.id, day);
+                          }}
+                          onMouseEnter={() => {
+                            if (isMouseDown) applyBrush(emp.id, day);
+                          }}
                         >
                           {isTerminatedCell ? '' : statusCode}
                         </td>
                       );
                     })}
 
-                    <td className="px-2 py-2 border-r text-center font-semibold bg-blue-50/50">{totals.work > 0 ? totals.work : ''}</td>
-                    <td className="px-2 py-2 border-r text-center font-semibold bg-green-50/50 text-green-700">{totals.hi > 0 ? totals.hi : ''}</td>
-                    <td className="px-2 py-2 border-r text-center font-semibold bg-orange-50/50 text-orange-700">{totals.ui > 0 ? totals.ui : ''}</td>
-                    <td className="px-2 py-2 text-center font-bold bg-red-50/50 text-red-600">{totals.d > 0 ? totals.d : ''}</td>
+                    <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-blue-50/50 w-8">{totals.work > 0 ? totals.work : ''}</td>
+                    <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-green-50/50 text-green-700 w-8">{totals.hi > 0 ? totals.hi : ''}</td>
+                    <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-orange-50/50 text-orange-700 w-8">{totals.ui > 0 ? totals.ui : ''}</td>
+                    <td className="px-1 py-2 text-center text-xs font-bold bg-red-50/50 text-red-600 w-8">{totals.d > 0 ? totals.d : ''}</td>
                   </tr>
                 );
               })}

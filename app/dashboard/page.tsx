@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-8 h-full">
+    <div className="flex flex-col gap-8 h-full max-w-7xl mx-auto p-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4">
         <div>

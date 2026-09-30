@@ -41,7 +41,7 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
   };
 
   return (
-    <div className="flex flex-col gap-8 h-full max-w-4xl mx-auto pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-4xl mx-auto p-8 pb-10">
       {/* Header */}
       <header>
         <div className="flex items-center gap-3">

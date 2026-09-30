@@ -51,7 +51,7 @@ const categories = [
 
 export default function BasePage() {
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
       {/* Header */}
       <header className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
