@@ -227,3 +227,43 @@ export async function completeDriveOnboarding(folderId: string) {
 
   return { success: true };
 }
+
+export async function getGoogleAuthClient() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Kullanıcı oturumu bulunamadı.");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.workspace_id) {
+    throw new Error("Çalışma alanı bulunamadı.");
+  }
+
+  const { data: workspace } = await supabase
+    .from("workspaces")
+    .select("google_refresh_token")
+    .eq("id", profile.workspace_id)
+    .single();
+
+  if (!workspace?.google_refresh_token) {
+    throw new Error("Google Drive bağlantısı bulunamadı. Lütfen hesabınızı bağlayın.");
+  }
+
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: workspace.google_refresh_token,
+  });
+
+  return oauth2Client;
+}

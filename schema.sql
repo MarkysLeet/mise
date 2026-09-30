@@ -62,3 +62,80 @@ CREATE POLICY "Enable insert access for users in the same workspace" ON tutanaks
         SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
     )
 );
+
+-- Drop puantaj_entries and employees tables if they exist
+DROP TABLE IF EXISTS puantaj_entries;
+DROP TABLE IF EXISTS employees;
+
+-- Create Employees table
+CREATE TABLE employees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    seq_no INTEGER NOT NULL,
+    sicil_no TEXT,
+    full_name TEXT NOT NULL,
+    role_title TEXT,
+    hire_date DATE,
+    termination_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create Puantaj Entries table
+CREATE TABLE puantaj_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    employee_id UUID REFERENCES employees(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    status TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(employee_id, date)
+);
+
+-- Enable RLS for Employees and Puantaj Entries
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE puantaj_entries ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for Employees (read/write only for their own workspace_id)
+CREATE POLICY "Enable read access for users in the same workspace" ON employees FOR SELECT TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable insert access for users in the same workspace" ON employees FOR INSERT TO authenticated WITH CHECK (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable update access for users in the same workspace" ON employees FOR UPDATE TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+-- RLS Policies for Puantaj Entries
+CREATE POLICY "Enable read access for users in the same workspace" ON puantaj_entries FOR SELECT TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable insert access for users in the same workspace" ON puantaj_entries FOR INSERT TO authenticated WITH CHECK (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable update access for users in the same workspace" ON puantaj_entries FOR UPDATE TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Enable delete access for users in the same workspace" ON puantaj_entries FOR DELETE TO authenticated USING (
+    workspace_id IN (
+        SELECT workspace_id FROM profiles WHERE profiles.id = auth.uid()
+    )
+);

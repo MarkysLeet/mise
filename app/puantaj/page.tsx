@@ -1,30 +1,39 @@
-import { Clock } from "lucide-react";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Metadata } from "next";
+import { PuantajClient } from "./PuantajClient";
+import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
+import { createClient } from "@/lib/supabase/server";
 
-export default function PuntajPage() {
+export const metadata: Metadata = {
+  title: "Puantaj | Quiet Luxury",
+};
+
+export default async function PuantajPage({
+  searchParams,
+}: {
+  searchParams: { month?: string; year?: string };
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <div>Oturum açmanız gerekiyor.</div>;
+  }
+
+  const date = new Date();
+  const currentMonth = parseInt(searchParams.month || String(date.getMonth() + 1));
+  const currentYear = parseInt(searchParams.year || String(date.getFullYear()));
+
+  const employees = await getEmployees();
+  const entries = await getPuantajEntries(currentYear, currentMonth);
+
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto pb-10">
-      {/* Header */}
-      <header>
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <Clock className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Puntaj (Time Tracking)</h1>
-            <p className="text-muted-foreground mt-1">Manage staff shifts, attendance, and overtime.</p>
-          </div>
-        </div>
-      </header>
-
-      {/* Content Placeholder */}
-      <Card className="border-none shadow-sm rounded-2xl flex-1 flex flex-col items-center justify-center min-h-[400px] bg-card text-center">
-        <Clock className="h-12 w-12 text-muted-foreground/30 mb-4" />
-        <CardTitle className="text-xl font-medium mb-2">Puntaj Module Under Construction</CardTitle>
-        <CardDescription className="max-w-md">
-          This area will contain the timesheet grids and shift management tools. Check back later for updates.
-        </CardDescription>
-      </Card>
+    <div className="flex flex-col min-h-screen">
+      <PuantajClient
+        initialEmployees={employees}
+        initialEntries={entries}
+        currentMonth={currentMonth}
+        currentYear={currentYear}
+      />
     </div>
   );
 }
