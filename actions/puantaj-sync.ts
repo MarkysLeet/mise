@@ -145,34 +145,40 @@ export async function importEmployeesFromSheet(year: number, month: number) {
 
   const sheetTitle = sheetToRead.properties!.title;
 
-  // Read C6:G110
+  // Read B6:AL110
   const response = await sheetsApi.spreadsheets.values.get({
     spreadsheetId,
-    range: `'${sheetTitle}'!C6:G110`,
+    range: `'${sheetTitle}'!B6:AL110`,
   });
 
   const rows = response.data.values || [];
   let seq_no = 1;
-  const employeesToInsert = [];
 
-  // Get existing employees to prevent duplicates
+  // Get existing employees to update or insert
   const { data: existingEmployees } = await supabase
     .from("employees")
-    .select("sicil_no, full_name")
+    .select("*")
     .eq("workspace_id", workspace.id);
 
-  const existingSet = new Set(existingEmployees?.map(e => `${e.sicil_no}-${e.full_name}`));
+  const existingMap = new Map(existingEmployees?.map(e => [`${e.sicil_no || ''}-${e.full_name}`, e]));
+
+  const employeesToUpsert = [];
+  const entriesToInsert = [];
+
+  const VALID_STATUSES = new Set(["X", "Hİ", "Üİ", "D", "R", "Yİ", "SZ", "ÜR"]);
 
   for (const row of rows) {
-    const sicil_no = row[0]?.trim();
-    const full_name = row[1]?.trim();
-    const role_title = row[2]?.trim();
-    const hire_date_raw = row[3]?.trim(); // expected DD.MM.YYYY
+    // Indexes: 0 = No (B), 1 = Sicil (C), 2 = Ad Soyad (D), 3 = Görevi (E), 4 = Giriş (F), 5 = Çıkış (G)
+    const sicil_no = row[1]?.trim() || "";
+    const full_name = row[2]?.trim();
+    const role_title = row[3]?.trim();
+    const hire_date_raw = row[4]?.trim(); // expected DD.MM.YYYY
+    const termination_date_raw = row[5]?.trim(); // expected DD.MM.YYYY
 
     if (!full_name) continue; // Skip empty rows
 
     const key = `${sicil_no}-${full_name}`;
-    if (existingSet.has(key)) continue;
+    const existingEmp = existingMap.get(key);
 
     let hire_date = null;
     if (hire_date_raw) {
@@ -182,28 +188,123 @@ export async function importEmployeesFromSheet(year: number, month: number) {
       }
     }
 
-    employeesToInsert.push({
+    let termination_date = null;
+    let is_active = true;
+    if (termination_date_raw) {
+      const parts = termination_date_raw.split('.');
+      if (parts.length === 3) {
+         termination_date = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
+         is_active = false;
+      }
+    }
+
+    const employeeObj = {
       workspace_id: workspace.id,
       seq_no: seq_no++,
       sicil_no: sicil_no || null,
       full_name,
       role_title: role_title || null,
       hire_date: hire_date,
-      is_active: true
-    });
-    existingSet.add(key);
+      termination_date: termination_date,
+      is_active: is_active
+    };
+
+    let empId: string;
+
+    if (existingEmp) {
+      // Update existing
+      employeesToUpsert.push({ ...employeeObj, id: existingEmp.id });
+      empId = existingEmp.id;
+    } else {
+      // For new ones, we will generate UUID in supabase or upsert.
+      // Supabase upsert without ID requires a unique constraint, but we might not have one on sicil_no+full_name.
+      // So let's insert new employees first, then get their IDs.
+      const { data: newEmp } = await supabase.from("employees").insert(employeeObj).select().single();
+      empId = newEmp!.id;
+      existingMap.set(key, newEmp!);
+    }
+
+    // Process entries (days 1-31 are indexes 6-36)
+    const daysInMonth = new Date(year, month, 0).getDate();
+    for (let i = 0; i < 31; i++) {
+      const day = i + 1;
+      if (day > daysInMonth) continue;
+
+      const colIndex = 6 + i;
+      const status = row[colIndex]?.trim()?.toUpperCase();
+
+      if (status && VALID_STATUSES.has(status)) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        entriesToInsert.push({
+          workspace_id: workspace.id,
+          employee_id: empId,
+          date: dateStr,
+          status: status
+        });
+      }
+    }
   }
 
-  if (employeesToInsert.length > 0) {
-    await supabase.from("employees").insert(employeesToInsert);
+  // Update existing employees
+  if (employeesToUpsert.length > 0) {
+    // Upsert works best if we provide ID
+    await supabase.from("employees").upsert(employeesToUpsert);
+  }
+
+  // Clear existing entries for this month
+  const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  await supabase
+    .from("puantaj_entries")
+    .delete()
+    .eq("workspace_id", workspace.id)
+    .gte("date", startDateStr)
+    .lte("date", endDateStr);
+
+  // Insert new entries
+  if (entriesToInsert.length > 0) {
+    // Split into chunks if there are too many (Supabase limit is usually high, but just in case)
+    const chunkSize = 1000;
+    for (let i = 0; i < entriesToInsert.length; i += chunkSize) {
+      await supabase.from("puantaj_entries").insert(entriesToInsert.slice(i, i + chunkSize));
+    }
   }
 
   revalidatePath("/puantaj");
-  return { success: true, count: employeesToInsert.length };
+  return { success: true, count: seq_no - 1 };
  } catch (err: any) {
    console.error("importEmployeesFromSheet error:", err);
    return { success: false, error: err.message || "Bir hata oluştu" };
  }
+}
+
+export async function getPuantajSpreadsheetId(year: number) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("*")
+      .eq("id", (await supabase.from("profiles").select("workspace_id").eq("id", user.id).single()).data?.workspace_id)
+      .single();
+
+    if (!workspace || !workspace.drive_folder_id) {
+      throw new Error("Workspace not connected to Google Drive");
+    }
+
+    const auth = await getGoogleAuthClient();
+    const drive = google.drive({ version: 'v3', auth });
+
+    const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
+    return { success: true, spreadsheetId: spreadsheet.id };
+  } catch (err: any) {
+    console.error("getPuantajSpreadsheetId error:", err);
+    return { success: false, error: err.message || "Bir hata oluştu" };
+  }
 }
 
 export async function syncPuantajToDrive(year: number, month: number, employees: any[], entries: any[]) {
