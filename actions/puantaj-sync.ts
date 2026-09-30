@@ -339,8 +339,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
         emp.full_name,
         emp.role_title || "",
         formatDate(emp.hire_date),
-        formatDate(emp.termination_date),
-        "" // Spacer for Column G (Çıkış Tarihi) to H (1st Day) is not needed, we will specify range B:AL
+        formatDate(emp.termination_date) // Column G (Çıkış Tarihi)
       ];
 
       // Add days
@@ -353,12 +352,12 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
           row.push(""); // Invalid days for this month
         }
       }
-      employeeDataRows.push(row);
+      employeeDataRows.push(row.slice(0, 37));
     } else {
       // Empty row to clear old data
       const emptyRow = ["", "", "", "", "", ""];
       for(let day=1; day<=31; day++) emptyRow.push("");
-      employeeDataRows.push(emptyRow);
+      employeeDataRows.push(emptyRow.slice(0, 37));
     }
   }
 
