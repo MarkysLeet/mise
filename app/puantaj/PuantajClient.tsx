@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 
 import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee } from "@/actions/puantaj";
-import { importEmployeesFromSheet, syncPuantajToDrive } from "@/actions/puantaj-sync";
+import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -58,6 +58,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const [isImporting, setIsImporting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
+  const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
 
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [newEmployee, setNewEmployee] = useState({ full_name: "", role_title: "", sicil_no: "", hire_date: "" });
@@ -78,6 +79,66 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   // Exclude 'TERMINATED' from the brush palette
   const brushStatuses = STATUSES.filter(s => s.code !== 'TERMINATED');
+
+  // Auto-sync refs
+  const stateRef = useRef({
+    currentYear,
+    currentMonth,
+    employees,
+    entries,
+    hasUnsavedDriveChanges
+  });
+
+  useEffect(() => {
+    stateRef.current = { currentYear, currentMonth, employees, entries, hasUnsavedDriveChanges };
+  }, [currentYear, currentMonth, employees, entries, hasUnsavedDriveChanges]);
+
+  // Debounced auto-sync
+  useEffect(() => {
+    if (!hasUnsavedDriveChanges) return;
+
+    const timer = setTimeout(async () => {
+      // Fire and forget auto-sync
+      const current = stateRef.current;
+      if (current.hasUnsavedDriveChanges) {
+        try {
+          const res = await syncPuantajToDrive(current.currentYear, current.currentMonth, current.employees, current.entries);
+          if (res && res.success) {
+            setHasUnsavedDriveChanges(false);
+            setSyncUrl(res.spreadsheetUrl || null);
+            toast.success("Drive ile otomatik senkronize edildi", { duration: 2000, position: 'bottom-right' });
+          }
+        } catch (e) {
+          console.error("Auto-sync error", e);
+        }
+      }
+    }, 15000); // 15 seconds
+
+    return () => clearTimeout(timer);
+  }, [hasUnsavedDriveChanges, employees, entries]); // Reset timer on any change
+
+  // beforeunload listener for window close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (stateRef.current.hasUnsavedDriveChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // component unmount cleanup for Next.js routing
+  useEffect(() => {
+    return () => {
+      const current = stateRef.current;
+      if (current.hasUnsavedDriveChanges) {
+        // fire and forget sync on unmount
+        syncPuantajToDrive(current.currentYear, current.currentMonth, current.employees, current.entries).catch(console.error);
+      }
+    };
+  }, []);
 
   // Navigate Months
   const changeMonth = (offset: number) => {
@@ -123,6 +184,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       const existingEntry = prev.find(e => e.employee_id === employeeId && e.date === dateStr);
       const existingStatus = existingEntry?.status || "";
       if (existingStatus === valueToSet) return prev;
+
+      setHasUnsavedDriveChanges(true); // Mark as unsaved for drive sync
 
       const filtered = prev.filter(e => !(e.employee_id === employeeId && e.date === dateStr));
       if (valueToSet === "") return filtered;
@@ -177,6 +240,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       setEmployees(prev => [...prev, added]);
       setIsAddEmployeeOpen(false);
       setNewEmployee({ full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+      setHasUnsavedDriveChanges(true);
       toast.success("Personel eklendi");
     } catch (err: any) {
       toast.error(err.message);
@@ -192,6 +256,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
       toast.success("Personel tamamen silindi");
       setIsDeleteOpen(false);
+      setHasUnsavedDriveChanges(true);
 
       router.refresh();
       setTimeout(() => {
@@ -214,6 +279,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       await terminateEmployee(employeeToTerminate.id, terminationDate);
       toast.success("Personel işten çıkarıldı");
       setIsTerminateOpen(false);
+      setHasUnsavedDriveChanges(true);
 
       // We should probably refresh the page to get the correct filled entries from backend
       router.refresh();
@@ -249,7 +315,6 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     }
 
     setIsSyncing(true);
-    setSyncUrl(null);
     try {
       // In a real app we might want to fetch fresh state, but we'll use current state
       const res = await syncPuantajToDrive(currentYear, currentMonth, employees, entries);
@@ -258,12 +323,41 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
          toast.error(res.error || "Senkronizasyon hatası");
       } else {
          setSyncUrl(res.spreadsheetUrl || null);
-         toast.success("Google E-Tablolar ile başarıyla senkronize edildi!");
+         setHasUnsavedDriveChanges(false);
+         toast.success("Drive ile senkronize edildi");
       }
     } catch (err: any) {
       toast.error(err.message || "Senkronizasyon hatası");
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleOpenDrive = async () => {
+    if (syncUrl) {
+      window.open(syncUrl, '_blank');
+      return;
+    }
+
+    // Open blank tab immediately to bypass popup blocker
+    const newWin = window.open('about:blank', '_blank');
+
+    try {
+      const res = await getPuantajSpreadsheetId(currentYear);
+      if (res && res.success && res.spreadsheetId) {
+        const url = `https://docs.google.com/spreadsheets/d/${res.spreadsheetId}/edit`;
+        setSyncUrl(url); // cache it
+        if (newWin) {
+          newWin.location.href = url;
+        }
+      } else {
+        if (newWin) newWin.close();
+        toast.error("Tablo ID'si alınamadı veya tablo henüz oluşturulmadı.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (newWin) newWin.close();
+      toast.error("Bir hata oluştu");
     }
   };
 
@@ -362,16 +456,20 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
             Tablodan İçe Aktar
           </Button>
 
-          <Button onClick={handleSync} disabled={isSyncing} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button onClick={handleSync} disabled={isSyncing} className="bg-indigo-600 hover:bg-indigo-700 text-white relative">
             {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             Google E-Tablolar ile Senkronize Et
+            {hasUnsavedDriveChanges && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+            )}
           </Button>
 
-          {syncUrl && (
-            <Button variant="outline" onClick={() => window.open(syncUrl, '_blank')}>
-              <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Aç
-            </Button>
-          )}
+          <Button variant="outline" onClick={handleOpenDrive}>
+            <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
+          </Button>
         </div>
       </div>
 
