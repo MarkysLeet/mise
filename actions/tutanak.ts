@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
+import { ensureFolderPath } from "@/lib/google-drive";
 
 export async function generateTutanak(formData: FormData) {
   try {
@@ -59,8 +60,11 @@ export async function generateTutanak(formData: FormData) {
       return { error: "Google Master Folder ID yapılandırılmamış." };
     }
 
-    // 4. Find the template file 'Tutanak_Taslak' in the user's workspace drive folder
-    const query = `name='Tutanak_Taslak' and '${workspace.drive_folder_id}' in parents and trashed=false`;
+    // 4. Ensure target folder exists and find the template file
+    const tutanakFolderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Tutanak']);
+
+    // Search for the template file 'Tutanak_Taslak' in the user's Anex/Tutanak folder
+    const query = `name='Tutanak_Taslak' and '${tutanakFolderId}' in parents and trashed=false`;
     const searchResponse = await drive.files.list({
       q: query,
       fields: "files(id, name)",
@@ -70,58 +74,76 @@ export async function generateTutanak(formData: FormData) {
 
     let templateFile = searchResponse.data.files?.[0];
 
-    // Fallback: If not found in the immediate parent, search globally but ensure it traces back to user's workspace
-    // This handles the case where it is in a subfolder like 'Anex/Tutanak/Tutanak_Taslak'
+    // Fallback: If not found in user's Anex/Tutanak folder, copy from master folder
     if (!templateFile || !templateFile.id) {
-      const globalQuery = `name='Tutanak_Taslak' and trashed=false`;
-      const globalSearchResponse = await drive.files.list({
-        q: globalQuery,
-        fields: "files(id, name, parents)",
+      const masterSearchResponse = await drive.files.list({
+        q: `name='Tutanak_Taslak' and trashed=false and '${masterFolderId}' in parents`,
+        fields: "files(id, name)",
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
       });
 
-      const files = globalSearchResponse.data.files;
-      if (files && files.length > 0) {
-        // Find one that traces back to the workspace folder
-        for (const file of files) {
-          if (!file.id) continue;
+      let masterTemplate = masterSearchResponse.data.files?.[0];
 
-          let currentFile = file;
-          let isBelongingToWorkspace = false;
+      // Secondary fallback if it's not directly in the master root but deeper
+      if (!masterTemplate || !masterTemplate.id) {
+         const globalMasterSearchResponse = await drive.files.list({
+           q: `name='Tutanak_Taslak' and trashed=false`,
+           fields: "files(id, name, parents)",
+           supportsAllDrives: true,
+           includeItemsFromAllDrives: true,
+         });
 
-          // Climb up the tree up to 5 levels to prevent infinite loops
-          for (let i = 0; i < 5; i++) {
-            if (!currentFile.parents || currentFile.parents.length === 0) {
-              break;
-            }
-            if (currentFile.parents.includes(workspace.drive_folder_id)) {
-              isBelongingToWorkspace = true;
-              break;
-            }
-            // get parent file to continue climbing
-            try {
-              const parentRes = await drive.files.get({
-                fileId: currentFile.parents[0],
-                fields: "id, parents",
-                supportsAllDrives: true,
-              });
-              currentFile = parentRes.data;
-            } catch {
-              break;
-            }
-          }
+         const files = globalMasterSearchResponse.data.files;
+         if (files && files.length > 0) {
+           for (const file of files) {
+             if (!file.id) continue;
+             let currentFile = file;
+             let isBelongingToMaster = false;
 
-          if (isBelongingToWorkspace) {
-            templateFile = file;
-            break;
-          }
-        }
+             for (let i = 0; i < 5; i++) {
+               if (!currentFile.parents || currentFile.parents.length === 0) break;
+               if (currentFile.parents.includes(masterFolderId)) {
+                 isBelongingToMaster = true;
+                 break;
+               }
+               try {
+                 const parentRes = await drive.files.get({
+                   fileId: currentFile.parents[0],
+                   fields: "id, parents",
+                   supportsAllDrives: true,
+                 });
+                 currentFile = parentRes.data;
+               } catch { break; }
+             }
+
+             if (isBelongingToMaster) {
+               masterTemplate = file;
+               break;
+             }
+           }
+         }
       }
 
-      if (!templateFile || !templateFile.id) {
-        return { error: "Şablon dosyası ('Tutanak_Taslak') kullanıcının klasöründe bulunamadı." };
+      if (!masterTemplate || !masterTemplate.id) {
+        return { error: "Şablon dosyası ('Tutanak_Taslak') kullanıcının klasöründe ve Master klasörde bulunamadı." };
       }
+
+      // Copy from master to user's Anex/Tutanak folder
+      const copyTemplateRes = await drive.files.copy({
+        fileId: masterTemplate.id,
+        requestBody: {
+          name: 'Tutanak_Taslak',
+          parents: [tutanakFolderId],
+        },
+        supportsAllDrives: true,
+      });
+
+      if (!copyTemplateRes.data.id) {
+         return { error: "Şablon dosyası kopyalanamadı." };
+      }
+
+      templateFile = { id: copyTemplateRes.data.id, name: 'Tutanak_Taslak' };
     }
 
     // Form Data Extraction
@@ -146,11 +168,15 @@ export async function generateTutanak(formData: FormData) {
     const safeDate = new Date().toISOString().split('T')[0];
     const newFileName = `Tutanak - ${adSoyad} - ${safeDate}`;
 
+    if (!templateFile.id) {
+       return { error: "Şablon dosyası id'si eksik." };
+    }
+
     const copyResponse = await drive.files.copy({
       fileId: templateFile.id,
       requestBody: {
         name: newFileName,
-        parents: [workspace.drive_folder_id],
+        parents: [tutanakFolderId],
       },
       supportsAllDrives: true,
     });

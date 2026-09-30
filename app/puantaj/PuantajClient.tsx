@@ -200,8 +200,13 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     try {
       // In a real app we might want to fetch fresh state, but we'll use current state
       const res = await syncPuantajToDrive(currentYear, currentMonth, employees, entries);
-      setSyncUrl(res.spreadsheetUrl);
-      toast.success("Google E-Tablolar ile başarıyla senkronize edildi!");
+
+      if (res && !res.success) {
+         toast.error(res.error || "Senkronizasyon hatası");
+      } else {
+         setSyncUrl(res.spreadsheetUrl || null);
+         toast.success("Google E-Tablolar ile başarıyla senkronize edildi!");
+      }
     } catch (err: any) {
       toast.error(err.message || "Senkronizasyon hatası");
     } finally {

@@ -11,11 +11,15 @@ const MONTH_NAMES = [
   "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
 ];
 
-// Helper to find the Puantaj spreadsheet
-async function findPuantajSpreadsheet(drive: any, folderId: string, year: number) {
+import { ensureFolderPath } from "@/lib/google-drive";
+
+// Helper to find or create the Puantaj spreadsheet
+async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, year: number) {
+  const puantajFolderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Puantaj']);
+
   const fileName = `PUANTAJ ${year}`;
   let res = await drive.files.list({
-    q: `'${folderId}' in parents and name = '${fileName}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+    q: `'${puantajFolderId}' in parents and name = '${fileName}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
     spaces: 'drive',
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
@@ -23,9 +27,9 @@ async function findPuantajSpreadsheet(drive: any, folderId: string, year: number
   });
 
   if (!res.data.files || res.data.files.length === 0) {
-    // Fallback search
+    // Fallback search in Puantaj folder
     res = await drive.files.list({
-      q: `'${folderId}' in parents and name contains 'PUANTAJ' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+      q: `'${puantajFolderId}' in parents and name contains 'PUANTAJ' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
       spaces: 'drive',
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
@@ -33,14 +37,78 @@ async function findPuantajSpreadsheet(drive: any, folderId: string, year: number
     });
   }
 
-  if (!res.data.files || res.data.files.length === 0) {
-    throw new Error(`PUANTAJ tablosu bulunamadı (Yıl: ${year})`);
+  // If found in user folder, return it
+  if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
+    return { id: res.data.files[0].id, name: res.data.files[0].name };
   }
 
-  return res.data.files[0];
+  // Fallback (Self-healing): Copy from MASTER_FOLDER_ID
+  const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
+  if (!masterFolderId) {
+    throw new Error("Master Folder yapılandırılmamış, PUANTAJ kopyalanamadı.");
+  }
+
+  const masterSearchRes = await drive.files.list({
+    q: `name contains 'PUANTAJ 2026' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+    spaces: 'drive',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    fields: 'files(id, name, parents)',
+  });
+
+  let masterTemplate = masterSearchRes.data.files?.[0];
+
+  // Double-check if we actually found something from master (checking parents)
+  if (masterSearchRes.data.files && masterSearchRes.data.files.length > 0) {
+    for (const file of masterSearchRes.data.files) {
+      if (!file.id) continue;
+      let currentFile = file;
+      let isBelongingToMaster = false;
+      for (let i = 0; i < 5; i++) {
+        if (!currentFile.parents || currentFile.parents.length === 0) break;
+        if (currentFile.parents.includes(masterFolderId)) {
+          isBelongingToMaster = true;
+          break;
+        }
+        try {
+          const parentRes = await drive.files.get({
+            fileId: currentFile.parents[0],
+            fields: "id, parents",
+            supportsAllDrives: true,
+          });
+          currentFile = parentRes.data;
+        } catch { break; }
+      }
+      if (isBelongingToMaster) {
+        masterTemplate = file;
+        break;
+      }
+    }
+  }
+
+  if (!masterTemplate || !masterTemplate.id) {
+    throw new Error(`Master PUANTAJ şablonu bulunamadı.`);
+  }
+
+  // Copy template to user's Anex/Puantaj folder
+  const copyRes = await drive.files.copy({
+    fileId: masterTemplate.id,
+    requestBody: {
+      name: `PUANTAJ ${year}`,
+      parents: [puantajFolderId],
+    },
+    supportsAllDrives: true,
+  });
+
+  if (!copyRes.data.id) {
+    throw new Error("PUANTAJ kopyalanırken bir hata oluştu.");
+  }
+
+  return { id: copyRes.data.id, name: copyRes.data.name };
 }
 
 export async function importEmployeesFromSheet(year: number, month: number) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
@@ -55,21 +123,10 @@ export async function importEmployeesFromSheet(year: number, month: number) {
     throw new Error("Workspace not connected to Google Drive");
   }
 
-  // Check for 'Puantaj' subfolder
   const auth = await getGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
-  const folderRes = await drive.files.list({
-    q: `'${workspace.drive_folder_id}' in parents and name = 'Puantaj' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-    fields: 'files(id)',
-  });
-
-  const puantajFolderId = folderRes.data.files?.[0]?.id;
-  if (!puantajFolderId) throw new Error("Puantaj klasörü bulunamadı");
-
-  const spreadsheet = await findPuantajSpreadsheet(drive, puantajFolderId, year);
+  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
   const spreadsheetId = spreadsheet.id!;
 
   const sheetsApi = google.sheets({ version: 'v4', auth });
@@ -143,9 +200,14 @@ export async function importEmployeesFromSheet(year: number, month: number) {
 
   revalidatePath("/puantaj");
   return { success: true, count: employeesToInsert.length };
+ } catch (err: any) {
+   console.error("importEmployeesFromSheet error:", err);
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
 
 export async function syncPuantajToDrive(year: number, month: number, employees: any[], entries: any[]) {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
@@ -167,17 +229,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   const auth = await getGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
-  const folderRes = await drive.files.list({
-    q: `'${workspace.drive_folder_id}' in parents and name = 'Puantaj' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-    fields: 'files(id)',
-  });
-
-  const puantajFolderId = folderRes.data.files?.[0]?.id;
-  if (!puantajFolderId) throw new Error("Puantaj klasörü bulunamadı");
-
-  const spreadsheet = await findPuantajSpreadsheet(drive, puantajFolderId, year);
+  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
   const spreadsheetId = spreadsheet.id!;
 
   const sheetsApi = google.sheets({ version: 'v4', auth });
@@ -415,4 +467,8 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   }
 
   return { success: true, spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}` };
+ } catch (err: any) {
+   console.error("syncPuantajToDrive error:", err);
+   return { success: false, error: err.message || "Bir hata oluştu" };
+ }
 }
