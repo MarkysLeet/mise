@@ -12,7 +12,6 @@ import { SyncModal } from "@/components/SyncModal";
 
 export default function SettingsClientPage({ initialWorkspace }: { initialWorkspace: { drive_folder_id?: string } }) {
   const router = useRouter();
-  const [folderId, setFolderId] = useState("");
   const [syncModalOpen, setSyncModalOpen] = useState(false);
 
   const isConnected = !!initialWorkspace?.drive_folder_id;
@@ -23,15 +22,8 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
     ? `${connectedFolderId.substring(0, 4)}••••••••••••••••${connectedFolderId.substring(connectedFolderId.length - 4)}`
     : "";
 
-  const handleConnect = () => {
-    if (!folderId) return;
-    setSyncFolderLink(folderId);
-    setSyncModalOpen(true);
-  };
-
   const handleCheckFolder = () => {
     if (!connectedFolderId) return;
-    setSyncFolderLink(connectedFolderId);
     setSyncModalOpen(true);
   };
 
@@ -125,28 +117,14 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
                 </div>
 
                 <div className="pt-4 border-t border-border/50">
-                  <h4 className="text-sm font-medium mb-3">Klasörü Değiştir</h4>
-                  <div className="space-y-2">
-                    <Label htmlFor="folder-id" className="text-muted-foreground">Yeni Drive Klasör Linki veya ID&apos;si</Label>
-                    <div className="flex gap-3">
-                      <div className="relative flex-1">
-                        <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="folder-id"
-                          placeholder="Örn: 1A2b3C4d5E6f7G8h9I0jKLMNOPQR"
-                          className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                          value={folderId}
-                          onChange={(e) => setFolderId(e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        onClick={handleConnect}
-                        disabled={!folderId}
-                        className="h-11 px-6 rounded-xl shadow-sm"
-                      >
-                        <RefreshCw className="mr-2 h-4 w-4" /> Değiştir
-                      </Button>
-                    </div>
+                  <div className="space-y-4 pt-2">
+                    <p className="text-sm text-muted-foreground">Google hesabınızı yeniden bağlayarak yapılandırmanızı tazeleyebilirsiniz.</p>
+                    <Button
+                      onClick={() => router.push("/api/auth/google")}
+                      className="h-11 px-6 rounded-xl shadow-sm w-full sm:w-auto"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" /> Google Hesabını Yeniden Bağla
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -165,7 +143,6 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
           isOpen={syncModalOpen}
           onOpenChange={setSyncModalOpen}
           onSuccess={() => {
-            setFolderId("");
             router.refresh();
           }}
         />
