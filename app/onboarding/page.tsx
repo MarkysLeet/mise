@@ -1,65 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SyncModal } from "@/components/SyncModal";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
-  const [folderLink, setFolderLink] = useState("");
+  const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!folderLink) return;
-    setIsModalOpen(true);
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      toast.error(error);
+    }
+
+    const sync = searchParams.get("sync");
+    if (sync === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
+
+  function handleConnect() {
+    setIsLoading(true);
+    router.push("/api/auth/google");
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-50/50 p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl">Google Drive Bağlantısı</CardTitle>
-          <CardDescription>
-            Devam etmek için bir Google Drive klasörü oluşturun ve aşağıdaki adımları izleyin.
+      <Card className="w-full max-w-lg border-stone-200 shadow-sm">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-2xl font-semibold tracking-tight text-stone-900">Google Drive Bağlantısı</CardTitle>
+          <CardDescription className="text-stone-500 mt-2">
+            Tutanakların ve operasyonel belgelerin kendi Google Drive hesabınızda otomatik olarak oluşturulması için hesabınızı bağlayın.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="mb-6 space-y-4 rounded-lg bg-secondary/50 p-4 text-sm text-secondary-foreground">
-            <h3 className="font-semibold">Nasıl Yapılır?</h3>
-            <ol className="list-decimal space-y-2 pl-4">
-              <li>Google Drive&apos;da yeni bir klasör oluşturun (örn: &quot;Anex Operasyon - Ön Büro&quot;).</li>
-              <li>Klasöre sağ tıklayıp &quot;Paylaş&quot; seçeneğini seçin.</li>
-              <li>Şu adrese düzenleyici erişimi verin: <br />
-                <code className="mt-1 block rounded bg-background p-1 text-primary">
-                  service@mise-509607.iam.gserviceaccount.com
-                </code>
-              </li>
-              <li>Klasörün linkini kopyalayıp aşağıdaki alana yapıştırın.</li>
-            </ol>
-          </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="folderLink">Klasör Linki (veya ID&apos;si)</Label>
-              <Input 
-                id="folderLink" 
-                name="folderLink" 
-                placeholder="https://drive.google.com/drive/folders/..." 
-                required 
-                value={folderLink}
-                onChange={(e) => setFolderLink(e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" className="w-full">
-              Doğrula ve Bağlan
-            </Button>
-          </form>
+        <CardContent className="pt-6 pb-8 px-8">
+          <Button
+            onClick={handleConnect}
+            disabled={isLoading}
+            className="w-full h-12 text-base font-medium transition-all"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Bağlanıyor...
+              </>
+            ) : (
+              "Google Drive'ı Bağla"
+            )}
+          </Button>
         </CardContent>
       </Card>
 
@@ -67,12 +63,19 @@ export default function OnboardingPage() {
         <SyncModal
           isOpen={isModalOpen}
           onOpenChange={setIsModalOpen}
-          folderLink={folderLink}
           onSuccess={() => {
             router.push("/dashboard");
           }}
         />
       )}
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-stone-50/50"><Loader2 className="h-8 w-8 animate-spin text-stone-500" /></div>}>
+      <OnboardingContent />
+    </Suspense>
   );
 }

@@ -14,7 +14,6 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
   const router = useRouter();
   const [folderId, setFolderId] = useState("");
   const [syncModalOpen, setSyncModalOpen] = useState(false);
-  const [syncFolderLink, setSyncFolderLink] = useState("");
 
   const isConnected = !!initialWorkspace?.drive_folder_id;
   const connectedFolderId = initialWorkspace?.drive_folder_id;
@@ -165,7 +164,6 @@ export default function SettingsClientPage({ initialWorkspace }: { initialWorksp
         <SyncModal
           isOpen={syncModalOpen}
           onOpenChange={setSyncModalOpen}
-          folderLink={syncFolderLink}
           onSuccess={() => {
             setFolderId("");
             router.refresh();

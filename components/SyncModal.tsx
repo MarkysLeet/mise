@@ -30,11 +30,10 @@ export type DriveItem = {
 interface SyncModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  folderLink: string; // URL or ID
   onSuccess?: () => void;
 }
 
-export function SyncModal({ isOpen, onOpenChange, folderLink, onSuccess }: SyncModalProps) {
+export function SyncModal({ isOpen, onOpenChange, onSuccess }: SyncModalProps) {
   const [step, setStep] = useState<"initial" | "access" | "fetching" | "syncing" | "completing" | "success" | "error">("initial");
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +62,7 @@ export function SyncModal({ isOpen, onOpenChange, folderLink, onSuccess }: SyncM
     setError(null);
 
     // Step 1: Check access
-    const accessRes = await checkDriveFolderAccess(folderLink);
+    const accessRes = await checkDriveFolderAccess();
     if (accessRes.error || !accessRes.folderId) {
       setError(accessRes.error || "Klasör erişimi başarısız.");
       setStep("error");
@@ -87,7 +86,7 @@ export function SyncModal({ isOpen, onOpenChange, folderLink, onSuccess }: SyncM
     setFolderMap(prev => ({ ...prev, [structRes.masterFolderId!]: accessRes.folderId! }));
     setCurrentIndex(0);
     setStep("syncing");
-  }, [folderLink]);
+  }, []);
 
 
 

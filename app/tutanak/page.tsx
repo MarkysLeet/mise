@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { generateTutanak } from "@/actions/tutanak";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function TutanakPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successUrl, setSuccessUrl] = useState<string | null>(null);
@@ -27,6 +29,9 @@ export default function TutanakPage() {
 
       if (result.error) {
         setError(result.error);
+        if (result.resetAuth) {
+           router.push("/onboarding?error=Lütfen hesabınızı tekrar bağlayın");
+        }
       } else if (result.success && result.documentUrl) {
         setSuccessUrl(result.documentUrl);
       }
