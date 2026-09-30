@@ -174,6 +174,68 @@ export async function terminateEmployee(id: string, terminationDate: string) {
  }
 }
 
+export async function deleteEmployee(id: string) {
+ try {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.workspace_id) throw new Error("No workspace found");
+
+  const { data: employeeData, error: fetchError } = await supabase
+    .from("employees")
+    .select("seq_no")
+    .eq("id", id)
+    .eq("workspace_id", profile.workspace_id)
+    .single();
+
+  if (fetchError || !employeeData) {
+    throw new Error("Çalışan bulunamadı");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("employees")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", profile.workspace_id);
+
+  if (deleteError) {
+    throw new Error("Çalışan silinemedi");
+  }
+
+  // Fetch all remaining employees in the workspace ordered by seq_no
+  const { data: remainingEmployees, error: fetchRemainingError } = await supabase
+    .from("employees")
+    .select("id, seq_no")
+    .eq("workspace_id", profile.workspace_id)
+    .order("seq_no", { ascending: true });
+
+  if (!fetchRemainingError && remainingEmployees) {
+    // Re-sequence remaining employees
+    for (let i = 0; i < remainingEmployees.length; i++) {
+      if (remainingEmployees[i].seq_no !== i + 1) {
+        await supabase
+          .from("employees")
+          .update({ seq_no: i + 1 })
+          .eq("id", remainingEmployees[i].id);
+      }
+    }
+  }
+
+  revalidatePath("/puantaj");
+  return { success: true };
+ } catch (err: unknown) {
+   return { success: false, error: err instanceof Error ? err.message : "Bir hata oluştu" };
+ }
+}
+
 export async function getPuantajEntries(year: number, month: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

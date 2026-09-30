@@ -21,13 +21,14 @@ import {
   UploadCloud,
   Eraser,
   LogOut,
+  Trash2,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Loader2
 } from "lucide-react";
 
-import { addEmployee, terminateEmployee, bulkUpsertPuantaj } from "@/actions/puantaj";
+import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee } from "@/actions/puantaj";
 import { importEmployeesFromSheet, syncPuantajToDrive } from "@/actions/puantaj-sync";
 
 const MONTH_NAMES = [
@@ -67,6 +68,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const [isTerminateOpen, setIsTerminateOpen] = useState(false);
   const [employeeToTerminate, setEmployeeToTerminate] = useState<any>(null);
   const [terminationDate, setTerminationDate] = useState("");
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
 
   const [pendingChanges, setPendingChanges] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -148,6 +152,29 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       setIsAddEmployeeOpen(false);
       setNewEmployee({ full_name: "", role_title: "", sicil_no: "", hire_date: "" });
       toast.success("Personel eklendi");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  // Delete Employee
+  const handleDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    try {
+      const res = await deleteEmployee(employeeToDelete.id);
+      if (!res?.success) throw new Error(res.error || "Silme işlemi başarısız");
+
+      toast.success("Personel tamamen silindi");
+      setIsDeleteOpen(false);
+
+      router.refresh();
+      setTimeout(() => {
+        setEmployees(prev => {
+          const filtered = prev.filter(emp => emp.id !== employeeToDelete.id);
+          // Re-sequence
+          return filtered.map((emp, index) => ({ ...emp, seq_no: index + 1 }));
+        });
+      }, 500);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -353,20 +380,34 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
                     </td>
                     <td className="px-4 py-2 border-r bg-white sticky left-60 z-10 text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis">{emp.role_title}</td>
                     <td className="px-1 py-1 border-r bg-white sticky left-[400px] z-10 text-center">
-                      {emp.is_active && (
+                      <div className="flex justify-center gap-1">
+                        {emp.is_active && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                            onClick={() => {
+                              setEmployeeToTerminate(emp);
+                              setIsTerminateOpen(true);
+                            }}
+                            title="İş Çıkışı Ver"
+                          >
+                            <LogOut className="h-3 w-3" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="h-6 w-6 text-red-600 hover:text-red-800 hover:bg-red-50"
                           onClick={() => {
-                            setEmployeeToTerminate(emp);
-                            setIsTerminateOpen(true);
+                            setEmployeeToDelete(emp);
+                            setIsDeleteOpen(true);
                           }}
-                          title="İş Çıkışı Ver"
+                          title="Tamamen Sil"
                         >
-                          <LogOut className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
-                      )}
+                      </div>
                     </td>
 
                     {daysArray.map(day => {
@@ -435,6 +476,27 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTerminateOpen(false)}>İptal</Button>
             <Button variant="destructive" onClick={handleTerminateEmployee}>Onayla</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Modal */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Personeli Sil</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-500">
+              <span className="font-semibold text-slate-900">{employeeToDelete?.full_name}</span> adlı personeli ve tüm puantaj kayıtlarını tamamen silmek istediğinize emin misiniz?
+            </p>
+            <p className="text-xs text-red-500 font-medium">
+              Bu işlem geri alınamaz. Eğer personel işten ayrıldıysa, silmek yerine <strong>İş Çıkışı Ver</strong> seçeneğini kullanmalısınız.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>İptal</Button>
+            <Button variant="destructive" onClick={handleDeleteEmployee}>Sil</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
