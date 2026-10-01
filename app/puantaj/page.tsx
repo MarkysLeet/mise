@@ -23,12 +23,13 @@ export default async function PuantajPage({
   const currentMonth = parseInt(searchParams.month || String(date.getMonth() + 1));
   const currentYear = parseInt(searchParams.year || String(date.getFullYear()));
 
-  const employees = await getEmployees();
+  const employees = await getEmployees(currentYear, currentMonth);
   const entries = await getPuantajEntries(currentYear, currentMonth);
 
   return (
     <div className="flex flex-col min-h-screen w-full">
       <PuantajClient
+        key={`${currentYear}-${currentMonth}`}
         initialEmployees={employees}
         initialEntries={entries}
         currentMonth={currentMonth}

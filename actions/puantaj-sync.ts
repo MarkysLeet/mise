@@ -288,7 +288,7 @@ export async function importEmployeesFromSheet(year: number, month: number) {
 
   // We need to fetch without the auth check from the other file if we are already authenticated here,
   // but since getEmployees uses createClient which uses the same auth context, it should work fine.
-  const updatedEmployees = await getEmployees();
+  const updatedEmployees = await getEmployees(year, month);
   const updatedEntries = await getPuantajEntries(year, month);
 
   revalidatePath("/puantaj");

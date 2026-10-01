@@ -425,6 +425,12 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
                if (cellDate > tDate) continue;
            }
 
+           if (emp.hire_date) {
+               const hDate = new Date(emp.hire_date);
+               const cellDate = new Date(dateStr);
+               if (cellDate < hDate) continue;
+           }
+
            const existingEntry = newEntries.find(e => e.employee_id === emp.id && e.date === dateStr);
            if (!existingEntry || existingEntry.status === "") {
                changes[`${emp.id}_${dateStr}`] = "X";

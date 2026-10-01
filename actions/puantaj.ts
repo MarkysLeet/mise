@@ -7,7 +7,7 @@ import { Database } from "@/types/database";
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
 
-export async function getEmployees() {
+export async function getEmployees(year?: number, month?: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,17 +25,34 @@ export async function getEmployees() {
     throw new Error("No workspace found");
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("employees")
     .select("*")
     .eq("workspace_id", profile.workspace_id)
     .order("seq_no", { ascending: true });
 
+  if (year && month) {
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    query = query.or(`termination_date.is.null,termination_date.gte.${startDate}`);
+    query = query.or(`hire_date.is.null,hire_date.lte.${endDate}`);
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     throw new Error(error.message);
   }
 
-  return data as Employee[];
+  // Re-sequence them for display to be 1, 2, 3... without holes
+  const sequencedData = data.map((emp, index) => ({
+    ...emp,
+    seq_no: index + 1
+  }));
+
+  return sequencedData as Employee[];
 }
 
 export async function addEmployee(employeeData: {
