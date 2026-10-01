@@ -116,7 +116,7 @@ export function DesktopPuantajTable({
 
                     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-                    let statusCode = pendingChanges[emp.id]?.[day] || undefined; // Adjust according to logic
+                    let statusCode = pendingChanges[`${emp.id}_${dateStr}`]; // Adjust according to logic
 
                     if (statusCode === undefined) {
                       const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
