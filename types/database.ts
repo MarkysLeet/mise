@@ -175,6 +175,7 @@ export interface Database {
           hotel_group: string | null
           id: string
           is_onboarded: boolean | null
+          initialized_months: string[]
           name: string
         }
         Insert: {
@@ -185,6 +186,7 @@ export interface Database {
           hotel_group?: string | null
           id?: string
           is_onboarded?: boolean | null
+          initialized_months?: string[]
           name: string
         }
         Update: {
@@ -195,6 +197,7 @@ export interface Database {
           hotel_group?: string | null
           id?: string
           is_onboarded?: boolean | null
+          initialized_months?: string[]
           name?: string
         }
         Relationships: []
