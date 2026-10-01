@@ -17,6 +17,8 @@ export interface Database {
           id: string
           is_active: boolean | null
           role_title: string | null
+          phone: string | null
+          department_outlet: string | null
           seq_no: number
           sicil_no: string | null
           termination_date: string | null
@@ -29,6 +31,8 @@ export interface Database {
           id?: string
           is_active?: boolean | null
           role_title?: string | null
+          phone?: string | null
+          department_outlet?: string | null
           seq_no: number
           sicil_no?: string | null
           termination_date?: string | null
@@ -41,6 +45,8 @@ export interface Database {
           id?: string
           is_active?: boolean | null
           role_title?: string | null
+          phone?: string | null
+          department_outlet?: string | null
           seq_no?: number
           sicil_no?: string | null
           termination_date?: string | null

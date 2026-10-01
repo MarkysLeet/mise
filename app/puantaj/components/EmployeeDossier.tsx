@@ -44,15 +44,19 @@ export function EmployeeDossier({ employee, entries, isOpen, onOpenChange, curre
             <h3 className="font-medium text-sm text-slate-900">Kişisel Bilgiler</h3>
             <div className="grid grid-cols-2 gap-4 rounded-xl border bg-stone-50/50 p-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Sicil No</p>
-                <p className="text-sm font-medium">{employee.sicil_no || "-"}</p>
+                <p className="text-xs text-muted-foreground mb-1">Telefon</p>
+                <p className="text-sm font-medium">{employee.phone || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Bölüm / Outlet</p>
+                <p className="text-sm font-medium">{employee.department_outlet || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Giriş Tarihi</p>
                 <p className="text-sm font-medium">{employee.hire_date ? employee.hire_date.split('-').reverse().join('.') : "-"}</p>
               </div>
               {!employee.is_active && (
-                <div className="col-span-2">
+                <div>
                   <p className="text-xs text-muted-foreground mb-1">Çıkış Tarihi</p>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <p className="text-sm font-medium text-red-600">{(employee as any).termination_date ? (employee as any).termination_date.split('-').reverse().join('.') : "-"}</p>

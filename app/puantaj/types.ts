@@ -2,6 +2,8 @@ export interface Employee {
   id: string;
   full_name: string;
   role_title?: string | null;
+  phone?: string | null;
+  department_outlet?: string | null;
   sicil_no?: string | null;
   hire_date?: string | null;
   is_active?: boolean | null;
