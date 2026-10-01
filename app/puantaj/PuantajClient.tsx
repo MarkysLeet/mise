@@ -51,7 +51,7 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [] }: any) {
+export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
 
   const [employees, setEmployees] = useState<any[]>(initialEmployees);
@@ -162,7 +162,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   // Calculate visibility of navigation arrows
   const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);
   const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const hasPrevMonth = initializedMonths.includes(prevMonthKey);
+  const hasPrevMonth = initializedMonths.includes(prevMonthKey) || dbMonths.includes(prevMonthKey);
 
   const currentMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
 
