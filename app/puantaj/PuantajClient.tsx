@@ -56,6 +56,18 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const [employees, setEmployees] = useState<any[]>(initialEmployees);
   const [entries, setEntries] = useState<any[]>(initialEntries);
+
+  // Synchronize local state with props on soft navigation
+  const [prevMonth, setPrevMonth] = useState(currentMonth);
+  const [prevYear, setPrevYear] = useState(currentYear);
+
+  if (prevMonth !== currentMonth || prevYear !== currentYear) {
+    setPrevMonth(currentMonth);
+    setPrevYear(currentYear);
+    setEmployees(initialEmployees);
+    setEntries(initialEntries);
+  }
+
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
   const [isImporting, setIsImporting] = useState(false);

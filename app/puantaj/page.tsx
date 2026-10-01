@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: "Puantaj | Quiet Luxury",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function PuantajPage(props: {
   searchParams: Promise<{ month?: string; year?: string }>;
 }) {
