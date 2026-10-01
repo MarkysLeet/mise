@@ -21,9 +21,7 @@ export interface Status {
 }
 
 export interface PendingChanges {
-  [employeeId: string]: {
-    [day: number]: string;
-  };
+  [key: string]: string;
 }
 
 export interface DesktopPuantajTableProps {

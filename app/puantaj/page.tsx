@@ -29,6 +29,7 @@ export default async function PuantajPage({
   return (
     <div className="flex flex-col min-h-screen w-full">
       <PuantajClient
+        key={`${currentYear}-${currentMonth}`}
         initialEmployees={employees}
         initialEntries={entries}
         currentMonth={currentMonth}
