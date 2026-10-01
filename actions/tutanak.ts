@@ -162,7 +162,7 @@ export async function generateTutanak(formData: FormData) {
     const aciklama = formData.get("aciklama") as string || "";
 
     const hazirlayan = `${profile.first_name} ${profile.last_name}`;
-    const otel = workspace.hotel_group || "Anex Hotels";
+    const otel = workspace.hotel_name || workspace.hotel_group || "Anex Hotels";
 
     // 5. Copy the file to the user's folder
     const safeDate = new Date().toISOString().split('T')[0];

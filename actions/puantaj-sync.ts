@@ -430,7 +430,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   const dataToUpdate = [
     {
       range: `'${monthName}'!B2`,
-      values: [[`Tesis Adı: ${workspace.hotel_group || 'Anex Hotels'}`]]
+      values: [[`Tesis Adı: ${workspace.hotel_name || workspace.hotel_group || 'Anex Hotels'}`]]
     },
     {
       range: `'${monthName}'!B3`,

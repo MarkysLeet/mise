@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS workspaces;
 CREATE TABLE workspaces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL, -- Department Name
+    hotel_name TEXT,
     hotel_group TEXT DEFAULT 'Anex Hotels',
     drive_folder_id TEXT,
     google_refresh_token TEXT,

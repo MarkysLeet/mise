@@ -14,12 +14,13 @@ const supabaseAdmin = createSupabaseClient(
 export async function registerUser(formData: FormData) {
   const firstName = formData.get("firstName") as string;
   const lastName = formData.get("lastName") as string;
+  const hotelName = formData.get("hotelName") as string;
   const hotelGroup = formData.get("hotelGroup") as string;
   const department = formData.get("department") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  if (!firstName || !lastName || !hotelGroup || !department || !email || !password) {
+  if (!firstName || !lastName || !hotelName || !hotelGroup || !department || !email || !password) {
     return { error: "Lütfen tüm alanları doldurun." };
   }
 
@@ -29,7 +30,7 @@ export async function registerUser(formData: FormData) {
   const { data: workspace, error: workspaceError } = await supabaseAdmin
     .from("workspaces")
     .insert([
-      { name: department, hotel_group: hotelGroup, is_onboarded: false }
+      { name: department, hotel_name: hotelName, hotel_group: hotelGroup, is_onboarded: false }
     ])
     .select()
     .single();

@@ -171,6 +171,7 @@ export interface Database {
           created_at: string
           drive_folder_id: string | null
           google_refresh_token: string | null
+          hotel_name: string | null
           hotel_group: string | null
           id: string
           is_onboarded: boolean | null
@@ -180,6 +181,7 @@ export interface Database {
           created_at?: string
           drive_folder_id?: string | null
           google_refresh_token?: string | null
+          hotel_name?: string | null
           hotel_group?: string | null
           id?: string
           is_onboarded?: boolean | null
@@ -189,6 +191,7 @@ export interface Database {
           created_at?: string
           drive_folder_id?: string | null
           google_refresh_token?: string | null
+          hotel_name?: string | null
           hotel_group?: string | null
           id?: string
           is_onboarded?: boolean | null

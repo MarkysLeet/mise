@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, Trash2 } from "lucide-react";
+import { LogOut, Trash2, Edit2 } from "lucide-react";
 import { DesktopPuantajTableProps } from "../types";
 
 export function DesktopPuantajTable({
@@ -17,9 +17,12 @@ export function DesktopPuantajTable({
   setIsTerminateOpen,
   setEmployeeToDelete,
   setIsDeleteOpen,
+  setEmployeeToEdit,
+  setIsEditEmployeeModalOpen,
   setIsMouseDown,
   isMouseDown,
-  applyBrush
+  applyBrush,
+  openDossier
 }: DesktopPuantajTableProps) {
   return (
     <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
@@ -56,13 +59,27 @@ export function DesktopPuantajTable({
                 <tr key={emp.id} className={`border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
                   <td className="px-1 py-2 border-r bg-white sticky left-0 z-10 font-medium text-slate-400 w-8 text-center">{idx + 1}</td>
                   <td className="px-2 py-2 border-r bg-white sticky left-8 z-10 font-medium text-slate-800 truncate w-40">
-                    {emp.full_name}
+                    <button onClick={() => openDossier(emp)} className="hover:underline text-left outline-none focus:ring-1 focus:ring-primary rounded px-1 -ml-1 inline-flex items-center">
+                      {emp.full_name}
+                    </button>
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {!emp.is_active && <span className="ml-2 text-[10px] text-red-500 font-bold">(Çıkış: {(emp as any).termination_date?.split('-').reverse().join('.')})</span>}
                   </td>
                   <td className="px-2 py-2 border-r bg-white sticky left-48 z-10 text-slate-500 truncate w-28">{emp.role_title}</td>
-                  <td className="px-1 py-1 border-r bg-white sticky left-[304px] z-10 text-center w-14">
+                  <td className="px-1 py-1 border-r bg-white sticky left-[304px] z-10 text-center w-20">
                     <div className="flex justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                        onClick={() => {
+                          setEmployeeToEdit(emp);
+                          setIsEditEmployeeModalOpen(true);
+                        }}
+                        title="Düzenle"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
                       {emp.is_active && (
                         <Button
                           variant="ghost"

@@ -3,6 +3,7 @@ export interface Employee {
   full_name: string;
   role_title?: string | null;
   sicil_no?: string | null;
+  hire_date?: string | null;
   is_active?: boolean | null;
   seq_no: number;
 }
@@ -40,9 +41,12 @@ export interface DesktopPuantajTableProps {
   setIsTerminateOpen: (open: boolean) => void;
   setEmployeeToDelete: (employee: Employee | null) => void;
   setIsDeleteOpen: (open: boolean) => void;
+  setEmployeeToEdit: (employee: Employee | null) => void;
+  setIsEditEmployeeModalOpen: (open: boolean) => void;
   setIsMouseDown: (isDown: boolean) => void;
   isMouseDown: boolean;
   applyBrush: (employeeId: string, day: number) => void;
+  openDossier: (employee: Employee) => void;
 }
 
 export interface MobilePuantajDailyProps {
