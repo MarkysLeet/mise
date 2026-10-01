@@ -36,15 +36,17 @@ export async function syncPersonelListToDrive() {
 
     if (!employees) return { success: false, error: "No employees found" };
 
-    // Sort employees by department_outlet, then role_title
-    const sortedEmployees = [...employees].sort((a, b) => {
+    // Sort employees by department_outlet, then role_title (using hierarchy)
+    const { sortEmployees } = await import('@/lib/sort');
+    // First we sort by role/name using our utility
+    const roleSortedEmployees = sortEmployees([...employees]);
+
+    // Then we sort by department (which is stable if the environment supports it, but we can do it explicitly)
+    const finalSortedEmployees = roleSortedEmployees.sort((a, b) => {
       const deptA = a.department_outlet || "";
       const deptB = b.department_outlet || "";
       if (deptA !== deptB) return deptA.localeCompare(deptB, 'tr-TR');
-
-      const roleA = a.role_title || "";
-      const roleB = b.role_title || "";
-      return roleA.localeCompare(roleB, 'tr-TR');
+      return 0; // Keep role/name sort order if same department
     });
 
     const auth = await getGoogleAuthClient();
@@ -97,7 +99,7 @@ export async function syncPersonelListToDrive() {
 
     const header = ["No", "Adı Soyadı", "Görev", "Bölüm", "Telefon", "Giriş Tarihi", "Çıkış Tarihi", "Durum"];
 
-    const rows = sortedEmployees.map((emp, index) => {
+    const rows = finalSortedEmployees.map((emp, index) => {
       let status = "Aktif";
       if (emp.termination_date) {
         const tDate = new Date(emp.termination_date);

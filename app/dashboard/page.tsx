@@ -43,8 +43,6 @@ export default async function DashboardPage() {
     const termDate = new Date(e.termination_date);
     return termDate >= realCurrentMonthStart;
   }) || [];
-  const totalEmployees = employees?.length || 0;
-
   // Fetch current month's puantaj entries
   const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
   const lastDay = new Date(currentYear, currentMonth, 0).getDate();
@@ -165,7 +163,7 @@ export default async function DashboardPage() {
                   <Users className="h-4 w-4" /> Aktif Personel
                 </CardDescription>
                 <CardTitle className="text-3xl font-light text-zinc-900">
-                  {activeEmployees.length}<span className="text-lg text-zinc-400 ml-1">/ {totalEmployees}</span>
+                  {activeEmployees.length}
                 </CardTitle>
               </CardHeader>
             </Card>
