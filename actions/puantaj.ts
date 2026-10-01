@@ -295,19 +295,41 @@ export async function getPuantajEntries(year: number, month: number) {
 
   while (hasMore) {
     const to = from + pageSize - 1;
-    const { data, error } = await supabase
-      .from("puantaj_entries")
-      .select("*")
-      .eq("workspace_id", profile.workspace_id)
-      .gte("date", startDate)
-      .lte("date", endDate)
-      .range(from, to);
 
-    if (error) throw new Error(error.message);
+    let chunkData = null;
+    let retries = 3;
+    let chunkError = null;
 
-    if (data && data.length > 0) {
-      allData = allData.concat(data as PuantajEntry[]);
-      if (data.length < pageSize) {
+    while (retries > 0) {
+      const { data, error } = await supabase
+        .from("puantaj_entries")
+        .select("*")
+        .eq("workspace_id", profile.workspace_id)
+        .gte("date", startDate)
+        .lte("date", endDate)
+        .range(from, to);
+
+      if (error) {
+        chunkError = error;
+        retries--;
+        if (retries > 0) {
+          // exponential backoff
+          await new Promise(res => setTimeout(res, (3 - retries) * 500));
+        }
+      } else {
+        chunkData = data;
+        chunkError = null;
+        break;
+      }
+    }
+
+    if (chunkError) {
+      throw new Error(`Veri alınırken hata oluştu: ${chunkError.message}. Lütfen sayfayı yenileyin.`);
+    }
+
+    if (chunkData && chunkData.length > 0) {
+      allData = allData.concat(chunkData as PuantajEntry[]);
+      if (chunkData.length < pageSize) {
         hasMore = false;
       } else {
         from += pageSize;
