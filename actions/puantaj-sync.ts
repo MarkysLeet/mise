@@ -212,6 +212,10 @@ export async function importEmployeesFromSheet(year: number, month: number) {
 
     if (existingEmp) {
       // Update existing
+      // Preserve hire_date if missing in sheet but present in db
+      if (!employeeObj.hire_date && existingEmp.hire_date) {
+        employeeObj.hire_date = existingEmp.hire_date;
+      }
       employeesToUpsert.push({ ...employeeObj, id: existingEmp.id });
     } else {
       // Insert new
@@ -402,7 +406,12 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
     const termDate = new Date(e.termination_date);
     const syncMonthStart = new Date(year, month - 1, 1);
     return termDate >= syncMonthStart;
+  }).sort((a, b) => {
+    const roleA = a.role_title || "";
+    const roleB = b.role_title || "";
+    return roleA.localeCompare(roleB, 'tr-TR');
   });
+
   const rowsNeeded = activeEmployees.length;
 
   if (rowsNeeded > 105) {
@@ -587,6 +596,56 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
       spreadsheetId,
       requestBody: { requests: formatRequests }
     });
+  }
+
+  // Delete trailing rows dynamically (Cleanup empty dimension rows below the last employee)
+  // Our template has rows going down potentially arbitrarily if we added some.
+  // The sheet metadata's gridProperties.rowCount tells us how many rows total.
+  try {
+    const updatedMeta = await sheetsApi.spreadsheets.get({ spreadsheetId });
+    const sheetInfo = updatedMeta.data.sheets?.find(s => s.properties?.sheetId === sheetId);
+    const totalRows = sheetInfo?.properties?.gridProperties?.rowCount || 0;
+
+    // Always ensure at least 15 extra rows for signatures/spacing at the bottom
+    // We only delete if there are an excessive amount of empty rows at the bottom
+    // Wait, the requirement says "Удалить все лишние строки начиная от (последний индекс сотрудника + смещение шапки) и до конца листа"
+    // It means the table should look perfectly clean without hanging zeros.
+    // However, we should preserve the signature rows at the bottom.
+    // The signatures are at T{112 + Math.max(0, rowsNeeded - 105)}.
+    // In the template, signature row is at index 111 (row 112).
+    // The empty rows that have hanging 0s are between maxRows and the signature row, or maybe we just clear them.
+    // Let's delete exactly the empty employee rows instead of resizing the whole sheet, or just clear them.
+    // Actually, deleteDimension deletes rows. If signatures are below, they will move up.
+    // The prompt says "Нужно удалить все лишние строки начиная от (последний индекс сотрудника + смещение шапки) и до конца листа, чтобы таблица выглядела идеально чисто, без висящих внизу нулей."
+    // Let's calculate the exact range to delete.
+    // Wait, "удалить ... до конца листа" implies deleting rows.
+
+    // In our template, data starts at row 6 (index 5).
+    // maxRows was used to iterate over 105 rows minimum.
+    // Let's delete from index `5 + rowsNeeded` to index `5 + maxRows` or `totalRows` if we want to delete everything.
+    // Wait, the prompt says "deleteDimension... начиная от (последний индекс сотрудника + смещение шапки) и до конца листа".
+
+    if (totalRows > 0 && 5 + rowsNeeded < 110) {
+        // We delete from the first empty employee row up to row 110 (index 110)
+        // This will bring up the signature rows.
+        await sheetsApi.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              deleteDimension: {
+                range: {
+                  sheetId,
+                  dimension: "ROWS",
+                  startIndex: 5 + rowsNeeded,
+                  endIndex: 110
+                }
+              }
+            }]
+          }
+        });
+    }
+  } catch (err) {
+      console.log("Failed to trim empty rows", err);
   }
 
   return { success: true, spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}` };

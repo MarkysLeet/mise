@@ -77,6 +77,8 @@ CREATE TABLE employees (
     sicil_no TEXT,
     full_name TEXT NOT NULL,
     role_title TEXT,
+    phone TEXT,
+    department_outlet TEXT,
     hire_date DATE,
     termination_date DATE,
     is_active BOOLEAN DEFAULT true,

@@ -82,7 +82,8 @@ export async function initializeNewMonth(year: number, month: number) {
         .gte("date", prevStartDate)
         .lte("date", prevEndDate);
 
-    const prevEntriesMap = new Map<string, any[]>();
+    type PrevEntryType = NonNullable<typeof prevEntries>[0];
+    const prevEntriesMap = new Map<string, PrevEntryType[]>();
     if (prevEntries) {
         for (const entry of prevEntries) {
             if (!prevEntriesMap.has(entry.employee_id!)) {
@@ -93,7 +94,7 @@ export async function initializeNewMonth(year: number, month: number) {
     }
 
     // 4. Generate new month entries
-    const entriesToInsert: any[] = [];
+    const entriesToInsert = [];
     const daysInNewMonth = new Date(year, month, 0).getDate();
 
     for (const emp of activeEmployees) {
@@ -171,7 +172,7 @@ export async function initializeNewMonth(year: number, month: number) {
     // Call sync to Drive (Google Sheets)
     try {
         await syncPuantajToDrive(year, month, activeEmployees, entriesToInsert);
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Google Sheets oluşturulurken hata:", err);
         // We don't fail the entire transaction if Drive fails, but maybe we should?
         // Actually we probably want the month to be considered initialized even if Drive fails,
@@ -181,8 +182,8 @@ export async function initializeNewMonth(year: number, month: number) {
     revalidatePath("/puantaj");
     return { success: true };
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("initializeNewMonth error:", err);
-    return { success: false, error: err.message || "Bir hata oluştu" };
+    return { success: false, error: err instanceof Error ? err.message : "Bir hata oluştu" };
   }
 }

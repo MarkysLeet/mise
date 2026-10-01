@@ -36,7 +36,13 @@ export default async function DashboardPage() {
     .select("*")
     .eq("workspace_id", workspace.id);
 
-  const activeEmployees = employees?.filter(e => e.is_active) || [];
+  // Calculate active employees based on real date (1st of current real month)
+  const realCurrentMonthStart = new Date(currentYear, currentMonth - 1, 1);
+  const activeEmployees = employees?.filter(e => {
+    if (!e.termination_date) return true;
+    const termDate = new Date(e.termination_date);
+    return termDate >= realCurrentMonthStart;
+  }) || [];
   const totalEmployees = employees?.length || 0;
 
   // Fetch current month's puantaj entries
@@ -73,8 +79,7 @@ export default async function DashboardPage() {
   }
 
   const todayEntries = allEntries.filter(e => e.date === todayStr);
-  const workedToday = todayEntries.filter(e => e.status === 'X').length;
-  const onLeaveToday = todayEntries.filter(e => ['Hİ', 'Üİ', 'R', 'Yİ'].includes(e.status)).length;
+  const onLeaveToday = todayEntries.filter(e => ['D', 'R', 'Üİ', 'Yİ'].includes(e.status)).length;
 
   // If today isn't fully filled, we can fall back to month stats or just show 0. Let's show today's data as requested.
 
@@ -86,8 +91,6 @@ export default async function DashboardPage() {
     .select("*, profiles(first_name, last_name)")
     .eq("workspace_id", workspace.id)
     .order("created_at", { ascending: false });
-
-  const tutanaksThisMonth = tutanaks?.filter(t => new Date(t.created_at).getMonth() + 1 === currentMonth) || [];
 
   // Prepare recent activity timeline (tutanaks + employees)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -170,16 +173,7 @@ export default async function DashboardPage() {
             <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
               <CardHeader className="pb-2">
                 <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
-                  <Clock className="h-4 w-4" /> Bugün Çalışan
-                </CardDescription>
-                <CardTitle className="text-3xl font-light text-zinc-900">{workedToday}</CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
-              <CardHeader className="pb-2">
-                <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
-                  <CalendarOff className="h-4 w-4" /> İzinli / Raporlu
+                  <CalendarOff className="h-4 w-4" /> Eksik Personel
                 </CardDescription>
                 <CardTitle className="text-3xl font-light text-zinc-900">{onLeaveToday}</CardTitle>
               </CardHeader>
@@ -188,10 +182,10 @@ export default async function DashboardPage() {
             <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
               <CardHeader className="pb-2">
                 <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
-                  <AlertCircle className="h-4 w-4" /> Devamsızlık
+                  <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
                 </CardDescription>
                 <CardTitle className="text-3xl font-light text-zinc-900">
-                  {devamsizlikThisMonth.length}<span className="text-lg text-zinc-400 ml-1">/ {tutanaksThisMonth.length}</span>
+                  <span className="text-[10px] uppercase tracking-wider bg-slate-200 px-2 py-0.5 rounded text-slate-600 align-middle">Yakında</span>
                 </CardTitle>
               </CardHeader>
             </Card>

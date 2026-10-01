@@ -77,7 +77,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [employeeModalMode, setEmployeeModalMode] = useState<"create" | "edit">("create");
-  const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+  const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", phone: "", department_outlet: "", hire_date: "" });
 
   const [isDossierOpen, setIsDossierOpen] = useState(false);
   const [dossierEmployee, setDossierEmployee] = useState<any>(null);
@@ -298,7 +298,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const openCreateEmployeeModal = () => {
     setEmployeeModalMode("create");
-    setEmployeeFormData({ id: "", full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+    setEmployeeFormData({ id: "", full_name: "", role_title: "", phone: "", department_outlet: "", hire_date: "" });
     setIsEmployeeModalOpen(true);
   };
 
@@ -308,7 +308,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       id: emp.id,
       full_name: emp.full_name || "",
       role_title: emp.role_title || "",
-      sicil_no: emp.sicil_no || "",
+      phone: emp.phone || "",
+      department_outlet: emp.department_outlet || "",
       hire_date: emp.hire_date || ""
     });
     setIsEmployeeModalOpen(true);
@@ -332,7 +333,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         const result = await updateEmployee(employeeFormData.id, {
           full_name: employeeFormData.full_name,
           role_title: employeeFormData.role_title,
-          sicil_no: employeeFormData.sicil_no,
+          phone: employeeFormData.phone,
+          department_outlet: employeeFormData.department_outlet,
           hire_date: employeeFormData.hire_date,
         });
         if (!result.success) throw new Error(result.error);
@@ -520,7 +522,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         toast.success("Yeni ay başarıyla oluşturuldu.");
         setIsInitMonthOpen(false);
         // Force full hard navigation to the new month
-        window.location.assign(`/puantaj?month=${initM}&year=${initY}`);
+        router.push(`/puantaj?month=${initM}&year=${initY}`);
+        router.refresh();
       } else {
         toast.error(res.error || "Ay oluşturulurken hata.");
       }
@@ -580,7 +583,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
               <form onSubmit={handleEmployeeSubmit} className="space-y-4">
                 <div><Label>Ad Soyad</Label><Input required value={employeeFormData.full_name} onChange={e => setEmployeeFormData({...employeeFormData, full_name: e.target.value})} /></div>
                 <div><Label>Görevi</Label><Input value={employeeFormData.role_title} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} /></div>
-                <div><Label>Sicil No</Label><Input value={employeeFormData.sicil_no} onChange={e => setEmployeeFormData({...employeeFormData, sicil_no: e.target.value})} /></div>
+                <div><Label>Telefon</Label><Input value={employeeFormData.phone} onChange={e => setEmployeeFormData({...employeeFormData, phone: e.target.value})} /></div>
+                <div><Label>Bölüm / Outlet</Label><Input value={employeeFormData.department_outlet} onChange={e => setEmployeeFormData({...employeeFormData, department_outlet: e.target.value})} /></div>
                 <div><Label>Giriş Tarihi</Label><Input type="date" value={employeeFormData.hire_date} onChange={e => setEmployeeFormData({...employeeFormData, hire_date: e.target.value})} /></div>
                 <Button type="submit" className="w-full">{employeeModalMode === "create" ? "Ekle" : "Kaydet"}</Button>
               </form>

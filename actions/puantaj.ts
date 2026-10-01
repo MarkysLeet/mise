@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Database } from "@/types/database";
+import { syncPersonelListToDrive } from "./personel-sync";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
@@ -57,7 +58,9 @@ export async function getEmployees(year?: number, month?: number) {
 
 export async function addEmployee(employeeData: {
   seq_no: number;
-  sicil_no: string;
+  sicil_no?: string;
+  phone?: string;
+  department_outlet?: string;
   full_name: string;
   role_title: string;
   hire_date: string;
@@ -82,6 +85,8 @@ export async function addEmployee(employeeData: {
       workspace_id: profile.workspace_id,
       seq_no: employeeData.seq_no,
       sicil_no: employeeData.sicil_no || null,
+      phone: employeeData.phone || null,
+      department_outlet: employeeData.department_outlet || null,
       full_name: employeeData.full_name,
       role_title: employeeData.role_title || null,
       hire_date: employeeData.hire_date || null,
@@ -91,6 +96,9 @@ export async function addEmployee(employeeData: {
     .single();
 
   if (error) throw new Error(error.message);
+
+  // Background async sync for Personel Listesi
+  syncPersonelListToDrive().catch(err => console.error("Background syncPersonelListToDrive error:", err));
 
   revalidatePath("/puantaj");
   return { success: true, data };
@@ -116,6 +124,9 @@ export async function updateEmployee(id: string, employeeData: Partial<Employee>
     .single();
 
   if (error) throw new Error(error.message);
+
+  // Background async sync for Personel Listesi
+  syncPersonelListToDrive().catch(err => console.error("Background syncPersonelListToDrive error:", err));
 
   revalidatePath("/puantaj");
   return { success: true, data };
@@ -182,6 +193,9 @@ export async function terminateEmployee(id: string, terminationDate: string) {
     }
   }
 
+  // Background async sync for Personel Listesi
+  syncPersonelListToDrive().catch(err => console.error("Background syncPersonelListToDrive error:", err));
+
   revalidatePath("/puantaj");
   return { success: true };
 
@@ -245,6 +259,9 @@ export async function deleteEmployee(id: string) {
       }
     }
   }
+
+  // Background async sync for Personel Listesi
+  syncPersonelListToDrive().catch(err => console.error("Background syncPersonelListToDrive error:", err));
 
   revalidatePath("/puantaj");
   return { success: true };
