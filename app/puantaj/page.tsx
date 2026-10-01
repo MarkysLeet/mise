@@ -33,23 +33,32 @@ export default async function PuantajPage(props: {
 
   const initializedMonths = workspace?.initialized_months || [];
 
-  const date = new Date();
+  const realDate = new Date();
+  const realMonth = realDate.getMonth() + 1;
+  const realYear = realDate.getFullYear();
+
   const rawMonth = searchParams.month;
   const rawYear = searchParams.year;
 
-  let currentMonth = parseInt(rawMonth || String(date.getMonth() + 1));
-  let currentYear = parseInt(rawYear || String(date.getFullYear()));
+  const currentMonth = parseInt(rawMonth || String(realMonth));
+  const currentYear = parseInt(rawYear || String(realYear));
 
   const requestedMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
 
-  // Redirect logic if accessed without params and current month is not initialized
-  if (!rawMonth && !rawYear && initializedMonths.length > 0 && !initializedMonths.includes(requestedMonthKey)) {
-    // Sort initialized months to find the latest
-    const sortedMonths = [...initializedMonths].sort();
-    const latestMonthKey = sortedMonths[sortedMonths.length - 1]; // format: YYYY-MM
-    const [latestYear, latestMonth] = latestMonthKey.split('-');
+  if (initializedMonths.length > 0) {
+    if (!initializedMonths.includes(requestedMonthKey)) {
+      // Sort initialized months to find the latest
+      const sortedMonths = [...initializedMonths].sort();
+      const latestMonthKey = sortedMonths[sortedMonths.length - 1]; // format: YYYY-MM
+      const [latestYear, latestMonth] = latestMonthKey.split('-');
 
-    redirect(`/puantaj?month=${parseInt(latestMonth)}&year=${parseInt(latestYear)}`);
+      redirect(`/puantaj?month=${parseInt(latestMonth)}&year=${parseInt(latestYear)}`);
+    }
+  } else {
+    // If empty array, force redirect to real current month if they are not already there
+    if (currentMonth !== realMonth || currentYear !== realYear || !rawMonth || !rawYear) {
+      redirect(`/puantaj?month=${realMonth}&year=${realYear}`);
+    }
   }
 
   const employees = await getEmployees(currentYear, currentMonth);
