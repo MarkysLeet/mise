@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -28,10 +27,11 @@ import {
   Loader2
 } from "lucide-react";
 
-import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee } from "@/actions/puantaj";
+import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee, updateEmployee } from "@/actions/puantaj";
 import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
 import { MobilePuantajDaily } from "./components/MobilePuantajDaily";
+import { EmployeeDossier } from "./components/EmployeeDossier";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -62,8 +62,12 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
   const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
 
-  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({ full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [employeeModalMode, setEmployeeModalMode] = useState<"create" | "edit">("create");
+  const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [dossierEmployee, setDossierEmployee] = useState<any>(null);
 
   const [isTerminateOpen, setIsTerminateOpen] = useState(false);
   const [employeeToTerminate, setEmployeeToTerminate] = useState<any>(null);
@@ -233,19 +237,53 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     return () => window.removeEventListener("mouseup", handleMouseUp);
   }, [isMouseDown, savePendingChanges]);
 
-  // Add Employee
-  const handleAddEmployee = async (e: React.FormEvent) => {
+  const openCreateEmployeeModal = () => {
+    setEmployeeModalMode("create");
+    setEmployeeFormData({ id: "", full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+    setIsEmployeeModalOpen(true);
+  };
+
+  const openEditEmployeeModal = (emp: any) => {
+    setEmployeeModalMode("edit");
+    setEmployeeFormData({
+      id: emp.id,
+      full_name: emp.full_name || "",
+      role_title: emp.role_title || "",
+      sicil_no: emp.sicil_no || "",
+      hire_date: emp.hire_date || ""
+    });
+    setIsEmployeeModalOpen(true);
+  };
+
+  const openDossier = (emp: any) => {
+    setDossierEmployee(emp);
+    setIsDossierOpen(true);
+  };
+
+  // Submit Employee Modal
+  const handleEmployeeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const seq_no = employees.length > 0 ? Math.max(...employees.map(emp => emp.seq_no)) + 1 : 1;
-      const added = await addEmployee({ ...newEmployee, seq_no });
-      setEmployees(prev => [...prev, added]);
-      setIsAddEmployeeOpen(false);
-      setNewEmployee({ full_name: "", role_title: "", sicil_no: "", hire_date: "" });
+      if (employeeModalMode === "create") {
+        const seq_no = employees.length > 0 ? Math.max(...employees.map(emp => emp.seq_no)) + 1 : 1;
+        const added = await addEmployee({ ...employeeFormData, seq_no });
+        setEmployees(prev => [...prev, added]);
+        toast.success("Personel eklendi.");
+      } else {
+        const result = await updateEmployee(employeeFormData.id, {
+          full_name: employeeFormData.full_name,
+          role_title: employeeFormData.role_title,
+          sicil_no: employeeFormData.sicil_no,
+          hire_date: employeeFormData.hire_date,
+        });
+        if (!result.success) throw new Error(result.error);
+        setEmployees(prev => prev.map(emp => emp.id === employeeFormData.id ? { ...emp, ...result.data } : emp));
+        toast.success("Personel güncellendi.");
+      }
       setHasUnsavedDriveChanges(true);
-      toast.success("Personel eklendi");
+      setIsEmployeeModalOpen(false);
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || "Personel işlemi başarısız.");
     }
   };
 
@@ -443,18 +481,16 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         </div>
 
         <div className="flex items-center gap-3">
-          <Dialog open={isAddEmployeeOpen} onOpenChange={setIsAddEmployeeOpen}>
-            <DialogTrigger >
-              <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Personel Ekle</Button>
-            </DialogTrigger>
+          <Button variant="outline" onClick={openCreateEmployeeModal}><Plus className="mr-2 h-4 w-4" /> Personel Ekle</Button>
+          <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
             <DialogContent>
-              <DialogHeader><DialogTitle>Personel Ekle</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddEmployee} className="space-y-4">
-                <div><Label>Ad Soyad</Label><Input required value={newEmployee.full_name} onChange={e => setNewEmployee({...newEmployee, full_name: e.target.value})} /></div>
-                <div><Label>Görevi</Label><Input value={newEmployee.role_title} onChange={e => setNewEmployee({...newEmployee, role_title: e.target.value})} /></div>
-                <div><Label>Sicil No</Label><Input value={newEmployee.sicil_no} onChange={e => setNewEmployee({...newEmployee, sicil_no: e.target.value})} /></div>
-                <div><Label>Giriş Tarihi</Label><Input type="date" value={newEmployee.hire_date} onChange={e => setNewEmployee({...newEmployee, hire_date: e.target.value})} /></div>
-                <Button type="submit" className="w-full">Ekle</Button>
+              <DialogHeader><DialogTitle>{employeeModalMode === "create" ? "Personel Ekle" : "Personeli Düzenle"}</DialogTitle></DialogHeader>
+              <form onSubmit={handleEmployeeSubmit} className="space-y-4">
+                <div><Label>Ad Soyad</Label><Input required value={employeeFormData.full_name} onChange={e => setEmployeeFormData({...employeeFormData, full_name: e.target.value})} /></div>
+                <div><Label>Görevi</Label><Input value={employeeFormData.role_title} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} /></div>
+                <div><Label>Sicil No</Label><Input value={employeeFormData.sicil_no} onChange={e => setEmployeeFormData({...employeeFormData, sicil_no: e.target.value})} /></div>
+                <div><Label>Giriş Tarihi</Label><Input type="date" value={employeeFormData.hire_date} onChange={e => setEmployeeFormData({...employeeFormData, hire_date: e.target.value})} /></div>
+                <Button type="submit" className="w-full">{employeeModalMode === "create" ? "Ekle" : "Kaydet"}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -538,9 +574,21 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         setIsTerminateOpen={setIsTerminateOpen}
         setEmployeeToDelete={setEmployeeToDelete}
         setIsDeleteOpen={setIsDeleteOpen}
+        setEmployeeToEdit={openEditEmployeeModal}
+        setIsEditEmployeeModalOpen={setIsEmployeeModalOpen}
         setIsMouseDown={setIsMouseDown}
         isMouseDown={isMouseDown}
         applyBrush={applyBrush}
+        openDossier={openDossier}
+      />
+
+      {/* Employee Dossier */}
+      <EmployeeDossier
+        employee={dossierEmployee}
+        entries={entries}
+        isOpen={isDossierOpen}
+        onOpenChange={setIsDossierOpen}
+        currentMonth={currentMonth}
       />
 
       <MobilePuantajDaily

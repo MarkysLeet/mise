@@ -63,6 +63,11 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="hotelName">Otel Adı</Label>
+              <Input id="hotelName" name="hotelName" placeholder="Mövenpick Resort Antalya Tekirova vb." required disabled={loading} />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="hotelGroup">Otel Grubu</Label>
               <select 
                 id="hotelGroup" 
