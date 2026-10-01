@@ -212,6 +212,10 @@ export async function importEmployeesFromSheet(year: number, month: number) {
 
     if (existingEmp) {
       // Update existing
+      // Preserve hire_date if missing in sheet but present in db
+      if (!employeeObj.hire_date && existingEmp.hire_date) {
+        employeeObj.hire_date = existingEmp.hire_date;
+      }
       employeesToUpsert.push({ ...employeeObj, id: existingEmp.id });
     } else {
       // Insert new
