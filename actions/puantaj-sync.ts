@@ -525,16 +525,19 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
         const colIndex = 7 + (day - 1);
 
         let bgColor = null;
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
         if (day > daysInMonth) {
           bgColor = { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 }; // Gray for non-existent days
+        } else if (emp.termination_date && new Date(dateStr) > new Date(emp.termination_date)) {
+          bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black for days after termination
         } else {
-          const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
 
           if (entry?.status === 'D') {
              bgColor = { red: 1, green: 0, blue: 0, alpha: 1 }; // Red
           } else if (entry?.status === 'TERMINATED') {
-             bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black
+             bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black (fallback)
           }
         }
 

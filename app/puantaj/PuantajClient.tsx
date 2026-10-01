@@ -29,6 +29,7 @@ import {
 
 import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee, updateEmployee } from "@/actions/puantaj";
 import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
+import { initializeNewMonth } from "@/actions/puantaj-init";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
 import { MobilePuantajDaily } from "./components/MobilePuantajDaily";
 import { EmployeeDossier } from "./components/EmployeeDossier";
@@ -50,7 +51,7 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear }: any) {
+export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [] }: any) {
   const router = useRouter();
 
   const [employees, setEmployees] = useState<any[]>(initialEmployees);
@@ -75,6 +76,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<any>(null);
+
+  const [isInitMonthOpen, setIsInitMonthOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const [pendingChanges, setPendingChanges] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -154,6 +158,26 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     if (m > 12) { m = 1; y++; }
     router.push(`/puantaj?month=${m}&year=${y}`);
   };
+
+  // Calculate visibility of navigation arrows
+  const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);
+  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  const hasPrevMonth = initializedMonths.includes(prevMonthKey);
+
+  const nextMonthDate = new Date(currentYear, currentMonth, 1);
+  const nextMonthKey = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  const hasNextMonth = initializedMonths.includes(nextMonthKey);
+
+  const currentMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  const isCurrentMonthInitialized = initializedMonths.includes(currentMonthKey);
+
+  // Logic for the Rollover button
+  // Show it if we are on the latest initialized month and the next month is NOT initialized
+  // AND the next month is actually the current calendar month or earlier (or we just allow it anytime if they want to create the next month)
+  // We'll allow creating the next month if we are currently on the latest initialized month
+  const sortedMonths = [...initializedMonths].sort();
+  const latestMonthKey = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : "";
+  const isLatestMonth = latestMonthKey === currentMonthKey;
 
   const applyBrush = (employeeId: string, day: number) => {
     if (day > daysInMonth) return; // Ignore invalid days
@@ -451,6 +475,25 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     savePendingChanges(changes);
   };
 
+  const handleInitializeMonth = async () => {
+    setIsInitializing(true);
+    try {
+      const res = await initializeNewMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth() + 1);
+      if (res.success) {
+        toast.success("Yeni ay başarıyla oluşturuldu.");
+        setIsInitMonthOpen(false);
+        // Force full hard navigation to the new month
+        window.location.href = `/puantaj?month=${nextMonthDate.getMonth() + 1}&year=${nextMonthDate.getFullYear()}`;
+      } else {
+        toast.error(res.error || "Ay oluşturulurken hata.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Ay oluşturulurken hata.");
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
   // View Calculation
   const calculateTotals = useCallback((employeeId: string) => {
     const empEntries = entries.filter(e => e.employee_id === employeeId);
@@ -475,19 +518,25 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => changeMonth(-1)}>
+          <Button variant="outline" size="icon" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-serif text-slate-800 font-semibold w-48 text-center">
             {MONTH_NAMES[currentMonth - 1]} {currentYear}
           </h1>
-          <Button variant="outline" size="icon" onClick={() => changeMonth(1)}>
+          <Button variant="outline" size="icon" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {isLatestMonth && !hasNextMonth && (
+            <Button onClick={() => setIsInitMonthOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white ml-2">
+              {MONTH_NAMES[nextMonthDate.getMonth()]} Ayını Başlat
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={openCreateEmployeeModal}><Plus className="mr-2 h-4 w-4" /> Personel Ekle</Button>
+          <Button variant="outline" onClick={openCreateEmployeeModal} disabled={!isCurrentMonthInitialized}><Plus className="mr-2 h-4 w-4" /> Personel Ekle</Button>
           <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
             <DialogContent>
               <DialogHeader><DialogTitle>{employeeModalMode === "create" ? "Personel Ekle" : "Personeli Düzenle"}</DialogTitle></DialogHeader>
@@ -501,12 +550,12 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
             </DialogContent>
           </Dialog>
 
-          <Button variant="secondary" onClick={handleImport} disabled={isImporting}>
+          <Button variant="secondary" onClick={handleImport} disabled={isImporting || !isCurrentMonthInitialized}>
             {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
             Tablodan İçe Aktar
           </Button>
 
-          <Button onClick={handleSync} disabled={isSyncing} className="bg-indigo-600 hover:bg-indigo-700 text-white relative">
+          <Button onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized} className="bg-indigo-600 hover:bg-indigo-700 text-white relative">
             {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             Google E-Tablolar ile Senkronize Et
             {hasUnsavedDriveChanges && (
@@ -646,6 +695,33 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>İptal</Button>
             <Button variant="destructive" onClick={handleDeleteEmployee}>Sil</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Init Month Modal */}
+      <Dialog open={isInitMonthOpen} onOpenChange={setIsInitMonthOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{MONTH_NAMES[nextMonthDate.getMonth()]} {nextMonthDate.getFullYear()} Ayını Başlat</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-700">
+              <strong className="font-semibold">{MONTH_NAMES[nextMonthDate.getMonth()]} {nextMonthDate.getFullYear()}</strong> puantajı oluşturulacak.
+            </p>
+            <p className="text-sm text-slate-500">
+              Sistem, personellerin geçmiş aydaki çalışma günlerini analiz ederek <strong>6+1 kuralına göre</strong> (6 gün çalışma, 1 gün izin) tüm ayı otomatik dolduracaktır.
+            </p>
+            <p className="text-sm text-slate-500">
+              Onaylıyor musunuz?
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInitMonthOpen(false)} disabled={isInitializing}>İptal</Button>
+            <Button onClick={handleInitializeMonth} disabled={isInitializing} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {isInitializing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Evet, Başlat
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

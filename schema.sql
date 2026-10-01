@@ -11,6 +11,7 @@ CREATE TABLE workspaces (
     drive_folder_id TEXT,
     google_refresh_token TEXT,
     is_onboarded BOOLEAN DEFAULT false,
+    initialized_months TEXT[] DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
