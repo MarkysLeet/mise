@@ -49,16 +49,20 @@ export async function getEmployees(year?: number, month?: number) {
       throw new Error(error.message);
     }
 
+    const { sortEmployees } = await import('@/lib/sort');
+    const sortedData = sortEmployees(data);
+
     // Re-sequence them for display to be 1, 2, 3... without holes
-    const sequencedData = data.map((emp, index) => ({
+    const sequencedData = sortedData.map((emp, index) => ({
       ...emp,
       seq_no: index + 1
     }));
 
     return sequencedData as Employee[];
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("getEmployees error:", err);
-    throw new Error(err.message || "Personel verileri yüklenirken bir hata oluştu.");
+    const msg = err instanceof Error ? err.message : "Personel verileri yüklenirken bir hata oluştu.";
+    throw new Error(msg);
   }
 }
 
@@ -339,9 +343,10 @@ export async function getPuantajEntries(year: number, month: number) {
     }
 
     return allData;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("getPuantajEntries error:", err);
-    throw new Error(err.message || "Puantaj verileri yüklenirken bir hata oluştu.");
+    const msg = err instanceof Error ? err.message : "Kayıt silinirken bir hata oluştu";
+    throw new Error(msg);
   }
 }
 
