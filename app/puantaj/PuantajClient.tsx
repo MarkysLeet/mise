@@ -558,6 +558,24 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     return { work, hi, ui, d };
   }, [entries, daysInMonth]);
 
+  const requestedMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  const isMonthInitialized = initializedMonths.includes(requestedMonthKey);
+
+  // Sanity check: If month is initialized and we have employees, but completely 0 entries, it's likely a silent fail.
+  if (isMonthInitialized && employees.length > 0 && entries.length === 0) {
+    return (
+      <div className="flex-1 w-full px-4 py-8 flex flex-col items-center justify-center space-y-4 bg-gray-50/50">
+        <h2 className="text-xl font-semibold text-slate-900">Eksik Veri Tespiti</h2>
+        <p className="text-sm text-slate-500 max-w-md text-center">
+          Bu ay için personel listesi yüklendi ancak puantaj kayıtları (tablo verileri) boş geldi. Ağ hatası veya zaman aşımı yaşanmış olabilir.
+        </p>
+        <Button onClick={() => router.refresh()} variant="outline">
+          Sayfayı Yenile ve Tekrar Dene
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 w-full px-4 py-4 space-y-4 max-w-full overflow-hidden bg-gray-50/50">
 
@@ -721,7 +739,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
               <Label>Çıkış Tarihi</Label>
               <Input type="date" value={terminationDate} onChange={e => setTerminationDate(e.target.value)} required />
               <p className="text-xs text-slate-400 mt-2">
-                Bu tarihten sonraki tüm günler &apos;İşten Çıkış (Siyah)&apos; olarak işaretlenecek ve personel sonraki aylarda tabloda görünmeyecektir.
+                Bu tarihten sonraki tüm puantaj kayıtları tamamen silinecek ve personel sonraki aylarda tabloda görünmeyecektir.
               </p>
             </div>
           </div>

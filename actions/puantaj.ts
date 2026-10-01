@@ -4,56 +4,62 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { Database } from "@/types/database";
 import { syncPersonelListToDrive } from "./personel-sync";
+import { syncPuantajToDrive } from "./puantaj-sync";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
 
 export async function getEmployees(year?: number, month?: number) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (!user) {
-    throw new Error("Unauthorized");
+    if (userError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile?.workspace_id) {
+      throw new Error("No workspace found");
+    }
+
+    let query = supabase
+      .from("employees")
+      .select("*")
+      .eq("workspace_id", profile.workspace_id)
+      .order("seq_no", { ascending: true });
+
+    if (year && month) {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+      query = query.or(`termination_date.is.null,termination_date.gte.${startDate}`);
+      query = query.or(`hire_date.is.null,hire_date.lte.${endDate}`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    // Re-sequence them for display to be 1, 2, 3... without holes
+    const sequencedData = data.map((emp, index) => ({
+      ...emp,
+      seq_no: index + 1
+    }));
+
+    return sequencedData as Employee[];
+  } catch (err: any) {
+    console.error("getEmployees error:", err);
+    throw new Error(err.message || "Personel verileri yüklenirken bir hata oluştu.");
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.workspace_id) {
-    throw new Error("No workspace found");
-  }
-
-  let query = supabase
-    .from("employees")
-    .select("*")
-    .eq("workspace_id", profile.workspace_id)
-    .order("seq_no", { ascending: true });
-
-  if (year && month) {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-    query = query.or(`termination_date.is.null,termination_date.gte.${startDate}`);
-    query = query.or(`hire_date.is.null,hire_date.lte.${endDate}`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  // Re-sequence them for display to be 1, 2, 3... without holes
-  const sequencedData = data.map((emp, index) => ({
-    ...emp,
-    seq_no: index + 1
-  }));
-
-  return sequencedData as Employee[];
 }
 
 export async function addEmployee(employeeData: {
@@ -160,41 +166,33 @@ export async function terminateEmployee(id: string, terminationDate: string) {
 
   if (updateError) throw new Error(updateError.message);
 
-  // Fill the rest of the current month with 'TERMINATED' statuses
+  // Delete all puantaj entries strictly AFTER the termination date
+  const { error: deleteError } = await supabase
+    .from("puantaj_entries")
+    .delete()
+    .eq("employee_id", id)
+    .gt("date", terminationDate);
+
+  if (deleteError) {
+    console.error("Failed to delete future termination entries:", deleteError);
+    throw new Error(deleteError.message);
+  }
+
   const termDateObj = new Date(terminationDate);
   const year = termDateObj.getFullYear();
-  const month = termDateObj.getMonth();
-
-  // Calculate days to fill from the day AFTER termination date
-  const startDay = termDateObj.getDate() + 1;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-
-  if (startDay <= lastDay) {
-    const entriesToInsert = [];
-    for (let day = startDay; day <= lastDay; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      entriesToInsert.push({
-        workspace_id: profile.workspace_id,
-        employee_id: id,
-        date: dateStr,
-        status: "TERMINATED"
-      });
-    }
-
-    if (entriesToInsert.length > 0) {
-      // Upsert the terminated statuses
-      const { error: upsertError } = await supabase
-        .from("puantaj_entries")
-        .upsert(entriesToInsert, { onConflict: "employee_id,date" });
-
-      if (upsertError) {
-        console.error("Failed to insert termination entries:", upsertError);
-      }
-    }
-  }
+  const month = termDateObj.getMonth() + 1;
 
   // Background async sync for Personel Listesi
   syncPersonelListToDrive().catch(err => console.error("Background syncPersonelListToDrive error:", err));
+
+  // Sync Puantaj to Drive
+  try {
+    const employees = await getEmployees(year, month);
+    const entries = await getPuantajEntries(year, month);
+    syncPuantajToDrive(year, month, employees, entries).catch(err => console.error("Background syncPuantajToDrive error:", err));
+  } catch (syncErr) {
+    console.error("Failed to fetch data for Puantaj sync:", syncErr);
+  }
 
   revalidatePath("/puantaj");
   return { success: true };
@@ -271,30 +269,31 @@ export async function deleteEmployee(id: string) {
 }
 
 export async function getPuantajEntries(year: number, month: number) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Unauthorized");
+    if (userError || !user) throw new Error("Unauthorized");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
 
-  if (!profile?.workspace_id) throw new Error("No workspace found");
+    if (profileError || !profile?.workspace_id) throw new Error("No workspace found");
 
-  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-  let allData: PuantajEntry[] = [];
-  let from = 0;
-  const pageSize = 1000;
-  let hasMore = true;
+    let allData: PuantajEntry[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-  while (hasMore) {
-    const to = from + pageSize - 1;
+    while (hasMore) {
+      const to = from + pageSize - 1;
 
     let chunkData = null;
     let retries = 3;
@@ -327,19 +326,23 @@ export async function getPuantajEntries(year: number, month: number) {
       throw new Error(`Veri alınırken hata oluştu: ${chunkError.message}. Lütfen sayfayı yenileyin.`);
     }
 
-    if (chunkData && chunkData.length > 0) {
-      allData = allData.concat(chunkData as PuantajEntry[]);
-      if (chunkData.length < pageSize) {
-        hasMore = false;
+      if (chunkData && chunkData.length > 0) {
+        allData = allData.concat(chunkData as PuantajEntry[]);
+        if (chunkData.length < pageSize) {
+          hasMore = false;
+        } else {
+          from += pageSize;
+        }
       } else {
-        from += pageSize;
+        hasMore = false;
       }
-    } else {
-      hasMore = false;
     }
-  }
 
-  return allData;
+    return allData;
+  } catch (err: any) {
+    console.error("getPuantajEntries error:", err);
+    throw new Error(err.message || "Puantaj verileri yüklenirken bir hata oluştu.");
+  }
 }
 
 export async function bulkUpsertPuantaj(entries: { employee_id: string; date: string; status: string }[]) {
