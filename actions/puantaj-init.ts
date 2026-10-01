@@ -155,7 +155,7 @@ export async function initializeNewMonth(year: number, month: number) {
         for (let i = 0; i < entriesToInsert.length; i += chunkSize) {
             const { error: insertError } = await supabase
                 .from("puantaj_entries")
-                .insert(entriesToInsert.slice(i, i + chunkSize));
+                .upsert(entriesToInsert.slice(i, i + chunkSize), { onConflict: 'employee_id, date' });
             if (insertError) throw new Error(insertError.message);
         }
     }

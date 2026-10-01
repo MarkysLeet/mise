@@ -51,11 +51,23 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [] }: any) {
+export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
 
   const [employees, setEmployees] = useState<any[]>(initialEmployees);
   const [entries, setEntries] = useState<any[]>(initialEntries);
+
+  // Synchronize local state with props on soft navigation
+  const [prevMonth, setPrevMonth] = useState(currentMonth);
+  const [prevYear, setPrevYear] = useState(currentYear);
+
+  if (prevMonth !== currentMonth || prevYear !== currentYear) {
+    setPrevMonth(currentMonth);
+    setPrevYear(currentYear);
+    setEmployees(initialEmployees);
+    setEntries(initialEntries);
+  }
+
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
   const [isImporting, setIsImporting] = useState(false);
@@ -162,22 +174,45 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   // Calculate visibility of navigation arrows
   const prevMonthDate = new Date(currentYear, currentMonth - 2, 1);
   const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const hasPrevMonth = initializedMonths.includes(prevMonthKey);
-
-  const nextMonthDate = new Date(currentYear, currentMonth, 1);
-  const nextMonthKey = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const hasNextMonth = initializedMonths.includes(nextMonthKey);
+  const hasPrevMonth = initializedMonths.includes(prevMonthKey) || dbMonths.includes(prevMonthKey);
 
   const currentMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+
+  // To navigate right, the literal next month MUST be in the initialized list.
+  const nextMonthDateInNav = new Date(currentYear, currentMonth, 1);
+  const nextMonthKeyInNav = `${nextMonthDateInNav.getFullYear()}-${String(nextMonthDateInNav.getMonth() + 1).padStart(2, '0')}`;
+  const hasNextMonth = initializedMonths.includes(nextMonthKeyInNav);
+
   const isCurrentMonthInitialized = initializedMonths.includes(currentMonthKey);
 
-  // Logic for the Rollover button
-  // Show it if we are on the latest initialized month and the next month is NOT initialized
-  // AND the next month is actually the current calendar month or earlier (or we just allow it anytime if they want to create the next month)
-  // We'll allow creating the next month if we are currently on the latest initialized month
   const sortedMonths = [...initializedMonths].sort();
   const latestMonthKey = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : "";
   const isLatestMonth = latestMonthKey === currentMonthKey;
+
+  // Logic for the Rollover button (Yeni Ayı Başlat)
+  const realDate = new Date();
+  const realMonth = realDate.getMonth() + 1;
+  const realYear = realDate.getFullYear();
+
+  // We determine what the "next" month to create should be.
+  // If array is empty, it should be the real current month.
+  // If array has items, it should be chronologically the next month after the latest initialized month.
+  let monthToInitializeDate: Date;
+  if (sortedMonths.length === 0) {
+    monthToInitializeDate = new Date(realYear, realMonth - 1, 1);
+  } else {
+    const [lYear, lMonth] = latestMonthKey.split('-');
+    monthToInitializeDate = new Date(parseInt(lYear), parseInt(lMonth), 1);
+  }
+
+  const monthToInitKey = `${monthToInitializeDate.getFullYear()}-${String(monthToInitializeDate.getMonth() + 1).padStart(2, '0')}`;
+
+  // Check if we are allowed to create it based on calendar date restriction (<= current real calendar month + 1)
+  const maxAllowedInitDate = new Date(realYear, realMonth, 1); // Real month + 1
+  const canInitializeNextMonth = monthToInitializeDate <= maxAllowedInitDate;
+
+  // Show "Yeni Ayı Başlat" ONLY if we are at the latest month (or array is empty) AND we are permitted to init
+  const showInitButton = (isLatestMonth || sortedMonths.length === 0) && !initializedMonths.includes(monthToInitKey) && canInitializeNextMonth;
 
   const applyBrush = (employeeId: string, day: number) => {
     if (day > daysInMonth) return; // Ignore invalid days
@@ -478,12 +513,14 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const handleInitializeMonth = async () => {
     setIsInitializing(true);
     try {
-      const res = await initializeNewMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth() + 1);
+      const initY = monthToInitializeDate.getFullYear();
+      const initM = monthToInitializeDate.getMonth() + 1;
+      const res = await initializeNewMonth(initY, initM);
       if (res.success) {
         toast.success("Yeni ay başarıyla oluşturuldu.");
         setIsInitMonthOpen(false);
         // Force full hard navigation to the new month
-        window.location.href = `/puantaj?month=${nextMonthDate.getMonth() + 1}&year=${nextMonthDate.getFullYear()}`;
+        window.location.assign(`/puantaj?month=${initM}&year=${initY}`);
       } else {
         toast.error(res.error || "Ay oluşturulurken hata.");
       }
@@ -528,9 +565,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          {isLatestMonth && !hasNextMonth && (
+          {showInitButton && (
             <Button onClick={() => setIsInitMonthOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white ml-2">
-              {MONTH_NAMES[nextMonthDate.getMonth()]} Ayını Başlat
+              {MONTH_NAMES[monthToInitializeDate.getMonth()]} Ayını Başlat
             </Button>
           )}
         </div>
@@ -703,11 +740,11 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       <Dialog open={isInitMonthOpen} onOpenChange={setIsInitMonthOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{MONTH_NAMES[nextMonthDate.getMonth()]} {nextMonthDate.getFullYear()} Ayını Başlat</DialogTitle>
+            <DialogTitle>{MONTH_NAMES[monthToInitializeDate.getMonth()]} {monthToInitializeDate.getFullYear()} Ayını Başlat</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm text-slate-700">
-              <strong className="font-semibold">{MONTH_NAMES[nextMonthDate.getMonth()]} {nextMonthDate.getFullYear()}</strong> puantajı oluşturulacak.
+              <strong className="font-semibold">{MONTH_NAMES[monthToInitializeDate.getMonth()]} {monthToInitializeDate.getFullYear()}</strong> puantajı oluşturulacak.
             </p>
             <p className="text-sm text-slate-500">
               Sistem, personellerin geçmiş aydaki çalışma günlerini analiz ederek <strong>6+1 kuralına göre</strong> (6 gün çalışma, 1 gün izin) tüm ayı otomatik dolduracaktır.
