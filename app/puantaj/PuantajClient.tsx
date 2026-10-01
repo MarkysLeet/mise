@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,7 @@ const STATUSES = [
 
 export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const [employees, setEmployees] = useState<any[]>(initialEmployees);
   const [entries, setEntries] = useState<any[]>(initialEntries);
@@ -168,7 +169,10 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     let y = currentYear;
     if (m < 1) { m = 12; y--; }
     if (m > 12) { m = 1; y++; }
-    router.push(`/puantaj?month=${m}&year=${y}`);
+
+    startTransition(() => {
+      router.push(`/puantaj?month=${m}&year=${y}`);
+    });
   };
 
   // Calculate visibility of navigation arrows
@@ -522,8 +526,10 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         toast.success("Yeni ay başarıyla oluşturuldu.");
         setIsInitMonthOpen(false);
         // Force full hard navigation to the new month
-        router.push(`/puantaj?month=${initM}&year=${initY}`);
-        router.refresh();
+        startTransition(() => {
+          router.push(`/puantaj?month=${initM}&year=${initY}`);
+          router.refresh();
+        });
       } else {
         toast.error(res.error || "Ay oluşturulurken hata.");
       }
@@ -655,8 +661,14 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       </div>
 
       {/* Matrix Table */}
-      <DesktopPuantajTable
-        employees={employees}
+      <div className={`transition-opacity duration-200 relative ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
+        {isPending && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          </div>
+        )}
+        <DesktopPuantajTable
+          employees={employees}
         entries={entries}
         currentMonth={currentMonth}
         currentYear={currentYear}
@@ -674,9 +686,10 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         setIsEditEmployeeModalOpen={setIsEmployeeModalOpen}
         setIsMouseDown={setIsMouseDown}
         isMouseDown={isMouseDown}
-        applyBrush={applyBrush}
-        openDossier={openDossier}
-      />
+          applyBrush={applyBrush}
+          openDossier={openDossier}
+        />
+      </div>
 
       {/* Employee Dossier */}
       <EmployeeDossier
