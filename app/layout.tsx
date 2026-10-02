@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNavBar } from "@/components/layout/BottomNavBar";
 import { Toaster } from "@/components/ui/sonner";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -30,14 +31,16 @@ export default function RootLayout({
   return (
     <html lang="tr">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground flex h-screen overflow-hidden`}>
-        <Sidebar />
-        <main className="flex-1 h-screen overflow-y-auto bg-stone-50/50 pb-16 md:pb-0">
-          <div className="w-full h-full">
-            {children}
-          </div>
-        </main>
-        <BottomNavBar />
-        <Toaster />
+        <QueryProvider>
+          <Sidebar />
+          <main className="flex-1 h-screen overflow-y-auto bg-stone-50/50 pb-16 md:pb-0">
+            <div className="w-full h-full">
+              {children}
+            </div>
+          </main>
+          <BottomNavBar />
+          <Toaster />
+        </QueryProvider>
       </body>
     </html>
   );
