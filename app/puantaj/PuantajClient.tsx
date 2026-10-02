@@ -670,8 +670,38 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   return (
     <div className="flex-1 w-full px-4 py-4 space-y-4 max-w-full overflow-hidden bg-gray-50/50">
 
+      {/* Mobile Header */}
+      <div className="flex md:hidden w-full items-center justify-between pb-2">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-sm font-serif text-slate-800 font-semibold w-24 text-center leading-tight">
+            {MONTH_NAMES[currentMonth - 1]}<br/>{currentYear}
+          </h1>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {showInitButton && (
+            <Button size="sm" onClick={() => setIsInitMonthOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-3 text-xs">
+              Yeni Ay
+            </Button>
+          )}
+          <Button
+            onClick={openCreateEmployeeModal}
+            disabled={!isCurrentMonthInitialized}
+            className="rounded-full w-10 h-10 p-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md flex items-center justify-center shrink-0"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="hidden md:flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
