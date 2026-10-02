@@ -30,6 +30,8 @@ export interface PendingChanges {
 
 export interface DesktopPuantajTableProps {
   employees: Employee[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  roles: any[];
   entries: Entry[];
   currentMonth: number;
   currentYear: number;

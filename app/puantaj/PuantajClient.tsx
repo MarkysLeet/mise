@@ -66,7 +66,7 @@ const MONTH_NAMES = [
 ];
 
 const STATUSES = [
-  { code: "X", label: "Çalıştı", color: "bg-blue-100" },
+  { code: "X", label: "Çalıştı", color: "bg-transparent text-slate-400" },
   { code: "Hİ", label: "Hafta İzni", color: "bg-green-100" },
   { code: "Üİ", label: "Ücretsiz İzin", color: "bg-orange-100" },
   { code: "D", label: "Devamsızlık", color: "bg-red-100 text-red-600 font-bold" },
@@ -809,6 +809,21 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs">
+        <span className="font-medium text-slate-500">Lejant:</span>
+        <div className="flex flex-wrap gap-3">
+          {STATUSES.filter(s => s.code !== 'TERMINATED').map(status => (
+            <div key={status.code} className="flex items-center gap-1.5">
+              <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${status.color.includes('bg-transparent') ? 'bg-slate-50 border-slate-200 text-slate-400' : status.color + ' border-transparent'}`}>
+                {status.code}
+              </span>
+              <span className="text-slate-600">{status.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Brush Palette */}
       <div className="flex flex-wrap items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
         <span className="text-sm font-medium text-slate-500 mr-2">Fırça:</span>
@@ -859,6 +874,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         )}
         <DesktopPuantajTable
           employees={filteredEmployees}
+          roles={roles}
         entries={entries}
         currentMonth={currentMonth}
         currentYear={currentYear}
