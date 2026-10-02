@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { getEmployees, getPuantajEntries, bulkUpsertPuantaj } from "@/actions/puantaj";
 import { Database } from "@/types/database";
 
@@ -16,6 +16,7 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
     queryFn: () => getEmployees(year, month),
     initialData: initialEmployees,
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   const entriesQuery = useQuery({
@@ -23,6 +24,7 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
     queryFn: () => getPuantajEntries(year, month),
     initialData: initialEntries,
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   const updateEntryMutation = useMutation({

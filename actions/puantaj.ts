@@ -32,7 +32,8 @@ export async function getEmployees(year?: number, month?: number) {
       .from("employees")
       .select("*")
       .eq("workspace_id", profile.workspace_id)
-      .order("seq_no", { ascending: true });
+      .order("seq_no", { ascending: true })
+      .limit(10000);
 
     if (year && month) {
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`;

@@ -35,6 +35,7 @@ import { MobilePuantajDaily } from "./components/MobilePuantajDaily";
 import { EmployeeDossier } from "./components/EmployeeDossier";
 import { usePuantaj } from "./hooks/usePuantaj";
 import { useQueryClient } from "@tanstack/react-query";
+import PuantajLoading from "./loading";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -61,6 +62,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const {
     employees,
     entries,
+    isEmployeesLoading,
+    isEntriesLoading,
     updateEntryAsync,
   } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries);
 
@@ -560,8 +563,14 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const requestedMonthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   const isMonthInitialized = initializedMonths.includes(requestedMonthKey);
 
+  // Show skeleton loader if data is currently hard-loading (e.g. initial fetch without SSR data)
+  if (isEmployeesLoading || isEntriesLoading) {
+    return <PuantajLoading />;
+  }
+
   // Sanity check: If month is initialized and we have employees, but completely 0 entries, it's likely a silent fail.
-  if (isMonthInitialized && employees.length > 0 && entries.length === 0) {
+  // Make sure we only show this error state if we are actually done loading.
+  if (isMonthInitialized && employees.length > 0 && entries.length === 0 && !isEntriesLoading) {
     return (
       <div className="flex-1 w-full px-4 py-8 flex flex-col items-center justify-center space-y-4 bg-gray-50/50">
         <h2 className="text-xl font-semibold text-slate-900">Eksik Veri Tespiti</h2>
