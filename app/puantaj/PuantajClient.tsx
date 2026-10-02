@@ -27,12 +27,14 @@ import {
   Loader2
 } from "lucide-react";
 
-import { addEmployee, terminateEmployee, bulkUpsertPuantaj, deleteEmployee, updateEmployee } from "@/actions/puantaj";
+import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee } from "@/actions/puantaj";
 import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 import { initializeNewMonth } from "@/actions/puantaj-init";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
 import { MobilePuantajDaily } from "./components/MobilePuantajDaily";
 import { EmployeeDossier } from "./components/EmployeeDossier";
+import { usePuantaj } from "./hooks/usePuantaj";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -55,19 +57,12 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [employees, setEmployees] = useState<any[]>(initialEmployees);
-  const [entries, setEntries] = useState<any[]>(initialEntries);
-
-  // Synchronize local state with props on soft navigation
-  const [prevMonth, setPrevMonth] = useState(currentMonth);
-  const [prevYear, setPrevYear] = useState(currentYear);
-
-  if (prevMonth !== currentMonth || prevYear !== currentYear) {
-    setPrevMonth(currentMonth);
-    setPrevYear(currentYear);
-    setEmployees(initialEmployees);
-    setEntries(initialEntries);
-  }
+  const queryClient = useQueryClient();
+  const {
+    employees,
+    entries,
+    updateEntryAsync,
+  } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries);
 
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
@@ -242,23 +237,36 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
       if (existingStatus === valueToSet) return prev;
 
+      setHasUnsavedDriveChanges(true); // Mark as unsaved for drive sync
+
       return {
         ...prev,
         [`${employeeId}_${dateStr}`]: valueToSet
       };
     });
 
-    // Optimistic UI update
-    setEntries(prev => {
-      const existingEntry = prev.find(e => e.employee_id === employeeId && e.date === dateStr);
-      const existingStatus = existingEntry?.status || "";
-      if (existingStatus === valueToSet) return prev;
-
-      setHasUnsavedDriveChanges(true); // Mark as unsaved for drive sync
-
-      const filtered = prev.filter(e => !(e.employee_id === employeeId && e.date === dateStr));
-      if (valueToSet === "") return filtered;
-      return [...filtered, { employee_id: employeeId, date: dateStr, status: valueToSet }];
+    // Instant optimistic query cache update
+    queryClient.setQueryData(["entries", currentYear, currentMonth], (old: any) => {
+      if (!old) return old;
+      let updated = [...old];
+      if (valueToSet === "") {
+        updated = updated.filter(e => !(e.employee_id === employeeId && e.date === dateStr));
+      } else {
+        const existingIndex = updated.findIndex(e => e.employee_id === employeeId && e.date === dateStr);
+        if (existingIndex > -1) {
+          updated[existingIndex] = { ...updated[existingIndex], status: valueToSet };
+        } else {
+          updated.push({
+            id: `temp-${Date.now()}-${Math.random()}`,
+            workspace_id: 'temp',
+            employee_id: employeeId,
+            date: dateStr,
+            status: valueToSet,
+            created_at: new Date().toISOString()
+          });
+        }
+      }
+      return updated;
     });
   };
 
@@ -272,15 +280,19 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     });
 
     try {
-      await bulkUpsertPuantaj(changesArray);
-      toast.success("Değişiklikler kaydedildi");
+      // Clear pending changes optimistically to avoid double-firing or infinite loops
+      // if the save fails and a new timeout fires.
       setPendingChanges({});
+      await updateEntryAsync(changesArray);
+      toast.success("Değişiklikler kaydedildi");
     } catch (err: any) {
+      // Restore pending changes on failure so they can be retried if needed
+      setPendingChanges(changesToSave);
       toast.error(err.message || "Kaydedilirken hata oluştu");
     } finally {
       setIsSaving(false);
     }
-  }, [pendingChanges]);
+  }, [pendingChanges, updateEntryAsync]);
 
   const pendingChangesRef = useRef(pendingChanges);
   useEffect(() => {
@@ -330,8 +342,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
     try {
       if (employeeModalMode === "create") {
         const seq_no = employees.length > 0 ? Math.max(...employees.map(emp => emp.seq_no)) + 1 : 1;
-        const added = await addEmployee({ ...employeeFormData, seq_no });
-        setEmployees(prev => [...prev, added]);
+        await addEmployee({ ...employeeFormData, seq_no });
         toast.success("Personel eklendi.");
       } else {
         const result = await updateEmployee(employeeFormData.id, {
@@ -342,9 +353,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
           hire_date: employeeFormData.hire_date,
         });
         if (!result.success) throw new Error(result.error);
-        setEmployees(prev => prev.map(emp => emp.id === employeeFormData.id ? { ...emp, ...result.data } : emp));
         toast.success("Personel güncellendi.");
       }
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
       setHasUnsavedDriveChanges(true);
       setIsEmployeeModalOpen(false);
     } catch (err: any) {
@@ -362,15 +373,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       toast.success("Personel tamamen silindi");
       setIsDeleteOpen(false);
       setHasUnsavedDriveChanges(true);
-
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
-      setTimeout(() => {
-        setEmployees(prev => {
-          const filtered = prev.filter(emp => emp.id !== employeeToDelete.id);
-          // Re-sequence
-          return filtered.map((emp, index) => ({ ...emp, seq_no: index + 1 }));
-        });
-      }, 500);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -385,14 +390,9 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       toast.success("Personel işten çıkarıldı");
       setIsTerminateOpen(false);
       setHasUnsavedDriveChanges(true);
-
-      // We should probably refresh the page to get the correct filled entries from backend
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
-      // Delay state updates slightly to allow refresh to kick in
-      setTimeout(() => {
-          setEmployees(prev => prev.map(emp => emp.id === employeeToTerminate.id ? { ...emp, is_active: false, termination_date: terminationDate } : emp));
-      }, 500);
-
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -405,8 +405,8 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
       const res = await importEmployeesFromSheet(currentYear, currentMonth);
       if (res.success) {
         toast.success(`${res.count} personel başarıyla içe aktarıldı`);
-        if (res.employees) setEmployees(res.employees);
-        if (res.entries) setEntries(res.entries);
+        queryClient.invalidateQueries({ queryKey: ["employees"] });
+        queryClient.invalidateQueries({ queryKey: ["entries"] });
         router.refresh();
       } else {
         toast.error(res.error || "İçe aktarma hatası");
@@ -474,7 +474,7 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
 
   const fillEmptyWithX = async () => {
     const changes: { [key: string]: string } = {};
-    const newEntries = [...entries];
+    const changesArray: { employee_id: string, date: string, status: string }[] = [];
 
     employees.forEach(emp => {
        if (!emp.is_active && (!emp.termination_date || new Date(emp.termination_date) < new Date(currentYear, currentMonth - 1, 1))) {
@@ -496,21 +496,20 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
                if (cellDate < hDate) continue;
            }
 
-           const existingEntry = newEntries.find(e => e.employee_id === emp.id && e.date === dateStr);
+           const existingEntry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
            if (!existingEntry || existingEntry.status === "") {
                changes[`${emp.id}_${dateStr}`] = "X";
-               newEntries.push({ employee_id: emp.id, date: dateStr, status: "X" });
+               changesArray.push({ employee_id: emp.id, date: dateStr, status: "X" });
            }
        }
     });
 
-    if (Object.keys(changes).length === 0) {
+    if (changesArray.length === 0) {
        toast.info("Doldurulacak boş gün bulunamadı.");
        return;
     }
 
     setPendingChanges(prev => ({ ...prev, ...changes }));
-    setEntries(newEntries);
 
     // We auto-save to ensure it's persisted immediately
     savePendingChanges(changes);
