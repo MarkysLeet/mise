@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -78,6 +93,35 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(searchParams.get("empId") || null);
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(searchParams.get("role") || "Tümü");
+
+  const updateFiltersInUrl = (newEmpId: string | null, newRole: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (newEmpId) params.set("empId", newEmpId);
+    else params.delete("empId");
+
+    if (newRole && newRole !== "Tümü") params.set("role", newRole);
+    else params.delete("role");
+
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSelectEmployee = (empId: string | null) => {
+    setSelectedEmployeeId(empId);
+    updateFiltersInUrl(empId, selectedRoleFilter);
+  };
+
+  const handleSelectRole = (role: string) => {
+    setSelectedRoleFilter(role);
+    updateFiltersInUrl(selectedEmployeeId, role);
+  };
+
   const [isImporting, setIsImporting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
@@ -106,6 +150,16 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const daysArray = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  const roleFilteredEmployees = employees.filter(emp => {
+    if (selectedRoleFilter !== "Tümü" && emp.role_title !== selectedRoleFilter) return false;
+    return true;
+  });
+
+  const filteredEmployees = roleFilteredEmployees.filter(emp => {
+    if (selectedEmployeeId && emp.id !== selectedEmployeeId) return false;
+    return true;
+  });
 
   // Exclude 'TERMINATED' from the brush palette
   const brushStatuses = STATUSES.filter(s => s.code !== 'TERMINATED');
@@ -178,7 +232,10 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     if (m > 12) { m = 1; y++; }
 
     startTransition(() => {
-      router.push(`/puantaj?month=${m}&year=${y}`);
+      const params = new URLSearchParams(searchParams);
+      params.set("month", m.toString());
+      params.set("year", y.toString());
+      router.push(`${pathname}?${params.toString()}`);
     });
   };
 
@@ -622,6 +679,64 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               {MONTH_NAMES[monthToInitializeDate.getMonth()]} Ayını Başlat
             </Button>
           )}
+
+          <div className="hidden md:flex items-center gap-2 ml-4">
+            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+              <PopoverTrigger render={
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isComboboxOpen}
+                  className="w-[200px] justify-between"
+                >
+                  {selectedEmployeeId
+                    ? employees.find((emp) => emp.id === selectedEmployeeId)?.full_name
+                    : "Personel ara..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              } />
+              <PopoverContent className="w-[200px] p-0">
+                <Command>
+                  <CommandInput placeholder="İsim ile ara..." value={searchQuery} onValueChange={setSearchQuery} />
+                  <CommandList>
+                    <CommandEmpty>Personel bulunamadı.</CommandEmpty>
+                    <CommandGroup>
+                      {roleFilteredEmployees.map((emp) => (
+                        <CommandItem
+                          key={emp.id}
+                          value={emp.full_name}
+                          onSelect={() => {
+                            handleSelectEmployee(emp.id === selectedEmployeeId ? null : emp.id);
+                            setIsComboboxOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedEmployeeId === emp.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {emp.full_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            <Select value={selectedRoleFilter} onValueChange={(val) => handleSelectRole(val || "Tümü")}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Görev seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Tümü">Tümü (Tüm Görevler)</SelectItem>
+                {roles?.map((role: any) => (
+                  <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -743,7 +858,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           </div>
         )}
         <DesktopPuantajTable
-          employees={employees}
+          employees={filteredEmployees}
         entries={entries}
         currentMonth={currentMonth}
         currentYear={currentYear}
