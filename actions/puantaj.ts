@@ -311,6 +311,8 @@ export async function getPuantajEntries(year: number, month: number) {
         .eq("workspace_id", profile.workspace_id)
         .gte("date", startDate)
         .lte("date", endDate)
+        .order("employee_id")
+        .order("date")
         .range(from, to);
 
       if (error) {

@@ -93,7 +93,7 @@ CREATE TABLE puantaj_entries (
     date DATE NOT NULL,
     status TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(employee_id, date)
+    CONSTRAINT puantaj_entries_emp_date_unique UNIQUE(employee_id, date)
 );
 
 -- Enable RLS for Employees and Puantaj Entries
