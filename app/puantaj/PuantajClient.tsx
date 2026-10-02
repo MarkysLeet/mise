@@ -682,9 +682,15 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-sm font-serif text-slate-800 font-semibold w-24 text-center leading-tight">
-            {MONTH_NAMES[currentMonth - 1]}<br/>{currentYear}
-          </h1>
+          <div className="flex flex-col items-center justify-center">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <img src="/logo.svg" alt="Mise Logo" className="h-4 w-4" />
+              <span className="text-sm font-serif text-slate-800 font-bold">Mise</span>
+            </div>
+            <h1 className="text-xs text-slate-600 font-medium w-24 text-center leading-tight">
+              {MONTH_NAMES[currentMonth - 1]} {currentYear}
+            </h1>
+          </div>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -812,7 +818,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
-                <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive'da Aç
+                <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

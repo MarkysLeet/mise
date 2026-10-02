@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Clock, FileText, BookOpen, Settings, ChefHat, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, Clock, FileText, BookOpen, Settings, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Playfair_Display } from "next/font/google";
@@ -38,8 +38,8 @@ export function Sidebar() {
       </button>
 
       <div className={cn("flex items-center gap-3 mb-10", isCollapsed ? "justify-center" : "px-2")}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <ChefHat className="h-6 w-6" />
+        <div className="flex shrink-0 items-center justify-center">
+          <img src="/logo.svg" alt="Mise Logo" className="h-10 w-10" />
         </div>
         {!isCollapsed && (
           <div className="truncate">
