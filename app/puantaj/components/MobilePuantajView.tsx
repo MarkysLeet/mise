@@ -83,10 +83,10 @@ export function MobilePuantajView({
             className="pl-9 w-full bg-slate-50 border-slate-200"
           />
         </div>
-        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide -mx-4 px-4">
+        <div className="flex overflow-x-auto gap-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setSelectedRoleFilter("Tümü")}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
               selectedRoleFilter === "Tümü"
                 ? "bg-zinc-900 text-white"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -98,7 +98,7 @@ export function MobilePuantajView({
             <button
               key={role.id}
               onClick={() => setSelectedRoleFilter(role.title)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedRoleFilter === role.title
                   ? "bg-zinc-900 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -124,9 +124,14 @@ export function MobilePuantajView({
                 <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
                   {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   <span className="uppercase tracking-wider">
-                    {group.role} ({group.employees.length})
+                    {group.role}
                   </span>
                 </div>
+                {!isExpanded && (
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                    {group.employees.length}
+                  </div>
+                )}
               </button>
 
               {/* Employee Cards */}
@@ -151,10 +156,10 @@ export function MobilePuantajView({
                               {getInitials(emp.full_name)}
                             </div>
                             <div>
-                              <div className={`font-bold text-base ${!emp.is_active ? 'text-red-700' : 'text-slate-900'}`}>
+                              <div className={`font-bold text-sm ${!emp.is_active ? 'text-red-700' : 'text-slate-900'}`}>
                                 {emp.full_name}
                               </div>
-                              <div className={`text-xs ${!emp.is_active ? 'text-red-500' : 'text-slate-500'}`}>
+                              <div className={`text-[10px] ${!emp.is_active ? 'text-red-500' : 'text-slate-400'}`}>
                                 {emp.role_title}
                               </div>
                             </div>
@@ -162,22 +167,22 @@ export function MobilePuantajView({
 
                           <div className="flex items-start gap-2">
                             {/* Counters Grid */}
-                            <div className="grid grid-cols-2 gap-1.5 text-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                              <div className="flex flex-col items-center justify-center px-1">
-                                <span className="text-[10px] text-slate-400 font-medium leading-tight">Ç</span>
+                            <div className="grid grid-cols-2 gap-2 text-center bg-slate-50/50 p-1.5 rounded-lg">
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-[10px] text-emerald-600 font-semibold leading-tight">Ç</span>
                                 <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.work || '-'}</span>
                               </div>
-                              <div className="flex flex-col items-center justify-center px-1 border-l border-slate-200">
-                                <span className="text-[10px] text-slate-400 font-medium leading-tight">Hİ</span>
-                                <span className="font-bold text-sm text-green-600 leading-none mt-0.5">{totals.hi || '-'}</span>
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-[10px] text-blue-600 font-semibold leading-tight">Hİ</span>
+                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.hi || '-'}</span>
                               </div>
-                              <div className="flex flex-col items-center justify-center px-1 border-t border-slate-200 pt-1">
-                                <span className="text-[10px] text-slate-400 font-medium leading-tight">Üİ</span>
-                                <span className="font-bold text-sm text-orange-500 leading-none mt-0.5">{totals.ui || '-'}</span>
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-[10px] text-orange-500 font-semibold leading-tight">Üİ</span>
+                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.ui || '-'}</span>
                               </div>
-                              <div className="flex flex-col items-center justify-center px-1 border-l border-t border-slate-200 pt-1">
-                                <span className="text-[10px] text-slate-400 font-medium leading-tight">D</span>
-                                <span className="font-bold text-sm text-red-600 leading-none mt-0.5">{totals.d || '-'}</span>
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-[10px] text-red-600 font-semibold leading-tight">D</span>
+                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.d || '-'}</span>
                               </div>
                             </div>
 
@@ -216,7 +221,7 @@ export function MobilePuantajView({
                         </div>
 
                         {/* Days Grid (Read-only) */}
-                        <div className="flex overflow-x-auto gap-1 pb-2 scrollbar-hide">
+                        <div className="flex overflow-x-auto gap-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                           {daysArray.map((day) => {
                             if (day > daysInMonth) return null;
                             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
