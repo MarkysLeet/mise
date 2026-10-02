@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Clock, FileText, BookOpen, Settings, ChefHat } from "lucide-react";
+import { LayoutDashboard, Clock, FileText, BookOpen, Settings, ChefHat, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Playfair_Display } from "next/font/google";
 import { logoutUser } from "@/actions/auth";
+import { useSidebar } from "@/components/providers/SidebarProvider";
 
 const playfair = Playfair_Display({ subsets: ["latin"] });
 
@@ -20,17 +21,32 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
-    <div className="hidden md:flex h-screen w-64 flex-col border-r border-border bg-card px-4 py-6">
-      <div className="flex items-center gap-3 px-2 mb-10">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div
+      className={cn(
+        "hidden md:flex h-screen flex-col border-r border-border bg-card py-6 transition-all duration-300 relative",
+        isCollapsed ? "w-20 px-2" : "w-64 px-4"
+      )}
+    >
+      <button
+        onClick={toggleSidebar}
+        className="absolute -right-3 top-7 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-secondary text-muted-foreground hover:text-foreground z-10"
+      >
+        {isCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
+      </button>
+
+      <div className={cn("flex items-center gap-3 mb-10", isCollapsed ? "justify-center" : "px-2")}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <ChefHat className="h-6 w-6" />
         </div>
-        <div>
-          <h1 className={cn("text-2xl font-semibold text-foreground tracking-wide", playfair.className)}>Mise</h1>
-          <p className="text-xs text-muted-foreground">Operasyon Merkezi</p>
-        </div>
+        {!isCollapsed && (
+          <div className="truncate">
+            <h1 className={cn("text-2xl font-semibold text-foreground tracking-wide", playfair.className)}>Mise</h1>
+            <p className="text-xs text-muted-foreground">Operasyon Merkezi</p>
+          </div>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -40,8 +56,10 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              title={isCollapsed ? item.name : undefined}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200",
+                isCollapsed ? "justify-center px-0" : "gap-3 px-3",
                 isActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -49,33 +67,46 @@ export function Sidebar() {
             >
               <item.icon
                 className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-colors duration-200",
+                  "flex-shrink-0 transition-colors duration-200",
+                  isCollapsed ? "h-6 w-6" : "h-5 w-5",
                   isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                 )}
               />
-              {item.name}
+              {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto px-2 space-y-2">
-        <div className="flex items-center gap-3 rounded-xl border border-border p-3">
-          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-foreground">
-            AD
+      <div className={cn("mt-auto space-y-2", isCollapsed ? "px-0" : "px-2")}>
+        {!isCollapsed ? (
+          <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-foreground">
+              AD
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-sm font-medium text-foreground">Admin</span>
+              <span className="text-xs text-muted-foreground">Otel Grubu</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-foreground">Admin</span>
-            <span className="text-xs text-muted-foreground">Otel Grubu</span>
+        ) : (
+          <div className="flex justify-center mb-2">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-secondary flex items-center justify-center text-sm font-medium text-foreground" title="Admin - Otel Grubu">
+              AD
+            </div>
           </div>
-        </div>
+        )}
 
         <button
           onClick={() => logoutUser()}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+          title={isCollapsed ? "Çıkış Yap" : undefined}
+          className={cn(
+            "flex w-full items-center rounded-xl py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200",
+            isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+          )}
         >
-          <LogOut className="h-5 w-5 flex-shrink-0" />
-          Çıkış Yap
+          <LogOut className={cn("flex-shrink-0", isCollapsed ? "h-6 w-6" : "h-5 w-5")} />
+          {!isCollapsed && <span>Çıkış Yap</span>}
         </button>
       </div>
     </div>
