@@ -18,9 +18,11 @@ import {
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RolesTab } from "@/components/settings/RolesTab";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SettingsClientPage({ initialWorkspace, initialProfile }: { initialWorkspace: any, initialProfile: any }) {
+export default function SettingsClientPage({ initialWorkspace, initialProfile, initialRoles }: { initialWorkspace: any, initialProfile: any, initialRoles: any[] }) {
   const router = useRouter();
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -106,9 +108,17 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile }:
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Profil */}
-          <Card className="border-border/50 shadow-sm bg-white/50 backdrop-blur-sm">
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="mb-6 w-full max-w-sm grid grid-cols-2">
+            <TabsTrigger value="general">Genel</TabsTrigger>
+            <TabsTrigger value="roles">Görevler</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general" className="space-y-6 outline-none">
+            <div className="grid gap-6">
+              <div className="grid gap-6 md:grid-cols-2">
+              {/* Profil */}
+              <Card className="border-border/50 shadow-sm bg-white/50 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-medium">Profil Bilgileri</CardTitle>
               <CardDescription>Kişisel bilgilerinizi güncelleyin.</CardDescription>
@@ -298,6 +308,13 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile }:
             </Dialog>
           </CardContent>
         </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="roles" className="outline-none">
+            <RolesTab initialRoles={initialRoles} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {syncModalOpen && (

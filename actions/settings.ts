@@ -13,7 +13,13 @@ export async function getWorkspace() {
     return null;
   }
 
-  const workspaceId = user.user_metadata?.workspace_id;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
 
   if (!workspaceId) {
     return null;
@@ -74,7 +80,13 @@ export async function updateWorkspace(hotelName: string, hotelGroup: string, dep
     return { error: "Kullanıcı girişi yapılmamış." };
   }
 
-  const workspaceId = user.user_metadata?.workspace_id;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
   if (!workspaceId) {
     return { error: "Çalışma alanı bulunamadı." };
   }
@@ -100,7 +112,13 @@ export async function deleteAccount() {
     return { error: "Kullanıcı girişi yapılmamış." };
   }
 
-  const workspaceId = user.user_metadata?.workspace_id;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
 
   const supabaseAdmin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -120,4 +138,137 @@ export async function deleteAccount() {
   }
 
   redirect("/login");
+}
+
+export async function getRoles() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return [];
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    return [];
+  }
+
+  const { data: roles } = await supabase
+    .from("roles")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("priority", { ascending: true })
+    .order("title", { ascending: true });
+
+  return roles || [];
+}
+
+export async function addRole(title: string, priority: number) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { data, error } = await supabase
+    .from("roles")
+    .insert([{ workspace_id: workspaceId, title, priority }])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/puantaj");
+  return data;
+}
+
+export async function updateRole(id: string, title: string, priority: number) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { data, error } = await supabase
+    .from("roles")
+    .update({ title, priority })
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/puantaj");
+  return data;
+}
+
+export async function deleteRole(id: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { error } = await supabase
+    .from("roles")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", workspaceId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/puantaj");
+  return { success: true };
 }

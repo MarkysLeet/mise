@@ -70,10 +70,11 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   const {
     employees,
     entries,
+    roles,
     isEmployeesLoading,
     isEntriesLoading,
     updateEntryAsync,
-  } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries);
+  } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries, initialRoles);
 
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
@@ -635,7 +636,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
                 </div>
                 <div>
                   <Label>Görevi</Label>
-                  {initialRoles && initialRoles.length > 0 ? (
+                  {roles && roles.length > 0 ? (
                     <Select
                       value={employeeFormData.role_title || ""}
                       onValueChange={(val: string | null) => setEmployeeFormData({...employeeFormData, role_title: val || ""})}
@@ -644,13 +645,13 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
                         <SelectValue placeholder="Görev seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        {initialRoles.map((role: any) => (
+                        {roles.map((role: any) => (
                           <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={employeeFormData.role_title || ""} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} placeholder="Örn: Garson" />
+                    <Input value={employeeFormData.role_title || ""} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} placeholder="Önce ayarlardan görev ekleyin" disabled />
                   )}
                 </div>
                 <div>
