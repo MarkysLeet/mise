@@ -53,9 +53,26 @@ export interface DesktopPuantajTableProps {
   openDossier: (employee: Employee) => void;
 }
 
-export interface MobilePuantajDailyProps {
-  daysArray: number[];
-  daysInMonth: number;
+export interface MobilePuantajViewProps {
+  employees: Employee[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  roles: any[];
+  entries: Entry[];
   currentMonth: number;
   currentYear: number;
+  daysArray: number[];
+  daysInMonth: number;
+  STATUSES: Status[];
+  calculateTotals: (employeeId: string) => Record<string, number>;
+  setEmployeeToTerminate: (employee: Employee | null) => void;
+  setIsTerminateOpen: (open: boolean) => void;
+  setEmployeeToDelete: (employee: Employee | null) => void;
+  setIsDeleteOpen: (open: boolean) => void;
+  setEmployeeToEdit: (employee: Employee | null) => void;
+  setIsEditEmployeeModalOpen: (open: boolean) => void;
+  openDossier: (employee: Employee) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedRoleFilter: string;
+  setSelectedRoleFilter: (role: string) => void;
 }

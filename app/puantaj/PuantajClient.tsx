@@ -31,7 +31,7 @@ import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee } from "
 import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 import { initializeNewMonth } from "@/actions/puantaj-init";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
-import { MobilePuantajDaily } from "./components/MobilePuantajDaily";
+import { MobilePuantajView } from "./components/MobilePuantajView";
 import { EmployeeDossier } from "./components/EmployeeDossier";
 import { usePuantaj } from "./hooks/usePuantaj";
 import { useQueryClient } from "@tanstack/react-query";
@@ -101,7 +101,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(searchParams.get("role") || "Tümü");
 
-  const updateFiltersInUrl = (newEmpId: string | null, newRole: string) => {
+  const updateFiltersInUrl = (newEmpId: string | null, newRole: string, newSearchQuery: string) => {
     const params = new URLSearchParams(searchParams);
     if (newEmpId) params.set("empId", newEmpId);
     else params.delete("empId");
@@ -109,17 +109,25 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     if (newRole && newRole !== "Tümü") params.set("role", newRole);
     else params.delete("role");
 
+    if (newSearchQuery) params.set("q", newSearchQuery);
+    else params.delete("q");
+
     router.replace(`${pathname}?${params.toString()}`);
   };
 
   const handleSelectEmployee = (empId: string | null) => {
     setSelectedEmployeeId(empId);
-    updateFiltersInUrl(empId, selectedRoleFilter);
+    updateFiltersInUrl(empId, selectedRoleFilter, searchQuery);
   };
 
   const handleSelectRole = (role: string) => {
     setSelectedRoleFilter(role);
-    updateFiltersInUrl(selectedEmployeeId, role);
+    updateFiltersInUrl(selectedEmployeeId, role, searchQuery);
+  };
+
+  const handleSearchQueryChange = (query: string) => {
+    setSearchQuery(query);
+    updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query);
   };
 
   const [isImporting, setIsImporting] = useState(false);
@@ -158,6 +166,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const filteredEmployees = roleFilteredEmployees.filter(emp => {
     if (selectedEmployeeId && emp.id !== selectedEmployeeId) return false;
+    if (searchQuery && !emp.full_name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 
@@ -697,7 +706,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               } />
               <PopoverContent className="w-[200px] p-0">
                 <Command>
-                  <CommandInput placeholder="İsim ile ara..." value={searchQuery} onValueChange={setSearchQuery} />
+                  <CommandInput placeholder="İsim ile ara..." value={searchQuery} onValueChange={handleSearchQueryChange} />
                   <CommandList>
                     <CommandEmpty>Personel bulunamadı.</CommandEmpty>
                     <CommandGroup>
@@ -810,7 +819,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs">
+      <div className="hidden md:flex flex-wrap items-center gap-4 p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs">
         <span className="font-medium text-slate-500">Lejant:</span>
         <div className="flex flex-wrap gap-3">
           {STATUSES.filter(s => s.code !== 'TERMINATED').map(status => (
@@ -825,7 +834,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       </div>
 
       {/* Brush Palette */}
-      <div className="flex flex-wrap items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="hidden md:flex flex-wrap items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
         <span className="text-sm font-medium text-slate-500 mr-2">Fırça:</span>
         {brushStatuses.map(status => (
           <Button
@@ -910,11 +919,27 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         }}
       />
 
-      <MobilePuantajDaily
-        daysArray={daysArray}
-        daysInMonth={daysInMonth}
+      <MobilePuantajView
+        employees={filteredEmployees}
+        roles={roles}
+        entries={entries}
         currentMonth={currentMonth}
         currentYear={currentYear}
+        daysArray={daysArray}
+        daysInMonth={daysInMonth}
+        STATUSES={STATUSES}
+        calculateTotals={calculateTotals}
+        setEmployeeToTerminate={setEmployeeToTerminate}
+        setIsTerminateOpen={setIsTerminateOpen}
+        setEmployeeToDelete={setEmployeeToDelete}
+        setIsDeleteOpen={setIsDeleteOpen}
+        setEmployeeToEdit={openEditEmployeeModal}
+        setIsEditEmployeeModalOpen={setIsEmployeeModalOpen}
+        openDossier={openDossier}
+        searchQuery={searchQuery}
+        setSearchQuery={handleSearchQueryChange}
+        selectedRoleFilter={selectedRoleFilter}
+        setSelectedRoleFilter={handleSelectRole}
       />
 
       {/* Terminate Modal */}
