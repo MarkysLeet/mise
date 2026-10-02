@@ -790,8 +790,8 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+            <DropdownMenuTrigger>
+              <Button variant="outline" className="flex items-center gap-2 pointer-events-none">
                 <Settings2 className="h-4 w-4" />
                 Diğer İşlemler
               </Button>
