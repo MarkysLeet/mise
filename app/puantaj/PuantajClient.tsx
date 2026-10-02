@@ -57,7 +57,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Settings2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const MONTH_NAMES = [
@@ -703,14 +709,14 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       {/* Header Panel */}
       <div className="hidden md:flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
+            <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-serif text-slate-800 font-semibold w-48 text-center">
+          <h1 className="text-2xl font-medium text-slate-900 w-48 text-center tracking-tight">
             {MONTH_NAMES[currentMonth - 1]} {currentYear}
           </h1>
-          <Button variant="outline" size="icon" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
+            <ChevronRight className="h-5 w-5" />
           </Button>
 
           {showInitButton && (
@@ -779,7 +785,38 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={openCreateEmployeeModal} disabled={!isCurrentMonthInitialized}><Plus className="mr-2 h-4 w-4" /> Personel Ekle</Button>
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={openCreateEmployeeModal} disabled={!isCurrentMonthInitialized}>
+            <Plus className="mr-2 h-4 w-4" /> Personel Ekle
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="outline" className="flex items-center gap-2 pointer-events-none">
+                <Settings2 className="h-4 w-4" />
+                Diğer İşlemler
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={handleImport} disabled={isImporting || !isCurrentMonthInitialized} className="cursor-pointer">
+                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Tablodan İçe Aktar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized} className="cursor-pointer relative">
+                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+                Drive İle Senkronize Et
+                {hasUnsavedDriveChanges && (
+                  <span className="absolute right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
+                <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive'da Aç
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
             <DialogContent>
               <DialogHeader><DialogTitle>{employeeModalMode === "create" ? "Personel Ekle" : "Personeli Düzenle"}</DialogTitle></DialogHeader>
@@ -825,26 +862,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               </form>
             </DialogContent>
           </Dialog>
-
-          <Button variant="secondary" onClick={handleImport} disabled={isImporting || !isCurrentMonthInitialized}>
-            {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Tablodan İçe Aktar
-          </Button>
-
-          <Button onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized} className="bg-indigo-600 hover:bg-indigo-700 text-white relative">
-            {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            Google E-Tablolar ile Senkronize Et
-            {hasUnsavedDriveChanges && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-            )}
-          </Button>
-
-          <Button variant="outline" onClick={handleOpenDrive}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
-          </Button>
         </div>
       </div>
 
@@ -863,15 +880,15 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         </div>
       </div>
 
-      {/* Brush Palette */}
-      <div className="hidden md:flex flex-wrap items-center gap-1.5 p-3 bg-white rounded-xl shadow-sm border border-slate-200">
+      {/* Brush Palette - Floating Bottom Bar */}
+      <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/95 backdrop-blur shadow-xl border rounded-full px-6 py-3 items-center gap-2 transition-all duration-300">
         <span className="text-sm font-medium text-slate-500 mr-2">Fırça:</span>
         {brushStatuses.map(status => (
           <Button
             key={status.code}
             size="sm"
             variant={activeBrush === status.code ? "default" : "outline"}
-            className={`h-8 px-3 ${activeBrush === status.code ? status.color : ''}`}
+            className={`h-8 px-3 rounded-full ${activeBrush === status.code ? status.color : ''}`}
             onClick={() => setActiveBrush(activeBrush === status.code ? null : status.code)}
           >
             {status.code} - {status.label}
@@ -880,16 +897,16 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         <Button
           size="sm"
           variant={activeBrush === "ERASER" ? "default" : "outline"}
-          className={`h-8 px-3 ${activeBrush === "ERASER" ? 'bg-gray-800 text-white' : ''}`}
+          className={`h-8 px-3 rounded-full ${activeBrush === "ERASER" ? 'bg-gray-800 text-white' : ''}`}
           onClick={() => setActiveBrush(activeBrush === "ERASER" ? null : "ERASER")}
         >
           <Eraser className="h-4 w-4 mr-1" /> Silici
         </Button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-4 flex items-center gap-2 border-l pl-4 border-slate-200">
           {Object.keys(pendingChanges).length > 0 && (
-            <Button size="sm" onClick={() => savePendingChanges()} disabled={isSaving} className="bg-green-600 hover:bg-green-700">
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Değişiklikleri Kaydet"}
+            <Button size="sm" onClick={() => savePendingChanges()} disabled={isSaving} className="bg-green-600 hover:bg-green-700 rounded-full">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kaydet"}
             </Button>
           )}
 
@@ -898,6 +915,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
             onClick={fillEmptyWithX}
             variant="secondary"
             title="Tüm boş günleri 'X' olarak doldur"
+            className="rounded-full"
           >
             Boşlukları &apos;X&apos; Doldur
           </Button>
@@ -905,7 +923,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       </div>
 
       {/* Matrix Table */}
-      <div className={`transition-opacity duration-200 relative ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className={`transition-opacity duration-200 relative pb-24 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
         {isPending && (
           <div className="absolute inset-0 z-50 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
