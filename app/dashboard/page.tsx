@@ -36,12 +36,14 @@ export default async function DashboardPage() {
     .select("*")
     .eq("workspace_id", workspace.id);
 
-  // Calculate active employees based on real date (1st of current real month)
-  const realCurrentMonthStart = new Date(currentYear, currentMonth - 1, 1);
+  // Calculate active employees based on today (must be >= today to be considered active)
+  const todayForStats = new Date();
+  todayForStats.setHours(0, 0, 0, 0);
   const activeEmployees = employees?.filter(e => {
     if (!e.termination_date) return true;
     const termDate = new Date(e.termination_date);
-    return termDate >= realCurrentMonthStart;
+    termDate.setHours(0, 0, 0, 0); // Ignore time part
+    return termDate >= todayForStats;
   }) || [];
   // Fetch current month's puantaj entries
   const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;

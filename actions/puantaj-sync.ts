@@ -396,9 +396,6 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
     return `${d}.${m}.${y}`;
   };
 
-  const requests: any[] = [];
-
-  // Dynamically add rows if employees > 105
   // Include employees active in this month or who were terminated in or after this month
   const { sortEmployees } = await import('@/lib/sort');
   const activeEmployees = sortEmployees(employees.filter(e => {
@@ -410,27 +407,51 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   }));
 
   const rowsNeeded = activeEmployees.length;
+  const maxRows = Math.max(105, rowsNeeded);
 
+  const setupRequests: any[] = [];
+
+  // 1. Dynamically add rows if employees > 105, directly after row 110 (index 110)
   if (rowsNeeded > 105) {
     const rowsToAdd = rowsNeeded - 105;
-    requests.push({
+    setupRequests.push({
       insertDimension: {
         range: {
           sheetId,
           dimension: "ROWS",
-          startIndex: 109,
-          endIndex: 109 + rowsToAdd
+          startIndex: 110,
+          endIndex: 110 + rowsToAdd
         },
         inheritFromBefore: true
       }
     });
   }
 
-  if (requests.length > 0) {
-    await sheetsApi.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-  }
+  // 2. Copy styles and formulas from row 6 to all rows down to maxRows
+  // Row 6 is index 5
+  setupRequests.push({
+    copyPaste: {
+      source: {
+        sheetId,
+        startRowIndex: 5,
+        endRowIndex: 6,
+        startColumnIndex: 0,
+        endColumnIndex: 54 // Column BB
+      },
+      destination: {
+        sheetId,
+        startRowIndex: 6,
+        endRowIndex: 5 + maxRows,
+        startColumnIndex: 0,
+        endColumnIndex: 54 // Column BB
+      },
+      pasteType: "PASTE_NORMAL"
+    }
+  });
 
-  const maxRows = Math.max(105, rowsNeeded);
+  if (setupRequests.length > 0) {
+    await sheetsApi.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: setupRequests } });
+  }
 
   // Batch updates for values
   const dataToUpdate = [
@@ -500,36 +521,14 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
     }
   });
 
-  // Second Batch update for Colors
+  // Second Batch update for Custom Colors (Overriding copied template styles)
   const formatRequests: any[] = [];
 
-  // First clear background colors for all cells in the grid H6:AL{110} (or maxRows if higher)
-  // We want to clear all the way down to at least row 110 to erase left-over colors from deleted employees
-  formatRequests.push({
-    repeatCell: {
-      range: {
-        sheetId,
-        startRowIndex: 5,
-        endRowIndex: Math.max(110, 5 + maxRows),
-        startColumnIndex: 7, // H
-        endColumnIndex: 38 // AL + 1
-      },
-      cell: {
-        userEnteredFormat: {
-          backgroundColor: { red: 1, green: 1, blue: 1, alpha: 1 } // White default
-        }
-      },
-      fields: "userEnteredFormat.backgroundColor"
-    }
-  });
-
-  // Apply colors
   for (let i = 0; i < maxRows; i++) {
     const emp = activeEmployees[i];
     if (emp) {
       for (let day = 1; day <= 31; day++) {
         const colIndex = 7 + (day - 1);
-
         let bgColor = null;
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
@@ -539,7 +538,6 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
           bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black for days after termination
         } else {
           const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
-
           if (entry?.status === 'D') {
              bgColor = { red: 1, green: 0, blue: 0, alpha: 1 }; // Red
           } else if (entry?.status === 'TERMINATED') {
@@ -566,7 +564,7 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
         }
       }
     } else {
-       // Fill invalid days gray for empty rows as well
+       // Apply gray for non-existent days even in empty rows
        for (let day = daysInMonth + 1; day <= 31; day++) {
           const colIndex = 7 + (day - 1);
           formatRequests.push({
