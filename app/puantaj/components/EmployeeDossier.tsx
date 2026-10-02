@@ -5,7 +5,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { Employee, Entry } from "../types";
+
+import { Button } from "@/components/ui/button";
+import { Edit2 } from "lucide-react";
 
 interface EmployeeDossierProps {
   employee: Employee | null;
@@ -13,9 +17,10 @@ interface EmployeeDossierProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   currentMonth: number;
+  onEditEmployee: (employee: Employee) => void;
 }
 
-export function EmployeeDossier({ employee, entries, isOpen, onOpenChange, currentMonth }: EmployeeDossierProps) {
+export function EmployeeDossier({ employee, entries, isOpen, onOpenChange, currentMonth, onEditEmployee }: EmployeeDossierProps) {
   if (!employee) return null;
 
   // Calculate stats for current month
@@ -28,15 +33,22 @@ export function EmployeeDossier({ employee, entries, isOpen, onOpenChange, curre
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="mb-6 border-b pb-4">
-          <SheetTitle className="text-2xl font-semibold tracking-tight">{employee.full_name}</SheetTitle>
-          <SheetDescription className="text-base text-muted-foreground">
-            {employee.role_title}
-            {employee.is_active ? (
-               <span className="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Aktif</span>
-            ) : (
-               <span className="ml-2 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">İşten Çıktı</span>
-            )}
-          </SheetDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <SheetTitle className="text-2xl font-semibold tracking-tight">{employee.full_name}</SheetTitle>
+              <SheetDescription className="text-base text-muted-foreground">
+                {employee.role_title}
+                {employee.is_active ? (
+                   <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 hover:bg-green-50 border-green-200">Aktif</Badge>
+                ) : (
+                   <Badge variant="destructive" className="ml-2">İşten Çıktı</Badge>
+                )}
+              </SheetDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onEditEmployee(employee)}>
+              <Edit2 className="h-4 w-4 mr-2" /> Düzenle
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="space-y-8">

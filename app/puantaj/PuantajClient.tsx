@@ -36,6 +36,14 @@ import { EmployeeDossier } from "./components/EmployeeDossier";
 import { usePuantaj } from "./hooks/usePuantaj";
 import { useQueryClient } from "@tanstack/react-query";
 import PuantajLoading from "./loading";
+import { IMaskInput } from "react-imask";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -54,7 +62,7 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
+export function PuantajClient({ initialEmployees, initialEntries, initialRoles = [], currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -621,11 +629,43 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
             <DialogContent>
               <DialogHeader><DialogTitle>{employeeModalMode === "create" ? "Personel Ekle" : "Personeli Düzenle"}</DialogTitle></DialogHeader>
               <form onSubmit={handleEmployeeSubmit} className="space-y-4">
-                <div><Label>Ad Soyad</Label><Input required value={employeeFormData.full_name} onChange={e => setEmployeeFormData({...employeeFormData, full_name: e.target.value})} /></div>
-                <div><Label>Görevi</Label><Input value={employeeFormData.role_title} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} /></div>
-                <div><Label>Telefon</Label><Input value={employeeFormData.phone} onChange={e => setEmployeeFormData({...employeeFormData, phone: e.target.value})} /></div>
-                <div><Label>Bölüm / Outlet</Label><Input value={employeeFormData.department_outlet} onChange={e => setEmployeeFormData({...employeeFormData, department_outlet: e.target.value})} /></div>
-                <div><Label>Giriş Tarihi</Label><Input type="date" value={employeeFormData.hire_date} onChange={e => setEmployeeFormData({...employeeFormData, hire_date: e.target.value})} /></div>
+                <div>
+                  <Label>Ad Soyad</Label>
+                  <Input required value={employeeFormData.full_name} onChange={e => setEmployeeFormData({...employeeFormData, full_name: e.target.value})} />
+                </div>
+                <div>
+                  <Label>Görevi</Label>
+                  {initialRoles && initialRoles.length > 0 ? (
+                    <Select
+                      value={employeeFormData.role_title || ""}
+                      onValueChange={(val: string | null) => setEmployeeFormData({...employeeFormData, role_title: val || ""})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Görev seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {initialRoles.map((role: any) => (
+                          <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input value={employeeFormData.role_title || ""} onChange={e => setEmployeeFormData({...employeeFormData, role_title: e.target.value})} placeholder="Örn: Garson" />
+                  )}
+                </div>
+                <div>
+                  <Label>Telefon</Label>
+                  <IMaskInput
+                    mask="+90 (000) 000 00 00"
+                    value={employeeFormData.phone || ""}
+                    unmask={false}
+                    onAccept={(val) => setEmployeeFormData({...employeeFormData, phone: val as string})}
+                    placeholder="+90 (___) ___ __ __"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+                <div><Label>Bölüm / Outlet</Label><Input value={employeeFormData.department_outlet || ""} onChange={e => setEmployeeFormData({...employeeFormData, department_outlet: e.target.value})} /></div>
+                <div><Label>Giriş Tarihi</Label><Input type="date" value={employeeFormData.hire_date || ""} onChange={e => setEmployeeFormData({...employeeFormData, hire_date: e.target.value})} /></div>
                 <Button type="submit" className="w-full">{employeeModalMode === "create" ? "Ekle" : "Kaydet"}</Button>
               </form>
             </DialogContent>
@@ -732,6 +772,10 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
         isOpen={isDossierOpen}
         onOpenChange={setIsDossierOpen}
         currentMonth={currentMonth}
+        onEditEmployee={(emp) => {
+          setIsDossierOpen(false);
+          openEditEmployeeModal(emp);
+        }}
       />
 
       <MobilePuantajDaily

@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, Trash2, Edit2 } from "lucide-react";
+import { LogOut, Trash2, Edit2, MoreHorizontal } from "lucide-react";
 import { DesktopPuantajTableProps } from "../types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export function DesktopPuantajTable({
   employees,
@@ -57,56 +64,44 @@ export function DesktopPuantajTable({
 
               return (
                 <tr key={emp.id} className={`border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
-                  <td className="px-1 py-2 border-r bg-white sticky left-0 z-10 font-medium text-slate-400 w-8 text-center">{idx + 1}</td>
-                  <td className="px-2 py-2 border-r bg-white sticky left-8 z-10 font-medium text-slate-800 truncate w-40">
+                  <td className={`px-1 py-2 border-r sticky left-0 z-10 font-medium w-8 text-center ${!emp.is_active ? 'bg-red-50/80 text-red-400' : 'bg-white text-slate-400'}`}>{idx + 1}</td>
+                  <td className={`px-2 py-2 border-r sticky left-8 z-10 font-medium truncate w-40 ${!emp.is_active ? 'bg-red-50/80 text-red-700/80' : 'bg-white text-slate-800'}`}>
                     <button onClick={() => openDossier(emp)} className="hover:underline text-left outline-none focus:ring-1 focus:ring-primary rounded px-1 -ml-1 inline-flex items-center">
                       {emp.full_name}
                     </button>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {!emp.is_active && <span className="ml-2 text-[10px] text-red-500 font-bold">(Çıkış: {(emp as any).termination_date?.split('-').reverse().join('.')})</span>}
                   </td>
-                  <td className="px-2 py-2 border-r bg-white sticky left-48 z-10 text-slate-500 truncate w-28">{emp.role_title}</td>
-                  <td className="px-1 py-1 border-r bg-white sticky left-[304px] z-10 text-center w-20">
-                    <div className="flex justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                        onClick={() => {
+                  <td className={`px-2 py-2 border-r sticky left-48 z-10 truncate w-28 ${!emp.is_active ? 'bg-red-50/80 text-red-600/70' : 'bg-white text-slate-500'}`}>{emp.role_title}</td>
+                  <td className={`px-1 py-1 border-r sticky left-[304px] z-10 text-center w-14 ${!emp.is_active ? 'bg-red-50/80' : 'bg-white'}`}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger render={
+                        <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0">
+                          <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                        </Button>
+                      } />
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => {
                           setEmployeeToEdit(emp);
                           setIsEditEmployeeModalOpen(true);
-                        }}
-                        title="Düzenle"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
-                      {emp.is_active && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-orange-500 hover:text-orange-700 hover:bg-orange-50"
-                          onClick={() => {
+                        }}>
+                          <Edit2 className="h-4 w-4 mr-2" /> Düzenle
+                        </DropdownMenuItem>
+                        {emp.is_active && (
+                          <DropdownMenuItem onClick={() => {
                             setEmployeeToTerminate(emp);
                             setIsTerminateOpen(true);
-                          }}
-                          title="İş Çıkışı Ver"
-                        >
-                          <LogOut className="h-3 w-3" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-red-600 hover:text-red-800 hover:bg-red-50"
-                        onClick={() => {
+                          }}>
+                            <LogOut className="h-4 w-4 mr-2 text-orange-500" /> İş Çıkışı Ver
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => {
                           setEmployeeToDelete(emp);
                           setIsDeleteOpen(true);
-                        }}
-                        title="Tamamen Sil"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                        }} className="text-red-600 focus:bg-red-50 focus:text-red-700">
+                          <Trash2 className="h-4 w-4 mr-2" /> Tamamen Sil
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
 
                   {daysArray.map((day: number) => {
