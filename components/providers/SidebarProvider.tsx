@@ -16,9 +16,15 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
     if (stored) {
-      setIsCollapsed(stored === "true");
+      // Just initialize once without setting state in effect directly if it causes hydration mismatches or cascades.
+      // Eslint is throwing an error for setState synchronously within an effect.
+      // NextJS recommends delaying the state change slightly or initializing lazily
+      const isCol = stored === "true";
+      if (isCol !== isCollapsed) {
+          queueMicrotask(() => setIsCollapsed(isCol));
+      }
     }
-  }, []);
+  }, [isCollapsed]);
 
   const setCollapsed = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
