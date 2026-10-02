@@ -545,9 +545,17 @@ export function PuantajClient({ initialEmployees, initialEntries, currentMonth, 
   // View Calculation
   const calculateTotals = useCallback((employeeId: string) => {
     const empEntries = entries.filter(e => e.employee_id === employeeId);
+
+    // Deduplicate entries by date to prevent miscalculation due to accidental duplicates
+    const uniqueEntriesMap = new Map();
+    empEntries.forEach(entry => {
+      uniqueEntriesMap.set(entry.date, entry);
+    });
+    const uniqueEmpEntries = Array.from(uniqueEntriesMap.values());
+
     let work = 0; let hi = 0; let ui = 0; let d = 0;
 
-    empEntries.forEach(entry => {
+    uniqueEmpEntries.forEach(entry => {
       // exclude entries outside the current month's bound (if they exist)
       const entryDay = parseInt(entry.date.split('-')[2]);
       if (entryDay > daysInMonth) return;
