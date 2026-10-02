@@ -5,11 +5,16 @@ import { Database } from "@/types/database";
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
 
-export function usePuantaj(year: number, month: number, initialEmployees?: Employee[], initialEntries?: PuantajEntry[]) {
+import { getRoles } from "@/actions/settings";
+
+type Role = Database["public"]["Tables"]["roles"]["Row"];
+
+export function usePuantaj(year: number, month: number, initialEmployees?: Employee[], initialEntries?: PuantajEntry[], initialRoles?: Role[]) {
   const queryClient = useQueryClient();
 
   const employeesKey = ["employees", year, month];
   const entriesKey = ["entries", year, month];
+  const rolesKey = ["roles"];
 
   const employeesQuery = useQuery({
     queryKey: employeesKey,
@@ -25,6 +30,13 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
     initialData: initialEntries,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
+  });
+
+  const rolesQuery = useQuery({
+    queryKey: rolesKey,
+    queryFn: () => getRoles(),
+    initialData: initialRoles,
+    staleTime: 5 * 60 * 1000,
   });
 
   const updateEntryMutation = useMutation({
@@ -56,8 +68,10 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
   return {
     employees: employeesQuery.data || [],
     entries: entriesQuery.data || [],
+    roles: rolesQuery.data || [],
     isEmployeesLoading: employeesQuery.isLoading,
     isEntriesLoading: entriesQuery.isLoading,
+    isRolesLoading: rolesQuery.isLoading,
     updateEntry: updateEntryMutation.mutate,
     updateEntryAsync: updateEntryMutation.mutateAsync,
     isUpdatingEntry: updateEntryMutation.isPending,
