@@ -352,6 +352,12 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
     return `${d}.${m}.${y}`;
   };
 
+  // Fetch roles for dynamic sorting
+  const { data: roles } = await supabase
+    .from("roles")
+    .select("title, priority")
+    .eq("workspace_id", workspace.id);
+
   // Include employees active in this month or who were terminated in or after this month
   const { sortEmployees } = await import('@/lib/sort');
   const activeEmployees = sortEmployees(employees.filter(e => {
@@ -360,192 +366,180 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
     const termDate = new Date(e.termination_date);
     const syncMonthStart = new Date(year, month - 1, 1);
     return termDate >= syncMonthStart;
-  }));
+  }), roles || []);
 
-  const rowsNeeded = activeEmployees.length;
-  const maxRows = Math.max(105, rowsNeeded);
+  const N = activeEmployees.length;
 
-  const setupRequests: any[] = [];
+  const batchRequests: any[] = [];
 
-  // 1. Dynamically add rows if employees > 105, directly after row 110 (index 110)
-  if (rowsNeeded > 105) {
-    const rowsToAdd = rowsNeeded - 105;
-    setupRequests.push({
+  // 1. Dynamically add rows if N > 1, directly after row 6 (index 6)
+  if (N > 1) {
+    batchRequests.push({
       insertDimension: {
         range: {
           sheetId,
           dimension: "ROWS",
-          startIndex: 110,
-          endIndex: 110 + rowsToAdd
+          startIndex: 6,
+          endIndex: 6 + (N - 1)
         },
         inheritFromBefore: true
       }
     });
+
+    // 2. Copy styles and formulas from row 6 to newly inserted rows
+    batchRequests.push({
+      copyPaste: {
+        source: {
+          sheetId,
+          startRowIndex: 5,
+          endRowIndex: 6,
+          startColumnIndex: 0,
+          endColumnIndex: 54 // Column BB
+        },
+        destination: {
+          sheetId,
+          startRowIndex: 6,
+          endRowIndex: 6 + (N - 1),
+          startColumnIndex: 0,
+          endColumnIndex: 54 // Column BB
+        },
+        pasteType: "PASTE_NORMAL"
+      }
+    });
   }
 
-  // 2. Copy styles and formulas from row 6 to all rows down to maxRows
-  // Row 6 is index 5
-  setupRequests.push({
-    copyPaste: {
-      source: {
-        sheetId,
-        startRowIndex: 5,
-        endRowIndex: 6,
-        startColumnIndex: 0,
-        endColumnIndex: 54 // Column BB
-      },
-      destination: {
-        sheetId,
-        startRowIndex: 6,
-        endRowIndex: 5 + maxRows,
-        startColumnIndex: 0,
-        endColumnIndex: 54 // Column BB
-      },
-      pasteType: "PASTE_NORMAL"
+  const createStringCell = (val: string) => ({ userEnteredValue: { stringValue: val } });
+
+  // 3. Headers
+  batchRequests.push({
+    updateCells: {
+      range: { sheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 1, endColumnIndex: 2 }, // B2
+      rows: [{ values: [createStringCell(`Tesis Adı: ${workspace.hotel_name || workspace.hotel_group || 'Anex Hotels'}`)] }],
+      fields: "userEnteredValue"
     }
   });
 
-  if (setupRequests.length > 0) {
-    await sheetsApi.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: setupRequests } });
-  }
-
-  // Batch updates for values
-  const dataToUpdate = [
-    {
-      range: `'${monthName}'!B2`,
-      values: [[`Tesis Adı: ${workspace.hotel_name || workspace.hotel_group || 'Anex Hotels'}`]]
-    },
-    {
-      range: `'${monthName}'!B3`,
-      values: [[`Departman: ${workspace.name}`]]
-    },
-    {
-      range: `'${monthName}'!H4`,
-      values: [[`${monthName.toUpperCase()} AYI`]]
-    },
-    {
-      range: `'${monthName}'!T${112 + Math.max(0, rowsNeeded - 105)}`,
-      values: [[`${profile?.first_name} ${profile?.last_name}`]]
+  batchRequests.push({
+    updateCells: {
+      range: { sheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 1, endColumnIndex: 2 }, // B3
+      rows: [{ values: [createStringCell(`Departman: ${workspace.name}`)] }],
+      fields: "userEnteredValue"
     }
-  ];
+  });
 
-  // Employee Data
-  const employeeDataRows = [];
+  batchRequests.push({
+    updateCells: {
+      range: { sheetId, startRowIndex: 3, endRowIndex: 4, startColumnIndex: 7, endColumnIndex: 8 }, // H4
+      rows: [{ values: [createStringCell(`${monthName.toUpperCase()} AYI`)] }],
+      fields: "userEnteredValue"
+    }
+  });
+
+  // 4. Manager Signature
+  // In the new template, manager is at row 8 (index 7), columns T to AD (start 19).
+  // If N > 1, the new index is 7 + (N - 1)
+  const managerRowIndex = 7 + Math.max(0, N - 1);
+  batchRequests.push({
+    updateCells: {
+      range: { sheetId, startRowIndex: managerRowIndex, endRowIndex: managerRowIndex + 1, startColumnIndex: 19, endColumnIndex: 20 }, // T
+      rows: [{ values: [createStringCell(`${profile?.first_name} ${profile?.last_name}`)] }],
+      fields: "userEnteredValue"
+    }
+  });
+
+  // 5. Employee Data & Colors
   const daysInMonth = new Date(year, month, 0).getDate();
+  const maxRows = Math.max(1, N); // If N=0, we still update row 6 to clear it or leave it empty
+
+  const dataRows: any[] = [];
 
   for (let i = 0; i < maxRows; i++) {
     const emp = activeEmployees[i];
     if (emp) {
-      const row = [
-        i + 1, // No
-        emp.sicil_no || "",
-        emp.full_name,
-        emp.role_title || "",
-        formatDate(emp.hire_date),
-        formatDate(emp.termination_date)
+      const rowCells: any[] = [
+        { userEnteredValue: { numberValue: i + 1 } },
+        createStringCell(emp.sicil_no || ""),
+        createStringCell(emp.full_name || ""),
+        createStringCell(emp.role_title || ""),
+        createStringCell(formatDate(emp.hire_date)),
+        createStringCell(formatDate(emp.termination_date))
       ];
 
       // Add days
       for (let day = 1; day <= 31; day++) {
+        let bgColor = null;
+        let cellValue = "";
+
         if (day <= daysInMonth) {
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
-          row.push(entry && entry.status !== 'TERMINATED' ? entry.status : "");
-        } else {
-          row.push(""); // Invalid days for this month
-        }
-      }
-      employeeDataRows.push(row);
-    } else {
-      // Empty row to clear old data
-      const emptyRow = [i + 1, "", "", "", "", ""];
-      for(let day=1; day<=31; day++) emptyRow.push("");
-      employeeDataRows.push(emptyRow);
-    }
-  }
 
-  dataToUpdate.push({
-    range: `'${monthName}'!B6:AL${5 + maxRows}`,
-    values: employeeDataRows.map(row => row.slice(0, 37))
-  });
-
-  await sheetsApi.spreadsheets.values.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      valueInputOption: 'USER_ENTERED',
-      data: dataToUpdate
-    }
-  });
-
-  // Second Batch update for Custom Colors (Overriding copied template styles)
-  const formatRequests: any[] = [];
-
-  for (let i = 0; i < maxRows; i++) {
-    const emp = activeEmployees[i];
-    if (emp) {
-      for (let day = 1; day <= 31; day++) {
-        const colIndex = 7 + (day - 1);
-        let bgColor = null;
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-        if (day > daysInMonth) {
-          bgColor = { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 }; // Gray for non-existent days
-        } else if (emp.termination_date && new Date(dateStr) > new Date(emp.termination_date)) {
-          bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black for days after termination
-        } else {
-          const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
-          if (entry?.status === 'D') {
-             bgColor = { red: 1, green: 0, blue: 0, alpha: 1 }; // Red
-          } else if (entry?.status === 'TERMINATED') {
-             bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black (fallback)
+          if (emp.termination_date && new Date(dateStr) > new Date(emp.termination_date)) {
+            bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black for days after termination
+          } else {
+            const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
+            if (entry && entry.status !== 'TERMINATED') {
+              cellValue = entry.status;
+            }
+            if (entry?.status === 'D') {
+              bgColor = { red: 1, green: 0, blue: 0, alpha: 1 }; // Red
+            } else if (entry?.status === 'TERMINATED') {
+              bgColor = { red: 0, green: 0, blue: 0, alpha: 1 }; // Black (fallback)
+            }
           }
+        } else {
+          bgColor = { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 }; // Gray for non-existent days
         }
 
+        const cell: any = {};
+        if (cellValue) {
+          cell.userEnteredValue = { stringValue: cellValue };
+        }
         if (bgColor) {
-          formatRequests.push({
-            repeatCell: {
-              range: {
-                sheetId,
-                startRowIndex: 5 + i,
-                endRowIndex: 5 + i + 1,
-                startColumnIndex: colIndex,
-                endColumnIndex: colIndex + 1
-              },
-              cell: {
-                userEnteredFormat: { backgroundColor: bgColor }
-              },
-              fields: "userEnteredFormat.backgroundColor"
-            }
-          });
+          cell.userEnteredFormat = { backgroundColor: bgColor };
+        }
+
+        rowCells.push(cell);
+      }
+      dataRows.push({ values: rowCells });
+    } else {
+      // Empty row to clear old data (for N=0 case)
+      const emptyCells = [
+        { userEnteredValue: { numberValue: 1 } },
+        createStringCell(""),
+        createStringCell(""),
+        createStringCell(""),
+        createStringCell(""),
+        createStringCell("")
+      ];
+      for(let day=1; day<=31; day++) {
+        if (day > daysInMonth) {
+          emptyCells.push({ userEnteredFormat: { backgroundColor: { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 } } } as any);
+        } else {
+          emptyCells.push({} as any);
         }
       }
-    } else {
-       // Apply gray for non-existent days even in empty rows
-       for (let day = daysInMonth + 1; day <= 31; day++) {
-          const colIndex = 7 + (day - 1);
-          formatRequests.push({
-            repeatCell: {
-              range: {
-                sheetId,
-                startRowIndex: 5 + i,
-                endRowIndex: 5 + i + 1,
-                startColumnIndex: colIndex,
-                endColumnIndex: colIndex + 1
-              },
-              cell: {
-                userEnteredFormat: { backgroundColor: { red: 0.9, green: 0.9, blue: 0.9, alpha: 1 } }
-              },
-              fields: "userEnteredFormat.backgroundColor"
-            }
-          });
-       }
+      dataRows.push({ values: emptyCells });
     }
   }
 
-  if (formatRequests.length > 0) {
+  batchRequests.push({
+    updateCells: {
+      range: {
+        sheetId,
+        startRowIndex: 5,
+        endRowIndex: 5 + maxRows,
+        startColumnIndex: 1, // Column B
+        endColumnIndex: 38 // Column AL (1 + 6 + 31)
+      },
+      rows: dataRows,
+      fields: "userEnteredValue,userEnteredFormat.backgroundColor"
+    }
+  });
+
+  if (batchRequests.length > 0) {
     await sheetsApi.spreadsheets.batchUpdate({
       spreadsheetId,
-      requestBody: { requests: formatRequests }
+      requestBody: { requests: batchRequests }
     });
   }
 
