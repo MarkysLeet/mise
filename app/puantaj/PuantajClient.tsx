@@ -519,7 +519,16 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       } else {
          setSyncUrl(res.spreadsheetUrl || null);
          setHasUnsavedDriveChanges(false);
-         toast.success("Drive ile senkronize edildi");
+         if (res.spreadsheetUrl) {
+           toast.success("Drive ile senkronize edildi", {
+             action: {
+               label: "Tabloyu Aç",
+               onClick: () => window.open(res.spreadsheetUrl, "_blank")
+             }
+           });
+         } else {
+           toast.success("Drive ile senkronize edildi");
+         }
       }
     } catch (err: any) {
       toast.error(err.message || "Senkronizasyon hatası");
@@ -797,7 +806,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
           <Button variant="outline" className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized}>
             {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            Sistemi Dışa Aktar
+            Dışa Aktar
           </Button>
 
           <DropdownMenu>
