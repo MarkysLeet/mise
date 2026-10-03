@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 
 import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee } from "@/actions/puantaj";
-import { importEmployeesFromSheet, syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
+import { syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
+import { ImportModal } from "./components/import/ImportModal";
 import { initializeNewMonth } from "@/actions/puantaj-init";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
 import { MobilePuantajView } from "./components/MobilePuantajView";
@@ -136,7 +137,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query);
   };
 
-  const [isImporting, setIsImporting] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
   const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
@@ -483,23 +484,8 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   };
 
   // Import from Sheets
-  const handleImport = async () => {
-    setIsImporting(true);
-    try {
-      const res = await importEmployeesFromSheet(currentYear, currentMonth);
-      if (res.success) {
-        toast.success(`${res.count} personel başarıyla içe aktarıldı`);
-        queryClient.invalidateQueries({ queryKey: ["employees"] });
-        queryClient.invalidateQueries({ queryKey: ["entries"] });
-        router.refresh();
-      } else {
-        toast.error(res.error || "İçe aktarma hatası");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "İçe aktarma hatası");
-    } finally {
-      setIsImporting(false);
-    }
+  const handleImport = () => {
+    setIsImportModalOpen(true);
   };
 
   // Sync to Drive
@@ -817,9 +803,8 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={handleImport} disabled={isImporting || !isCurrentMonthInitialized} className="cursor-pointer">
-                {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Tablodan İçe Aktar
+              <DropdownMenuItem onClick={handleImport} disabled={!isCurrentMonthInitialized} className="cursor-pointer">
+                <Download className="mr-2 h-4 w-4" /> Tablodan İçe Aktar
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
                 <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
@@ -1072,6 +1057,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ImportModal open={isImportModalOpen} onOpenChange={setIsImportModalOpen} />
     </div>
   );
 }
