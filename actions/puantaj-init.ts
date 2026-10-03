@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { syncPuantajToDrive } from "./puantaj-sync";
 import { Database } from "@/types/database";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
@@ -168,16 +167,6 @@ export async function initializeNewMonth(year: number, month: number) {
         .update({ initialized_months: newInitializedMonths })
         .eq("id", workspace_id);
     if (updateError) throw new Error(updateError.message);
-
-    // Call sync to Drive (Google Sheets)
-    try {
-        await syncPuantajToDrive(year, month, activeEmployees, entriesToInsert);
-    } catch (err: unknown) {
-        console.error("Google Sheets oluşturulurken hata:", err);
-        // We don't fail the entire transaction if Drive fails, but maybe we should?
-        // Actually we probably want the month to be considered initialized even if Drive fails,
-        // user can always click manual sync.
-    }
 
     revalidatePath("/puantaj");
     return { success: true };
