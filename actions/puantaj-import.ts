@@ -9,25 +9,28 @@ function parseTurkishDate(dateStr: string | null | undefined): string | null {
   const str = dateStr.toString().trim();
   if (!str) return null;
 
-  // Try matching DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY
+  // Split by dot, slash, or dash
   const parts = str.split(/[\.\/\-]/);
   if (parts.length === 3) {
     const p0 = parts[0];
     const p1 = parts[1];
     const p2 = parts[2];
 
-    // Check if it's already YYYY-MM-DD
+    // If the first part has 4 digits, we assume it's already YYYY-MM-DD
     if (p0.length === 4) {
       return `${p0}-${p1.padStart(2, '0')}-${p2.padStart(2, '0')}`;
     }
 
-    // Check if year is last
+    // Otherwise, we explicitly assume DD is first, MM is second, YYYY is third
+    const day = p0;
+    const month = p1;
     let year = p2;
+
     if (year.length === 2) {
        year = `20${year}`;
     }
 
-    return `${year}-${p1.padStart(2, '0')}-${p0.padStart(2, '0')}`;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
   return null;
