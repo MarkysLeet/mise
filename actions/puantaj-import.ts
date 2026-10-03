@@ -4,33 +4,73 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-function parseTurkishDate(dateStr: string | null | undefined): string | null {
-  if (!dateStr) return null;
-  const str = dateStr.toString().trim();
-  if (!str) return null;
+function normalizeDate(value: any): string | null {
+  if (value === null || value === undefined || value === "") return null;
 
-  // Split by dot, slash, or dash
-  const parts = str.split(/[\.\/\-]/);
-  if (parts.length === 3) {
-    const p0 = parts[0];
-    const p1 = parts[1];
-    const p2 = parts[2];
+  // Helper to construct YYYY-MM-DD
+  const toDateStr = (y: number, m: number, d: number) => {
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+    let year = y;
+    if (year < 100) year += 2000;
+    return `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
 
-    // If the first part has 4 digits, we assume it's already YYYY-MM-DD
-    if (p0.length === 4) {
-      return `${p0}-${p1.padStart(2, '0')}-${p2.padStart(2, '0')}`;
+  // 1. Date object
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    return toDateStr(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
+  }
+
+  // 2. Excel Serial Number
+  if (typeof value === 'number') {
+    const d = new Date(Math.round((value - 25569) * 86400 * 1000));
+    if (isNaN(d.getTime())) return null;
+    return toDateStr(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+  }
+
+  // 3. String parsing
+  if (typeof value === 'string') {
+    const str = value.trim();
+    if (!str) return null;
+
+    // Matches YYYY-MM-DD directly
+    if (/^\d{4}[\/\-]\d{2}[\/\-]\d{2}/.test(str)) {
+      return str.substring(0, 10).replace(/\//g, '-');
     }
 
-    // Otherwise, we explicitly assume DD is first, MM is second, YYYY is third
-    const day = p0;
-    const month = p1;
-    let year = p2;
+    const parts = str.split(/[\.\/\-]/);
+    if (parts.length >= 3) {
+      const p0 = parseInt(parts[0], 10);
+      const p1 = parseInt(parts[1], 10);
+      const p2 = parseInt(parts[2].substring(0, 4), 10); // ignore time if attached
 
-    if (year.length === 2) {
-       year = `20${year}`;
+      if (isNaN(p0) || isNaN(p1) || isNaN(p2)) return null;
+
+      let year, month, day;
+
+      if (p0 > 1000) {
+        // YYYY.MM.DD
+        year = p0;
+        month = p1;
+        day = p2;
+      } else if (p2 > 1000 || parts[2].length === 2) {
+        // Ends with year
+        year = p2;
+        if (p1 > 12) {
+          // MM/DD/YYYY
+          month = p0;
+          day = p1;
+        } else {
+          // DD.MM.YYYY (Default assumption for Turkey)
+          day = p0;
+          month = p1;
+        }
+      } else {
+        return null;
+      }
+
+      return toDateStr(year, month, day);
     }
-
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
   return null;
@@ -83,7 +123,7 @@ export async function importEmployeesFromFile(employeesData: any[]) {
       const searchKey = parsedName.toLowerCase().replace(/\s+/g, ' ');
       const existing = existingMap.get(searchKey);
 
-      const parsedHireDate = parseTurkishDate(item.hire_date);
+      const parsedHireDate = normalizeDate(item.hire_date);
 
       const newValues: any = {
         sicil_no: item.sicil_no ? item.sicil_no.toString().trim() : null,

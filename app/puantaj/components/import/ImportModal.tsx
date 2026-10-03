@@ -51,9 +51,9 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
     setIsLoading(true);
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      const workbook = XLSX.read(data, { cellDates: true });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false, dateNF: "dd.mm.yyyy" });
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
       if (!jsonData || jsonData.length === 0) {
         throw new Error("Dosya boş veya formatı hatalı.");
