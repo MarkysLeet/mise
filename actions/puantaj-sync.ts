@@ -4,7 +4,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getGoogleAuthClient } from "./drive";
 import { google } from "googleapis";
-import { revalidatePath } from "next/cache";
 
 const MONTH_NAMES = [
   "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
@@ -19,7 +18,7 @@ async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, mon
   const monthName = MONTH_NAMES[month - 1];
   const fileName = `PUANTAJ ${monthName} ${year}`;
 
-  let res = await drive.files.list({
+  const res = await drive.files.list({
     q: `'${puantajFolderId}' in parents and name = '${fileName}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
     spaces: 'drive',
     supportsAllDrives: true,
@@ -57,202 +56,6 @@ async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, mon
   });
 
   return { id: copiedFile.data.id, name: fileName, isNew: true };
-}
-
-export async function importEmployeesFromSheet(year: number, month: number) {
- try {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
-
-  const { data: workspace } = await supabase
-    .from("workspaces")
-    .select("*")
-    .eq("id", (await supabase.from("profiles").select("workspace_id").eq("id", user.id).single()).data?.workspace_id)
-    .single();
-
-  if (!workspace || !workspace.drive_folder_id) {
-    throw new Error("Workspace not connected to Google Drive");
-  }
-
-  const auth = await getGoogleAuthClient();
-  const drive = google.drive({ version: 'v3', auth });
-
-  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, month, year);
-  const spreadsheetId = spreadsheet.id!;
-
-  const sheetsApi = google.sheets({ version: 'v4', auth });
-  const sheetMetadata = await sheetsApi.spreadsheets.get({ spreadsheetId });
-
-  const monthName = MONTH_NAMES[month - 1];
-  let sheetToRead = sheetMetadata.data.sheets?.find(s => s.properties?.title === monthName);
-
-  if (!sheetToRead) {
-    sheetToRead = sheetMetadata.data.sheets?.find(s => s.properties?.title === 'Şablon');
-  }
-
-  if (!sheetToRead) {
-    throw new Error("Şablon sekmesi bulunamadı");
-  }
-
-  const sheetTitle = sheetToRead.properties!.title;
-
-  // Read B6:AL110
-  const response = await sheetsApi.spreadsheets.values.get({
-    spreadsheetId,
-    range: `'${sheetTitle}'!B6:AL110`,
-  });
-
-  const rows = response.data.values || [];
-  let seq_no = 1;
-
-  // Get existing employees to update or insert
-  const { data: existingEmployees } = await supabase
-    .from("employees")
-    .select("*")
-    .eq("workspace_id", workspace.id);
-
-  const existingMap = new Map(existingEmployees?.map(e => [`${e.sicil_no || ''}-${e.full_name}`, e]));
-
-  const employeesToUpsert = [];
-  const employeesToInsert = [];
-  const validRows = [];
-
-  const VALID_STATUSES = new Set(["X", "Hİ", "Üİ", "D", "R", "Yİ", "SZ", "ÜR"]);
-
-  for (const row of rows) {
-    // Indexes: 0 = No (B), 1 = Sicil (C), 2 = Ad Soyad (D), 3 = Görevi (E), 4 = Giriş (F), 5 = Çıkış (G)
-    const sicil_no = row[1]?.trim() || "";
-    const full_name = row[2]?.trim();
-    const role_title = row[3]?.trim();
-    const hire_date_raw = row[4]?.trim(); // expected DD.MM.YYYY
-    const termination_date_raw = row[5]?.trim(); // expected DD.MM.YYYY
-
-    if (!full_name) continue; // Skip empty rows
-
-    const key = `${sicil_no}-${full_name}`;
-    const existingEmp = existingMap.get(key);
-
-    let hire_date = null;
-    if (hire_date_raw) {
-      const parts = hire_date_raw.split('.');
-      if (parts.length === 3) {
-         hire_date = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
-      }
-    }
-
-    let termination_date = null;
-    let is_active = true;
-    if (termination_date_raw) {
-      const parts = termination_date_raw.split('.');
-      if (parts.length === 3) {
-         termination_date = `${parts[2]}-${parts[1]}-${parts[0]}`; // YYYY-MM-DD
-         is_active = false;
-      }
-    }
-
-    const employeeObj = {
-      workspace_id: workspace.id,
-      seq_no: seq_no++,
-      sicil_no: sicil_no || null,
-      full_name,
-      role_title: role_title || null,
-      hire_date: hire_date,
-      termination_date: termination_date,
-      is_active: is_active
-    };
-
-    if (existingEmp) {
-      // Update existing
-      // Preserve hire_date if missing in sheet but present in db
-      if (!employeeObj.hire_date && existingEmp.hire_date) {
-        employeeObj.hire_date = existingEmp.hire_date;
-      }
-      employeesToUpsert.push({ ...employeeObj, id: existingEmp.id });
-    } else {
-      // Insert new
-      employeesToInsert.push(employeeObj);
-    }
-
-    validRows.push({ key, row });
-  }
-
-  // Update existing employees in bulk
-  if (employeesToUpsert.length > 0) {
-    await supabase.from("employees").upsert(employeesToUpsert);
-  }
-
-  // Insert new employees in bulk
-  if (employeesToInsert.length > 0) {
-    const { data: newEmployees } = await supabase.from("employees").insert(employeesToInsert).select();
-    if (newEmployees) {
-      for (const emp of newEmployees) {
-        const key = `${emp.sicil_no || ''}-${emp.full_name}`;
-        existingMap.set(key, emp);
-      }
-    }
-  }
-
-  const entriesToInsert = [];
-  const daysInMonth = new Date(year, month, 0).getDate();
-
-  for (const { key, row } of validRows) {
-    const emp = existingMap.get(key);
-    if (!emp) continue;
-
-    // Process entries (days 1-31 are indexes 6-36)
-    for (let i = 0; i < 31; i++) {
-      const day = i + 1;
-      if (day > daysInMonth) continue;
-
-      const colIndex = 6 + i;
-      const status = row[colIndex]?.trim()?.toUpperCase();
-
-      if (status && VALID_STATUSES.has(status)) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        entriesToInsert.push({
-          workspace_id: workspace.id,
-          employee_id: emp.id,
-          date: dateStr,
-          status: status
-        });
-      }
-    }
-  }
-
-  // Clear existing entries for this month
-  const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-
-  await supabase
-    .from("puantaj_entries")
-    .delete()
-    .eq("workspace_id", workspace.id)
-    .gte("date", startDateStr)
-    .lte("date", endDateStr);
-
-  // Insert new entries in chunks
-  if (entriesToInsert.length > 0) {
-    const chunkSize = 1000;
-    for (let i = 0; i < entriesToInsert.length; i += chunkSize) {
-      await supabase.from("puantaj_entries").insert(entriesToInsert.slice(i, i + chunkSize));
-    }
-  }
-
-  // Fetch updated employees and entries for immediate UI update
-  const { getEmployees, getPuantajEntries } = await import('./puantaj');
-
-  // We need to fetch without the auth check from the other file if we are already authenticated here,
-  // but since getEmployees uses createClient which uses the same auth context, it should work fine.
-  const updatedEmployees = await getEmployees(year, month);
-  const updatedEntries = await getPuantajEntries(year, month);
-
-  revalidatePath("/puantaj");
-  return { success: true, count: seq_no - 1, employees: updatedEmployees, entries: updatedEntries };
- } catch (err: any) {
-   console.error("importEmployeesFromSheet error:", err);
-   return { success: false, error: err.message || "Bir hata oluştu" };
- }
 }
 
 export async function getPuantajSpreadsheetId(month: number, year: number) {
