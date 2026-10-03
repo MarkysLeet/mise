@@ -36,10 +36,16 @@ export async function syncPersonelListToDrive() {
 
     if (!employees) return { success: false, error: "No employees found" };
 
+    // Fetch roles to get correct priority
+    const { data: roles } = await supabase
+      .from("roles")
+      .select("title, priority")
+      .eq("workspace_id", workspace.id);
+
     // Sort employees by department_outlet, then role_title (using hierarchy)
     const { sortEmployees } = await import('@/lib/sort');
     // First we sort by role/name using our utility
-    const roleSortedEmployees = sortEmployees([...employees]);
+    const roleSortedEmployees = sortEmployees([...employees], roles || []);
 
     // Then we sort by department (which is stable if the environment supports it, but we can do it explicitly)
     const finalSortedEmployees = roleSortedEmployees.sort((a, b) => {

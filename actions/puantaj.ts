@@ -49,8 +49,13 @@ export async function getEmployees(year?: number, month?: number) {
       throw new Error(error.message);
     }
 
+    const { data: roles } = await supabase
+      .from("roles")
+      .select("title, priority")
+      .eq("workspace_id", profile.workspace_id);
+
     const { sortEmployees } = await import('@/lib/sort');
-    const sortedData = sortEmployees(data);
+    const sortedData = sortEmployees(data, roles || []);
 
     // Re-sequence them for display to be 1, 2, 3... without holes
     const sequencedData = sortedData.map((emp, index) => ({
