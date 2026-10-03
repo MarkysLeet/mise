@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Database } from "@/types/database";
 import { syncPersonelListToDrive } from "./personel-sync";
 import { syncPuantajToDrive } from "./puantaj-sync";
+import { sanitizeDates } from "@/lib/utils/sanitizeDates";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
@@ -90,19 +91,21 @@ export async function addEmployee(employeeData: {
 
   if (!profile?.workspace_id) throw new Error("No workspace found");
 
+  const payload = sanitizeDates({
+    workspace_id: profile.workspace_id,
+    seq_no: employeeData.seq_no,
+    sicil_no: employeeData.sicil_no || null,
+    phone: employeeData.phone || null,
+    department_outlet: employeeData.department_outlet || null,
+    full_name: employeeData.full_name,
+    role_title: employeeData.role_title || null,
+    hire_date: employeeData.hire_date || null,
+    is_active: true,
+  }, ["hire_date"]);
+
   const { data, error } = await supabase
     .from("employees")
-    .insert({
-      workspace_id: profile.workspace_id,
-      seq_no: employeeData.seq_no,
-      sicil_no: employeeData.sicil_no || null,
-      phone: employeeData.phone || null,
-      department_outlet: employeeData.department_outlet || null,
-      full_name: employeeData.full_name,
-      role_title: employeeData.role_title || null,
-      hire_date: employeeData.hire_date || null,
-      is_active: true,
-    })
+    .insert(payload)
     .select()
     .single();
 
@@ -127,9 +130,12 @@ export async function updateEmployee(id: string, employeeData: Partial<Employee>
 
   if (!user) throw new Error("Unauthorized");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sanitizedData = sanitizeDates(employeeData, ["hire_date", "termination_date" as any]);
+
   const { data, error } = await supabase
     .from("employees")
-    .update(employeeData)
+    .update(sanitizedData)
     .eq("id", id)
     .select()
     .single();

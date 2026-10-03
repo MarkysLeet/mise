@@ -1,8 +1,9 @@
-import { Users, AlertCircle, Clock, FileText, CalendarOff } from "lucide-react";
+import { Users, AlertCircle, Clock, FileText, CalendarOff, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { MissingEmployeesSheet } from "./components/MissingEmployeesSheet";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -79,7 +80,17 @@ export default async function DashboardPage() {
   }
 
   const todayEntries = allEntries.filter(e => e.date === todayStr);
-  const onLeaveToday = todayEntries.filter(e => ['D', 'R', 'Üİ', 'Yİ'].includes(e.status)).length;
+  const missingEmployeesEntries = todayEntries.filter(e => e.status && e.status !== "" && e.status !== 'X' && e.status !== 'Hİ');
+  const onLeaveToday = missingEmployeesEntries.length;
+  const missingEmployees = missingEmployeesEntries.map(entry => {
+    const emp = employees?.find(e => e.id === entry.employee_id);
+    return {
+      id: entry.employee_id,
+      full_name: emp?.full_name || 'Bilinmeyen Personel',
+      role_title: emp?.role_title || '',
+      status: entry.status
+    };
+  });
 
   // If today isn't fully filled, we can fall back to month stats or just show 0. Let's show today's data as requested.
 
@@ -170,14 +181,19 @@ export default async function DashboardPage() {
               </CardHeader>
             </Card>
             
-            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
-              <CardHeader className="pb-2">
-                <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
-                  <CalendarOff className="h-4 w-4" /> Eksik Personel
-                </CardDescription>
-                <CardTitle className="text-3xl font-light text-zinc-900">{onLeaveToday}</CardTitle>
-              </CardHeader>
-            </Card>
+            <MissingEmployeesSheet missingEmployees={missingEmployees} onLeaveCount={onLeaveToday}>
+              <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 cursor-pointer hover:bg-zinc-100 transition-colors">
+                <CardHeader className="pb-2">
+                  <CardDescription className="font-medium flex items-center justify-between text-zinc-600">
+                    <div className="flex items-center gap-2">
+                      <CalendarOff className="h-4 w-4" /> Gelmeyenler
+                    </div>
+                    <Info className="h-4 w-4 text-zinc-400" />
+                  </CardDescription>
+                  <CardTitle className="text-3xl font-light text-zinc-900">{onLeaveToday}</CardTitle>
+                </CardHeader>
+              </Card>
+            </MissingEmployeesSheet>
 
             <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
               <CardHeader className="pb-2">
