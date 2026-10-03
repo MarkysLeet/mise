@@ -538,7 +538,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     const newWin = window.open('about:blank', '_blank');
 
     try {
-      const res = await getPuantajSpreadsheetId(currentYear);
+      const res = await getPuantajSpreadsheetId(currentMonth, currentYear);
       if (res && res.success && res.spreadsheetId) {
         const url = `https://docs.google.com/spreadsheets/d/${res.spreadsheetId}/edit`;
         setSyncUrl(url); // cache it
@@ -795,6 +795,11 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
             <Plus className="mr-2 h-4 w-4" /> Personel Ekle
           </Button>
 
+          <Button variant="outline" className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized}>
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            Sistemi Dışa Aktar
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Button variant="outline" className="flex items-center gap-2 pointer-events-none">
@@ -806,16 +811,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               <DropdownMenuItem onClick={handleImport} disabled={isImporting || !isCurrentMonthInitialized} className="cursor-pointer">
                 {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Tablodan İçe Aktar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized} className="cursor-pointer relative">
-                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                Drive İle Senkronize Et
-                {hasUnsavedDriveChanges && (
-                  <span className="absolute right-2 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
                 <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç

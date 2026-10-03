@@ -14,10 +14,11 @@ const MONTH_NAMES = [
 import { ensureFolderPath } from "@/lib/google-drive";
 
 // Helper to find or create the Puantaj spreadsheet
-async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, year: number) {
+async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, month: number, year: number) {
   const puantajFolderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Puantaj']);
+  const monthName = MONTH_NAMES[month - 1];
+  const fileName = `PUANTAJ ${monthName} ${year}`;
 
-  const fileName = `PUANTAJ ${year}`;
   let res = await drive.files.list({
     q: `'${puantajFolderId}' in parents and name = '${fileName}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
     spaces: 'drive',
@@ -26,85 +27,36 @@ async function getOrCreateUserPuantajSpreadsheet(drive: any, workspace: any, yea
     fields: 'files(id, name)',
   });
 
-  if (!res.data.files || res.data.files.length === 0) {
-    // Fallback search in Puantaj folder
-    res = await drive.files.list({
-      q: `'${puantajFolderId}' in parents and name contains 'PUANTAJ' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
-      spaces: 'drive',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-      fields: 'files(id, name)',
-    });
-  }
-
-  // If found in user folder, return it
+  // If found exactly
   if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
-    return { id: res.data.files[0].id, name: res.data.files[0].name };
+    return { id: res.data.files[0].id, name: res.data.files[0].name, isNew: false };
   }
 
-  // Fallback (Self-healing): Copy from MASTER_FOLDER_ID
-  const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
-  if (!masterFolderId) {
-    throw new Error("Master Folder yapılandırılmamış, PUANTAJ kopyalanamadı.");
-  }
-
-  const masterSearchRes = await drive.files.list({
-    q: `name contains 'PUANTAJ 2026' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+  // Find Puantaj_Taslak anywhere in the user's connected folder or subfolders
+  const taslakRes = await drive.files.list({
+    q: `name = 'Puantaj_Taslak' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
     spaces: 'drive',
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
-    fields: 'files(id, name, parents)',
+    fields: 'files(id, name)',
   });
 
-  let masterTemplate = masterSearchRes.data.files?.[0];
-
-  // Double-check if we actually found something from master (checking parents)
-  if (masterSearchRes.data.files && masterSearchRes.data.files.length > 0) {
-    for (const file of masterSearchRes.data.files) {
-      if (!file.id) continue;
-      let currentFile = file;
-      let isBelongingToMaster = false;
-      for (let i = 0; i < 5; i++) {
-        if (!currentFile.parents || currentFile.parents.length === 0) break;
-        if (currentFile.parents.includes(masterFolderId)) {
-          isBelongingToMaster = true;
-          break;
-        }
-        try {
-          const parentRes = await drive.files.get({
-            fileId: currentFile.parents[0],
-            fields: "id, parents",
-            supportsAllDrives: true,
-          });
-          currentFile = parentRes.data;
-        } catch { break; }
-      }
-      if (isBelongingToMaster) {
-        masterTemplate = file;
-        break;
-      }
-    }
+  if (!taslakRes.data.files || taslakRes.data.files.length === 0) {
+    throw new Error("Puantaj_Taslak dosyası Drive'da bulunamadı.");
   }
 
-  if (!masterTemplate || !masterTemplate.id) {
-    throw new Error(`Master PUANTAJ şablonu bulunamadı.`);
-  }
+  const taslakFile = taslakRes.data.files[0];
 
-  // Copy template to user's Anex/Puantaj folder
-  const copyRes = await drive.files.copy({
-    fileId: masterTemplate.id,
+  const copiedFile = await drive.files.copy({
+    fileId: taslakFile.id,
     requestBody: {
-      name: `PUANTAJ ${year}`,
-      parents: [puantajFolderId],
+      name: fileName,
+      parents: [puantajFolderId]
     },
     supportsAllDrives: true,
   });
 
-  if (!copyRes.data.id) {
-    throw new Error("PUANTAJ kopyalanırken bir hata oluştu.");
-  }
-
-  return { id: copyRes.data.id, name: copyRes.data.name };
+  return { id: copiedFile.data.id, name: fileName, isNew: true };
 }
 
 export async function importEmployeesFromSheet(year: number, month: number) {
@@ -126,7 +78,7 @@ export async function importEmployeesFromSheet(year: number, month: number) {
   const auth = await getGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
-  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
+  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, month, year);
   const spreadsheetId = spreadsheet.id!;
 
   const sheetsApi = google.sheets({ version: 'v4', auth });
@@ -303,7 +255,7 @@ export async function importEmployeesFromSheet(year: number, month: number) {
  }
 }
 
-export async function getPuantajSpreadsheetId(year: number) {
+export async function getPuantajSpreadsheetId(month: number, year: number) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -322,7 +274,7 @@ export async function getPuantajSpreadsheetId(year: number) {
     const auth = await getGoogleAuthClient();
     const drive = google.drive({ version: 'v3', auth });
 
-    const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
+    const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, month, year);
     return { success: true, spreadsheetId: spreadsheet.id };
   } catch (err: any) {
     console.error("getPuantajSpreadsheetId error:", err);
@@ -353,38 +305,42 @@ export async function syncPuantajToDrive(year: number, month: number, employees:
   const auth = await getGoogleAuthClient();
   const drive = google.drive({ version: 'v3', auth });
 
-  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, year);
+  const spreadsheet = await getOrCreateUserPuantajSpreadsheet(drive, workspace, month, year);
   const spreadsheetId = spreadsheet.id!;
+  const monthName = MONTH_NAMES[month - 1];
 
   const sheetsApi = google.sheets({ version: 'v4', auth });
-  const sheetMetadata = await sheetsApi.spreadsheets.get({ spreadsheetId });
 
-  const monthName = MONTH_NAMES[month - 1];
-  let sheetToSync = sheetMetadata.data.sheets?.find(s => s.properties?.title === monthName);
+  if (spreadsheet.isNew) {
+    // If it's a new copy from Taslak, rename "Şablon" to monthName
+    const sheetMetadata = await sheetsApi.spreadsheets.get({ spreadsheetId });
+    const sablonSheet = sheetMetadata.data.sheets?.find(s => s.properties?.title === 'Şablon');
+
+    if (sablonSheet) {
+      await sheetsApi.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              updateSheetProperties: {
+                properties: {
+                  sheetId: sablonSheet.properties!.sheetId,
+                  title: monthName
+                },
+                fields: 'title'
+              }
+            }
+          ]
+        }
+      });
+    }
+  }
+
+  const freshMeta = await sheetsApi.spreadsheets.get({ spreadsheetId });
+  const sheetToSync = freshMeta.data.sheets?.find(s => s.properties?.title === monthName);
 
   if (!sheetToSync) {
-    const sablonSheet = sheetMetadata.data.sheets?.find(s => s.properties?.title === 'Şablon');
-    if (!sablonSheet) throw new Error("Şablon sekmesi bulunamadı");
-
-    // Duplicate Şablon
-    await sheetsApi.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        requests: [
-          {
-            duplicateSheet: {
-              sourceSheetId: sablonSheet.properties!.sheetId,
-              insertSheetIndex: sheetMetadata.data.sheets!.length,
-              newSheetName: monthName
-            }
-          }
-        ]
-      }
-    });
-
-    // Need to fetch fresh metadata to get the new sheetId
-    const freshMeta = await sheetsApi.spreadsheets.get({ spreadsheetId });
-    sheetToSync = freshMeta.data.sheets?.find(s => s.properties?.title === monthName);
+     throw new Error(`${monthName} sekmesi bulunamadı.`);
   }
 
   const sheetId = sheetToSync!.properties!.sheetId!;
