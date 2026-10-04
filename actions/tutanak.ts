@@ -147,6 +147,7 @@ export async function generateTutanak(formData: FormData) {
     }
 
     // Form Data Extraction
+    const kategori = formData.get("kategori") as string || "";
     const konu = formData.get("konu") as string || "";
     const olayYeri = formData.get("olayYeri") as string || "";
     const adSoyad = formData.get("adSoyad") as string || "";
@@ -166,7 +167,8 @@ export async function generateTutanak(formData: FormData) {
 
     // 5. Copy the file to the user's folder
     const safeDate = new Date().toISOString().split('T')[0];
-    const newFileName = `Tutanak - ${adSoyad} - ${safeDate}`;
+    const kategoriPrefix = kategori ? `[${kategori}] ` : "";
+    const newFileName = `${kategoriPrefix}Tutanak - ${adSoyad} - ${safeDate}`;
 
     if (!templateFile.id) {
        return { error: "Şablon dosyası id'si eksik." };
@@ -266,5 +268,84 @@ export async function generateTutanak(formData: FormData) {
     }
 
     return { error: error instanceof Error ? error.message : "Tutanak oluşturulurken beklenmeyen bir hata oluştu." };
+  }
+}
+
+export type TutanakFile = {
+  id: string;
+  name: string;
+  createdTime: string;
+  webViewLink: string;
+};
+
+export async function getTutanakFiles(): Promise<{ files?: TutanakFile[]; error?: string; resetAuth?: boolean }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Kullanıcı girişi yapılmamış." };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*, workspaces(*)")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !profile.workspaces) {
+      return { error: "Çalışma alanı (Workspace) bulunamadı." };
+    }
+
+    const workspace = profile.workspaces;
+
+    if (!workspace.drive_folder_id) {
+      return { error: "Çalışma alanına ait Google Drive klasörü bulunamadı." };
+    }
+
+    if (!workspace.google_refresh_token) {
+      return { error: "Google Drive bağlantısı bulunamadı.", resetAuth: true };
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+
+    oauth2Client.setCredentials({
+      refresh_token: workspace.google_refresh_token,
+    });
+
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
+    const tutanakFolderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Tutanak']);
+
+    // List all files inside the Anex/Tutanak folder excluding the template itself and trashed items
+    // Order by createdTime descending
+    const response = await drive.files.list({
+      q: `'${tutanakFolderId}' in parents and name != 'Tutanak_Taslak' and trashed=false`,
+      fields: "files(id, name, createdTime, webViewLink)",
+      orderBy: "createdTime desc",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    const files = response.data.files?.map(file => ({
+      id: file.id as string,
+      name: file.name as string,
+      createdTime: file.createdTime as string,
+      webViewLink: file.webViewLink as string,
+    })) || [];
+
+    return { files };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error("Error fetching Tutanak files:", error);
+
+    // Self-healing: if token is revoked or expired
+    if (error?.response?.status === 401 || error?.response?.status === 403 || error?.message?.includes("invalid_grant")) {
+      return { error: "Google Drive oturumunuzun süresi doldu veya erişim izni iptal edildi. Lütfen tekrar giriş yapın.", resetAuth: true };
+    }
+
+    return { error: error instanceof Error ? error.message : "Dosyalar alınırken beklenmeyen bir hata oluştu." };
   }
 }
