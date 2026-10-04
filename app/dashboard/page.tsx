@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MissingEmployeesSheet } from "./components/MissingEmployeesSheet";
+import { FutureTerminationsPopover } from "./components/FutureTerminationsPopover";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -37,15 +38,25 @@ export default async function DashboardPage() {
     .select("*")
     .eq("workspace_id", workspace.id);
 
-  // Calculate active employees based on today (must be >= today to be considered active)
+  // Calculate active employees based on today
   const todayForStats = new Date();
   todayForStats.setHours(0, 0, 0, 0);
-  const activeEmployees = employees?.filter(e => {
-    if (!e.termination_date) return true;
+
+  // Active employees are strictly those with NO termination date
+  const activeEmployees = employees?.filter(e => !e.termination_date) || [];
+
+  // Future terminations are employees with termination_date >= today
+  const futureTerminations = employees?.filter(e => {
+    if (!e.termination_date) return false;
     const termDate = new Date(e.termination_date);
-    termDate.setHours(0, 0, 0, 0); // Ignore time part
+    termDate.setHours(0, 0, 0, 0);
     return termDate >= todayForStats;
-  }) || [];
+  }).map(e => ({
+    id: e.id,
+    full_name: e.full_name,
+    role_title: e.role_title,
+    termination_date: e.termination_date.split('-').reverse().join('.')
+  })) || [];
   // Fetch current month's puantaj entries
   const startDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
   const lastDay = new Date(currentYear, currentMonth, 0).getDate();
@@ -175,9 +186,12 @@ export default async function DashboardPage() {
                 <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
                   <Users className="h-4 w-4" /> Aktif Personel
                 </CardDescription>
-                <CardTitle className="text-3xl font-light text-zinc-900">
-                  {activeEmployees.length}
-                </CardTitle>
+                <div className="flex flex-col">
+                  <CardTitle className="text-3xl font-light text-zinc-900">
+                    {activeEmployees.length}
+                  </CardTitle>
+                  <FutureTerminationsPopover terminations={futureTerminations} />
+                </div>
               </CardHeader>
             </Card>
             
