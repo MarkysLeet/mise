@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, User, AlertTriangle, Download, Plus, ExternalLink } from "lucide-react";
+import { FileText, User, Download, Plus, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ export default function TutanakPage() {
   // Options state
   const [employees, setEmployees] = useState<{id: string, full_name: string, role_title: string, department_outlet: string}[]>([]);
   const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
+  const [workspaceName, setWorkspaceName] = useState<string>("");
 
   // Form state
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
@@ -57,12 +58,19 @@ export default function TutanakPage() {
     if (!opts.error) {
       setEmployees(opts.employees || []);
       setTemplates(opts.templates || []);
+      setWorkspaceName(opts.workspaceName || "");
     }
   };
 
   useEffect(() => {
-    fetchFiles();
-    fetchOptions();
+    let mounted = true;
+    const load = async () => {
+      await Promise.all([fetchFiles(), fetchOptions()]);
+    };
+    if (mounted) {
+      load();
+    }
+    return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -191,7 +199,7 @@ export default function TutanakPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="kategori" className="text-muted-foreground">Tutanak Kategorisi</Label>
                     <Select name="kategori" required value={selectedCategory} onValueChange={(val) => {
@@ -209,22 +217,6 @@ export default function TutanakPage() {
                         <SelectItem value="Diger">Diğer</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-
-
-
-                  <div className="space-y-2">
-                    <Label htmlFor="konu" className="text-muted-foreground">Detaylı Konu</Label>
-                    <div className="relative">
-                      <AlertTriangle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="konu"
-                        name="konu"
-                        placeholder="Örn. Kurallara Uymama"
-                        required
-                        className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -252,8 +244,7 @@ export default function TutanakPage() {
                         name="depPos"
                         value={
                           selectedEmployeeId
-                            ? (employees.find(e => e.id === selectedEmployeeId)?.department_outlet ? `${employees.find(e => e.id === selectedEmployeeId)?.department_outlet} / ` : '') +
-                              (employees.find(e => e.id === selectedEmployeeId)?.role_title || '')
+                            ? `${workspaceName} / ${employees.find(e => e.id === selectedEmployeeId)?.role_title || ''}`
                             : ''
                         }
                         readOnly
