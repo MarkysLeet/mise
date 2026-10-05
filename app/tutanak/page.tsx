@@ -63,8 +63,14 @@ export default function TutanakPage() {
   };
 
   useEffect(() => {
-    fetchFiles();
-    fetchOptions();
+    let mounted = true;
+    const load = async () => {
+      await Promise.all([fetchFiles(), fetchOptions()]);
+    };
+    if (mounted) {
+      load();
+    }
+    return () => { mounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

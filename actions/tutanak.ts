@@ -394,9 +394,52 @@ export async function getTutanakFormOptions() {
       supabase.from("tutanak_templates").select("*").eq("workspace_id", profile.workspace_id).order("title"),
     ]);
 
+    let templates = templatesResponse.data || [];
+
+    // Self-healing: Seed default templates if none exist for this workspace
+    if (templates.length === 0) {
+      const defaultTemplates = [
+        {
+          workspace_id: profile.workspace_id,
+          category: 'Devamsizlik',
+          title: 'Hastalık - Haber Verdi',
+          content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) rahatsızlandığını ve işe gelemeyeceğini önceden bildirmiştir. Bu tutanak, personelin haberli devamsızlığını kayıt altına almak amacıyla düzenlenmiştir.'
+        },
+        {
+          workspace_id: profile.workspace_id,
+          category: 'Devamsizlik',
+          title: 'Hastalık - Haber Vermedi',
+          content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesaisine gelmemiş ve mazeret bildirmemiştir. Personelin habersiz devamsızlığı tespit edilmiş olup, işbu tutanak imza altına alınmıştır.'
+        },
+        {
+          workspace_id: profile.workspace_id,
+          category: 'Devamsizlik',
+          title: 'İşe Geç Kalma',
+          content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesai saatine uymamış ve işe geç kalmıştır. Personelin gecikmesi tespit edilmiş olup bu tutanak düzenlenmiştir.'
+        },
+        {
+          workspace_id: profile.workspace_id,
+          category: 'Devamsizlik',
+          title: 'İzinsiz Görev Yeri Terki',
+          content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesai saatleri içerisinde amirinden izin almaksızın görev yerini terk etmiştir. Bu durum tespit edilmiş olup işbu tutanak düzenlenmiştir.'
+        }
+      ];
+
+      const { data: insertedTemplates, error: insertError } = await supabase
+        .from('tutanak_templates')
+        .insert(defaultTemplates)
+        .select('*');
+
+      if (!insertError && insertedTemplates) {
+        templates = insertedTemplates;
+      } else {
+        console.error("Error seeding default tutanak templates:", insertError);
+      }
+    }
+
     return {
       employees: employeesResponse.data || [],
-      templates: templatesResponse.data || [],
+      templates: templates,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       workspaceName: (profile.workspaces && !Array.isArray(profile.workspaces) ? (profile.workspaces as any).name : Array.isArray(profile.workspaces) ? (profile.workspaces[0] as any)?.name : "") || "",
     };
