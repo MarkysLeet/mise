@@ -153,7 +153,7 @@ export async function generateTutanak(formData: FormData) {
     // Convert olayTarihiRaw to DATE string for Postgres
     let incident_date = null;
     if (olayTarihiRaw) {
-      incident_date = new Date(olayTarihiRaw).toISOString().split('T')[0];
+      incident_date = olayTarihiRaw.split('T')[0];
     }
 
     // 2. Generate Tutanak Number and Reserve via RPC

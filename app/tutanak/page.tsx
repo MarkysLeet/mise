@@ -207,21 +207,7 @@ export default function TutanakPage() {
                     </Select>
                   </div>
 
-                  {selectedCategory && templates.filter(t => t.category === selectedCategory).length > 0 && (
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="template" className="text-muted-foreground">Şablon Seçimi</Label>
-                      <Select value={selectedTemplateId} onValueChange={(val) => handleTemplateChange(val || "")}>
-                        <SelectTrigger className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl w-full">
-                          <SelectValue placeholder="Şablon Seçin (İsteğe Bağlı)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {templates.filter(t => t.category === selectedCategory).map(t => (
-                            <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+
 
                   <div className="space-y-2">
                     <Label htmlFor="konu" className="text-muted-foreground">Detaylı Konu</Label>
@@ -275,7 +261,24 @@ export default function TutanakPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+
+                    {selectedCategory && templates.filter(t => t.category === selectedCategory).length > 0 && (
+                      <div className="w-48">
+                        <Select value={selectedTemplateId} onValueChange={(val) => handleTemplateChange(val || "")}>
+                          <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
+                            <SelectValue placeholder="Şablon Seç..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templates.filter(t => t.category === selectedCategory).map(t => (
+                              <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
                   <textarea
                     id="aciklama"
                     name="aciklama"

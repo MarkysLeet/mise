@@ -56,7 +56,7 @@ CREATE OR REPLACE FUNCTION generate_and_insert_tutanak_no(
     p_employee_id UUID,
     p_incident_date DATE,
     p_created_by UUID
-) RETURNS INTEGER AS $
+) RETURNS INTEGER AS $$
 DECLARE
     next_no INTEGER;
 BEGIN
