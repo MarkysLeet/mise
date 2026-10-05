@@ -168,7 +168,7 @@ export async function generateTutanak(formData: FormData) {
       return { error: "Tutanak numarası oluşturulamadı." };
     }
     const tutanakNumber = `${nextNo}`;
-    const konu = formData.get("konu") as string || "";
+    const konu = kategori; // Use kategori as konu since Detayli Konu is removed
     const olayYeri = formData.get("olayYeri") as string || "";
     const adSoyad = formData.get("adSoyad") as string || "";
     const depPos = formData.get("depPos") as string || "";
@@ -381,7 +381,7 @@ export async function getTutanakFormOptions() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("workspace_id")
+      .select("workspace_id, workspaces(name)")
       .eq("id", user.id)
       .single();
 
@@ -397,6 +397,8 @@ export async function getTutanakFormOptions() {
     return {
       employees: employeesResponse.data || [],
       templates: templatesResponse.data || [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      workspaceName: (profile.workspaces && !Array.isArray(profile.workspaces) ? (profile.workspaces as any).name : Array.isArray(profile.workspaces) ? (profile.workspaces[0] as any)?.name : "") || "",
     };
   } catch (error) {
     console.error("Error fetching form options:", error);

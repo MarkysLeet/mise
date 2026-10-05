@@ -56,10 +56,25 @@ CREATE OR REPLACE FUNCTION generate_and_insert_tutanak_no(
     p_employee_id UUID,
     p_incident_date DATE,
     p_created_by UUID
-) RETURNS INTEGER AS $$
+) RETURNS INTEGER
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     next_no INTEGER;
+    v_user_workspace_id UUID;
 BEGIN
+    -- Ensure user is authenticated and matches the p_created_by (if you enforce that logic)
+    IF auth.uid() IS NULL OR auth.uid() != p_created_by THEN
+        RAISE EXCEPTION 'Not authorized';
+    END IF;
+
+    -- Ensure the user belongs to the requested workspace
+    SELECT workspace_id INTO v_user_workspace_id FROM profiles WHERE id = auth.uid();
+    IF v_user_workspace_id IS NULL OR v_user_workspace_id != p_workspace_id THEN
+        RAISE EXCEPTION 'Not authorized for this workspace';
+    END IF;
+
     -- Lock the workspace row for this transaction to prevent concurrent race conditions
     PERFORM id FROM workspaces WHERE id = p_workspace_id FOR UPDATE;
 
@@ -85,7 +100,7 @@ BEGIN
 
     RETURN next_no;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Seed base templates for existing workspaces
 DO $$
