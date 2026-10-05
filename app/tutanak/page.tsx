@@ -82,11 +82,11 @@ export default function TutanakPage() {
     const formattedDate = incidentDate ? new Date(incidentDate).toLocaleDateString("tr-TR") : "";
 
     if (selectedEmp) {
-      content = content.replace(/{{personel_adi}}/g, selectedEmp.full_name);
+      content = content.replace(/{{personel_adi}}/gi, selectedEmp.full_name);
       const role = selectedEmp.role_title || "";
-      content = content.replace(/{{gorevi}}/g, role);
+      content = content.replace(/{{gorevi}}/gi, role);
     }
-    content = content.replace(/{{tarih}}/g, formattedDate);
+    content = content.replace(/{{tarih}}/gi, formattedDate);
 
     setAciklama(content);
   };
@@ -236,6 +236,7 @@ export default function TutanakPage() {
                       onClear={() => { setSelectedEmployeeId(null); setEmployeeSearchQuery(""); }}
                       placeholder="Personel Ara..."
                       className="w-full"
+                      inputClassName="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                     />
                     <input type="hidden" name="adSoyad" value={employees.find(e => e.id === selectedEmployeeId)?.full_name || employeeSearchQuery} />
                   </div>
@@ -264,20 +265,22 @@ export default function TutanakPage() {
                   <div className="flex items-center justify-between">
                     <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
 
-                    {selectedCategory && templates.filter(t => t.category === selectedCategory).length > 0 && (
-                      <div className="w-48">
-                        <Select value={selectedTemplateId} onValueChange={(val) => handleTemplateChange(val || "")}>
-                          <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
-                            <SelectValue placeholder="Şablon Seç..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {templates.filter(t => t.category === selectedCategory).map(t => (
-                              <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                    <div className="w-48 shrink-0 ml-4">
+                      <Select
+                        value={selectedTemplateId}
+                        onValueChange={(val) => handleTemplateChange(val || "")}
+                        disabled={!selectedCategory || templates.filter(t => t.category === selectedCategory).length === 0}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
+                          <SelectValue placeholder="Şablon Seç..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedCategory && templates.filter(t => t.category === selectedCategory).map(t => (
+                            <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <textarea
                     id="aciklama"
@@ -287,7 +290,7 @@ export default function TutanakPage() {
                     rows={6}
                     required
                     placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
-                    className="w-full p-4 bg-stone-50/50 border border-border/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                    className="w-full p-4 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                   />
                 </div>
 
@@ -313,19 +316,19 @@ export default function TutanakPage() {
 
       {/* Grid of Documents */}
       {isLoadingFiles ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="border-border/50 shadow-sm rounded-2xl">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-10/12 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
+            <Card key={i} className="border-border/50 shadow-sm rounded-xl">
+              <CardHeader className="p-4 pb-2">
+                <Skeleton className="h-4 w-10/12 mb-1" />
+                <Skeleton className="h-3 w-1/2" />
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 mt-4">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
+              <CardContent className="p-4 pt-0">
+                <div className="flex items-center gap-3 mt-2">
+                  <Skeleton className="h-8 w-8 rounded-lg" />
                   <div className="flex-1">
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full mb-1.5" />
+                    <Skeleton className="h-3 w-3/4" />
                   </div>
                 </div>
               </CardContent>
@@ -341,27 +344,27 @@ export default function TutanakPage() {
           <p className="text-muted-foreground mt-1 max-w-sm">Tutanaklar oluşturulduğunda burada listelenecektir.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {files.map((file) => (
             <Link key={file.id} href={file.webViewLink} target="_blank" rel="noopener noreferrer" className="block group h-full">
-              <Card className="border-border/50 shadow-sm rounded-2xl h-full transition-all hover:shadow-md hover:border-primary/20 flex flex-col">
-                <CardHeader className="pb-3 flex-row items-start justify-between gap-4">
-                  <div className="space-y-1.5 flex-1">
-                    <CardTitle className="text-base font-medium line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+              <Card className="border-border/50 shadow-sm rounded-xl h-full transition-all hover:shadow-md hover:border-primary/20 flex flex-col p-4">
+                <CardHeader className="p-0 pb-3 flex-row items-center justify-between gap-3">
+                  <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <CardTitle className="text-sm font-semibold truncate group-hover:text-primary transition-colors" title={file.name}>
                       {file.name}
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-xs truncate">
                       {new Date(file.createdTime).toLocaleDateString("tr-TR", {
                         day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
                       })}
                     </CardDescription>
                   </div>
-                  <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/5 text-primary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <FileText className="h-5 w-5" />
-                  </div>
                 </CardHeader>
-                <CardContent className="mt-auto pt-4 flex items-center text-xs text-muted-foreground font-medium group-hover:text-primary transition-colors">
-                  Dokümanı Görüntüle <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                <CardContent className="p-0 mt-auto pt-3 border-t border-border/30 flex items-center text-xs text-muted-foreground font-medium group-hover:text-primary transition-colors">
+                  Dokümanı Görüntüle <ExternalLink className="ml-auto h-3.5 w-3.5" />
                 </CardContent>
               </Card>
             </Link>
