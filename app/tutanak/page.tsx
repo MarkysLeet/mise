@@ -194,7 +194,11 @@ export default function TutanakPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="kategori" className="text-muted-foreground">Tutanak Kategorisi</Label>
-                    <Select name="kategori" required value={selectedCategory} onValueChange={(val) => { setSelectedCategory(val || ""); setSelectedTemplateId(""); }}>
+                    <Select name="kategori" required value={selectedCategory} onValueChange={(val) => {
+                      setSelectedCategory(val || "");
+                      setSelectedTemplateId("");
+                      setAciklama("");
+                    }}>
                       <SelectTrigger className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl w-full" size="default">
                         <SelectValue placeholder="Kategori Seçin" />
                       </SelectTrigger>
