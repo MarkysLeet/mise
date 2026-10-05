@@ -73,6 +73,9 @@ export interface MobilePuantajViewProps {
   openDossier: (employee: Employee) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  selectedEmployeeId: string | null;
+  onSelectEmployee: (empId: string, fullName: string) => void;
+  onClearSearch: () => void;
   selectedRoleFilter: string;
   setSelectedRoleFilter: (role: string) => void;
 }

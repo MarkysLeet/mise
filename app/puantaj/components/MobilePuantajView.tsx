@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { MobilePuantajViewProps, Employee } from "../types";
-import { Search, ChevronDown, ChevronRight, MoreVertical, Edit2, LogOut, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronRight, MoreVertical, Edit2, LogOut, Trash2 } from "lucide-react";
+import { EmployeeAutocomplete } from "./EmployeeAutocomplete";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,9 @@ export function MobilePuantajView({
   openDossier,
   searchQuery,
   setSearchQuery,
+  selectedEmployeeId,
+  onSelectEmployee,
+  onClearSearch,
   selectedRoleFilter,
   setSelectedRoleFilter,
 }: MobilePuantajViewProps) {
@@ -74,13 +77,14 @@ export function MobilePuantajView({
     <div className="block md:hidden flex flex-col space-y-4">
       {/* 1. Filters & Search */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Personel ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-full bg-slate-50 border-slate-200"
+        <div className="w-full">
+          <EmployeeAutocomplete
+            employees={employees}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            selectedEmployeeId={selectedEmployeeId}
+            onSelectEmployee={onSelectEmployee}
+            onClear={onClearSearch}
           />
         </div>
         <div className="flex overflow-x-auto gap-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
