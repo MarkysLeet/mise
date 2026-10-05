@@ -16,6 +16,7 @@ interface EmployeeAutocompleteProps {
   onClear: () => void;
   placeholder?: string;
   className?: string;
+  inputClassName?: string;
 }
 
 export function EmployeeAutocomplete({
@@ -27,6 +28,7 @@ export function EmployeeAutocomplete({
   onClear,
   placeholder = "Personel ara...",
   className = "",
+  inputClassName = "",
 }: EmployeeAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ export function EmployeeAutocomplete({
   return (
     <div className={`relative ${className}`} ref={wrapperRef}>
       <div className="relative flex items-center">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
         <Input
           placeholder={placeholder}
           value={searchQuery}
@@ -78,7 +80,7 @@ export function EmployeeAutocomplete({
           onFocus={() => {
             if (searchQuery.length > 0) setIsOpen(true);
           }}
-          className="pl-9 pr-9 w-full bg-slate-50 border-slate-200"
+          className={`pl-9 pr-9 w-full ${inputClassName || "bg-slate-50 border-slate-200"}`}
         />
         {searchQuery.length > 0 && (
           <button
