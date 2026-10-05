@@ -34,6 +34,7 @@ import { initializeNewMonth } from "@/actions/puantaj-init";
 import { DesktopPuantajTable } from "./components/DesktopPuantajTable";
 import { MobilePuantajView } from "./components/MobilePuantajView";
 import { EmployeeDossier } from "./components/EmployeeDossier";
+import { EmployeeAutocomplete } from "./components/EmployeeAutocomplete";
 import { usePuantaj } from "./hooks/usePuantaj";
 import { useQueryClient } from "@tanstack/react-query";
 import PuantajLoading from "./loading";
@@ -45,20 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,7 +93,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(searchParams.get("empId") || null);
-  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(searchParams.get("role") || "Tümü");
 
   const updateFiltersInUrl = (newEmpId: string | null, newRole: string, newSearchQuery: string) => {
@@ -122,19 +109,33 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     router.replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleSelectEmployee = (empId: string | null) => {
-    setSelectedEmployeeId(empId);
-    updateFiltersInUrl(empId, selectedRoleFilter, searchQuery);
-  };
-
   const handleSelectRole = (role: string) => {
     setSelectedRoleFilter(role);
     updateFiltersInUrl(selectedEmployeeId, role, searchQuery);
   };
 
   const handleSearchQueryChange = (query: string) => {
+    // If the user manually changes the text after selecting an item, we clear the selected ID
+    // so the table reverts to text-based filtering instead of staying locked to the previous ID.
+    if (selectedEmployeeId) {
+      setSelectedEmployeeId(null);
+      updateFiltersInUrl(null, selectedRoleFilter, query);
+    } else {
+      updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query);
+    }
     setSearchQuery(query);
-    updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query);
+  };
+
+  const handleSelectEmployeeAutocomplete = (empId: string, fullName: string) => {
+    setSelectedEmployeeId(empId);
+    setSearchQuery(fullName);
+    updateFiltersInUrl(empId, selectedRoleFilter, fullName);
+  };
+
+  const handleClearAutocomplete = () => {
+    setSelectedEmployeeId(null);
+    setSearchQuery("");
+    updateFiltersInUrl(null, selectedRoleFilter, "");
   };
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -173,7 +174,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const filteredEmployees = roleFilteredEmployees.filter(emp => {
     if (selectedEmployeeId && emp.id !== selectedEmployeeId) return false;
-    if (searchQuery && !emp.full_name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (!selectedEmployeeId && searchQuery && !emp.full_name.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR'))) return false;
     return true;
   });
 
@@ -727,49 +728,16 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           )}
 
           <div className="hidden md:flex items-center gap-2 ml-4">
-            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-              <PopoverTrigger render={
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={isComboboxOpen}
-                  className="w-[200px] justify-between"
-                >
-                  {selectedEmployeeId
-                    ? employees.find((emp) => emp.id === selectedEmployeeId)?.full_name
-                    : "Personel ara..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              } />
-              <PopoverContent className="w-[200px] p-0">
-                <Command>
-                  <CommandInput placeholder="İsim ile ara..." value={searchQuery} onValueChange={handleSearchQueryChange} />
-                  <CommandList>
-                    <CommandEmpty>Personel bulunamadı.</CommandEmpty>
-                    <CommandGroup>
-                      {roleFilteredEmployees.map((emp) => (
-                        <CommandItem
-                          key={emp.id}
-                          value={emp.full_name}
-                          onSelect={() => {
-                            handleSelectEmployee(emp.id === selectedEmployeeId ? null : emp.id);
-                            setIsComboboxOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedEmployeeId === emp.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {emp.full_name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <div className="w-[220px]">
+              <EmployeeAutocomplete
+                employees={roleFilteredEmployees}
+                searchQuery={searchQuery}
+                onSearchQueryChange={handleSearchQueryChange}
+                selectedEmployeeId={selectedEmployeeId}
+                onSelectEmployee={handleSelectEmployeeAutocomplete}
+                onClear={handleClearAutocomplete}
+              />
+            </div>
 
             <Select value={selectedRoleFilter} onValueChange={(val) => handleSelectRole(val || "Tümü")}>
               <SelectTrigger className="w-[180px]">
@@ -981,6 +949,9 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         openDossier={openDossier}
         searchQuery={searchQuery}
         setSearchQuery={handleSearchQueryChange}
+        selectedEmployeeId={selectedEmployeeId}
+        onSelectEmployee={handleSelectEmployeeAutocomplete}
+        onClearSearch={handleClearAutocomplete}
         selectedRoleFilter={selectedRoleFilter}
         setSelectedRoleFilter={handleSelectRole}
       />
