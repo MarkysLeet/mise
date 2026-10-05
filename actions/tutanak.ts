@@ -35,8 +35,7 @@ export async function generateTutanak(formData: FormData) {
       return { error: "Çalışma alanına ait Google Drive klasörü bulunamadı. Lütfen yöneticinizle iletişime geçin." };
     }
 
-    // 2. Generate Tutanak Number
-    const tutanakNumber = "T-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    // 2. We will generate the number later after extracting form data.
 
     if (!workspace.google_refresh_token) {
       return { error: "Google Drive bağlantısı bulunamadı. Lütfen hesabınızı bağlayın.", resetAuth: true };
@@ -147,13 +146,33 @@ export async function generateTutanak(formData: FormData) {
     }
 
     // Form Data Extraction
+    const employee_id = formData.get("employee_id") as string || null;
     const kategori = formData.get("kategori") as string || "";
+    const olayTarihiRaw = formData.get("olayTarihi") as string || "";
+
+    // Convert olayTarihiRaw to DATE string for Postgres
+    let incident_date = null;
+    if (olayTarihiRaw) {
+      incident_date = olayTarihiRaw.split('T')[0];
+    }
+
+    // 2. Generate Tutanak Number and Reserve via RPC
+    const { data: nextNo, error: rpcError } = await supabase.rpc('generate_and_insert_tutanak_no', {
+        p_workspace_id: workspace.id,
+        p_employee_id: employee_id,
+        p_incident_date: incident_date,
+        p_created_by: profile.id
+    });
+    if (rpcError) {
+      console.error("RPC Error generating tutanak no:", rpcError);
+      return { error: "Tutanak numarası oluşturulamadı." };
+    }
+    const tutanakNumber = `${nextNo}`;
     const konu = formData.get("konu") as string || "";
     const olayYeri = formData.get("olayYeri") as string || "";
     const adSoyad = formData.get("adSoyad") as string || "";
     const depPos = formData.get("depPos") as string || "";
 
-    const olayTarihiRaw = formData.get("olayTarihi") as string || "";
     let olayTarihi = olayTarihiRaw;
     if (olayTarihiRaw) {
       const dateObj = new Date(olayTarihiRaw);
@@ -228,9 +247,10 @@ export async function generateTutanak(formData: FormData) {
     });
 
     if (insertError) {
-      console.error("Database insert error:", insertError);
-      // We don't necessarily want to fail here if the document was created successfully, but we log it.
+      console.error("Database insert error (tutanaks):", insertError);
     }
+
+
 
     // 9. Return URL
     return { success: true, documentUrl };
@@ -347,5 +367,39 @@ export async function getTutanakFiles(): Promise<{ files?: TutanakFile[]; error?
     }
 
     return { error: error instanceof Error ? error.message : "Dosyalar alınırken beklenmeyen bir hata oluştu." };
+  }
+}
+
+export async function getTutanakFormOptions() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: "Kullanıcı girişi yapılmamış." };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !profile.workspace_id) {
+      return { error: "Çalışma alanı (Workspace) bulunamadı." };
+    }
+
+    const [employeesResponse, templatesResponse] = await Promise.all([
+      supabase.from("employees").select("id, full_name, role_title, department_outlet").eq("workspace_id", profile.workspace_id).eq("is_active", true).order("full_name"),
+      supabase.from("tutanak_templates").select("*").eq("workspace_id", profile.workspace_id).order("title"),
+    ]);
+
+    return {
+      employees: employeesResponse.data || [],
+      templates: templatesResponse.data || [],
+    };
+  } catch (error) {
+    console.error("Error fetching form options:", error);
+    return { error: "Veriler alınırken beklenmeyen bir hata oluştu." };
   }
 }

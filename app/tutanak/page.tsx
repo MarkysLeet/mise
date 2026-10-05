@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateTutanak, getTutanakFiles, TutanakFile } from "@/actions/tutanak";
+import { generateTutanak, getTutanakFiles, getTutanakFormOptions, TutanakFile } from "@/actions/tutanak";
+import { EmployeeAutocomplete } from "@/app/puantaj/components/EmployeeAutocomplete";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -23,6 +24,18 @@ export default function TutanakPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Options state
+  const [employees, setEmployees] = useState<{id: string, full_name: string, role_title: string, department_outlet: string}[]>([]);
+  const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
+
+  // Form state
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [aciklama, setAciklama] = useState("");
+  const [incidentDate, setIncidentDate] = useState("");
 
   const fetchFiles = async () => {
     setIsLoadingFiles(true);
@@ -39,10 +52,44 @@ export default function TutanakPage() {
     setIsLoadingFiles(false);
   };
 
+  const fetchOptions = async () => {
+    const opts = await getTutanakFormOptions();
+    if (!opts.error) {
+      setEmployees(opts.employees || []);
+      setTemplates(opts.templates || []);
+    }
+  };
+
   useEffect(() => {
     fetchFiles();
+    fetchOptions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleEmployeeSelect = (empId: string, fullName: string) => {
+    setSelectedEmployeeId(empId);
+    setEmployeeSearchQuery(fullName);
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    let content = template.content;
+    const selectedEmp = employees.find(e => e.id === selectedEmployeeId);
+
+    const formattedDate = incidentDate ? new Date(incidentDate).toLocaleDateString("tr-TR") : "";
+
+    if (selectedEmp) {
+      content = content.replace(/{{personel_adi}}/g, selectedEmp.full_name);
+      const role = selectedEmp.role_title || "";
+      content = content.replace(/{{gorevi}}/g, role);
+    }
+    content = content.replace(/{{tarih}}/g, formattedDate);
+
+    setAciklama(content);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +97,9 @@ export default function TutanakPage() {
     setFormError(null);
 
     const formData = new FormData(e.currentTarget);
+    if (selectedEmployeeId) {
+      formData.append("employee_id", selectedEmployeeId);
+    }
 
     try {
       const result = await generateTutanak(formData);
@@ -119,6 +169,8 @@ export default function TutanakPage() {
                         id="olayTarihi"
                         name="olayTarihi"
                         type="datetime-local"
+                        value={incidentDate}
+                        onChange={(e) => setIncidentDate(e.target.value)}
                         required
                         className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                       />
@@ -142,7 +194,7 @@ export default function TutanakPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="kategori" className="text-muted-foreground">Tutanak Kategorisi</Label>
-                    <Select name="kategori" required>
+                    <Select name="kategori" required value={selectedCategory} onValueChange={(val) => { setSelectedCategory(val || ""); setSelectedTemplateId(""); }}>
                       <SelectTrigger className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl w-full" size="default">
                         <SelectValue placeholder="Kategori Seçin" />
                       </SelectTrigger>
@@ -154,6 +206,8 @@ export default function TutanakPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+
 
                   <div className="space-y-2">
                     <Label htmlFor="konu" className="text-muted-foreground">Detaylı Konu</Label>
@@ -173,16 +227,17 @@ export default function TutanakPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="adSoyad" className="text-muted-foreground">Personel Adı Soyadı</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="adSoyad"
-                        name="adSoyad"
-                        placeholder="Örn. Ahmet Yılmaz"
-                        required
-                        className="pl-10 h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                      />
-                    </div>
+                    <EmployeeAutocomplete
+                      employees={employees}
+                      searchQuery={employeeSearchQuery}
+                      onSearchQueryChange={setEmployeeSearchQuery}
+                      selectedEmployeeId={selectedEmployeeId}
+                      onSelectEmployee={handleEmployeeSelect}
+                      onClear={() => { setSelectedEmployeeId(null); setEmployeeSearchQuery(""); }}
+                      placeholder="Personel Ara..."
+                      className="w-full"
+                    />
+                    <input type="hidden" name="adSoyad" value={employees.find(e => e.id === selectedEmployeeId)?.full_name || employeeSearchQuery} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="depPos" className="text-muted-foreground">Departman & Pozisyon</Label>
@@ -190,19 +245,45 @@ export default function TutanakPage() {
                       <Input
                         id="depPos"
                         name="depPos"
-                        placeholder="Örn. F&B / Garson"
+                        value={
+                          selectedEmployeeId
+                            ? (employees.find(e => e.id === selectedEmployeeId)?.department_outlet ? `${employees.find(e => e.id === selectedEmployeeId)?.department_outlet} / ` : '') +
+                              (employees.find(e => e.id === selectedEmployeeId)?.role_title || '')
+                            : ''
+                        }
+                        readOnly
+                        placeholder="Otomatik Doldurulur"
                         required
-                        className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                        className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl bg-slate-100"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+
+                    {selectedCategory && templates.filter(t => t.category === selectedCategory).length > 0 && (
+                      <div className="w-48">
+                        <Select value={selectedTemplateId} onValueChange={(val) => handleTemplateChange(val || "")}>
+                          <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
+                            <SelectValue placeholder="Şablon Seç..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templates.filter(t => t.category === selectedCategory).map(t => (
+                              <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
                   <textarea
                     id="aciklama"
                     name="aciklama"
+                    value={aciklama}
+                    onChange={(e) => setAciklama(e.target.value)}
                     rows={6}
                     required
                     placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
