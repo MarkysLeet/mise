@@ -39,16 +39,12 @@ export default function FazlaMesaiPage() {
   const [filterYear, setFilterYear] = useState(now.getFullYear().toString());
   const [filterMonth, setFilterMonth] = useState((now.getMonth() + 1).toString());
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [filterYear, filterMonth]);
-
-  const fetchInitialData = async () => {
+  const fetchInitialData = async (yearStr = filterYear, monthStr = filterMonth) => {
     setIsLoading(true);
     try {
       const [empRes, mesaiRes] = await Promise.all([
         getEmployees(),
-        getFazlaMesaiByMonth(parseInt(filterYear), parseInt(filterMonth))
+        getFazlaMesaiByMonth(parseInt(yearStr), parseInt(monthStr))
       ]);
       setEmployees(empRes || []);
       setMesaiList(mesaiRes || []);
@@ -58,6 +54,11 @@ export default function FazlaMesaiPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData(filterYear, filterMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,7 +238,12 @@ export default function FazlaMesaiPage() {
                 <CardDescription>Mevcut ayın özet tablosu ve detayları</CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={filterMonth} onValueChange={(val) => val && setFilterMonth(val)}>
+                <Select value={filterMonth} onValueChange={(val) => {
+                  if (val) {
+                    setFilterMonth(val);
+                    fetchInitialData(filterYear, val);
+                  }
+                }}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Ay" />
                   </SelectTrigger>
@@ -249,7 +255,12 @@ export default function FazlaMesaiPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={filterYear} onValueChange={(val) => val && setFilterYear(val)}>
+                <Select value={filterYear} onValueChange={(val) => {
+                  if (val) {
+                    setFilterYear(val);
+                    fetchInitialData(val, filterMonth);
+                  }
+                }}>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue placeholder="Yıl" />
                   </SelectTrigger>
