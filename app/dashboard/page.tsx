@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MissingEmployeesSheet } from "./components/MissingEmployeesSheet";
 import { FutureTerminationsPopover } from "./components/FutureTerminationsPopover";
+import { getDashboardTotalFazlaMesai } from "@/actions/fazla_mesai";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -93,6 +94,7 @@ export default async function DashboardPage() {
   const todayEntries = allEntries.filter(e => e.date === todayStr);
   const missingEmployeesEntries = todayEntries.filter(e => e.status && e.status !== "" && e.status !== 'X' && e.status !== 'Hİ');
   const onLeaveToday = missingEmployeesEntries.length;
+  const totalFazlaMesai = await getDashboardTotalFazlaMesai();
   const missingEmployees = missingEmployeesEntries.map(entry => {
     const emp = employees?.find(e => e.id === entry.employee_id);
     return {
@@ -215,7 +217,7 @@ export default async function DashboardPage() {
                   <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
                 </CardDescription>
                 <CardTitle className="text-3xl font-light text-zinc-900">
-                  <span className="text-[10px] uppercase tracking-wider bg-slate-200 px-2 py-0.5 rounded text-slate-600 align-middle">Yakında</span>
+                  {totalFazlaMesai} <span className="text-base font-normal text-zinc-500">saat</span>
                 </CardTitle>
               </CardHeader>
             </Card>

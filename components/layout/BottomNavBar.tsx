@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
   { name: "Puantaj", href: "/puantaj", icon: Clock },
+  { name: "Fazla Mesai", href: "/fazla-mesai", icon: Clock },
   { name: "Tutanak", href: "/tutanak", icon: FileText },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];
