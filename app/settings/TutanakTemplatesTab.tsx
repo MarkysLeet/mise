@@ -76,6 +76,7 @@ export function TutanakTemplatesTab({ initialTemplates }: { initialTemplates: an
         toast.success("Yeni şablon eklendi.");
       }
       setIsModalOpen(false);
+      resetForm();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Bir hata oluştu.");
     } finally {
@@ -144,7 +145,7 @@ export function TutanakTemplatesTab({ initialTemplates }: { initialTemplates: an
         )}
       </CardContent>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Şablonu Düzenle" : "Yeni Şablon Ekle"}</DialogTitle>

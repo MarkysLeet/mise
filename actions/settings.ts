@@ -328,7 +328,7 @@ export async function getTutanakTemplates() {
     .order("category", { ascending: true })
     .order("title", { ascending: true });
 
-  return templates || [];
+  return JSON.parse(JSON.stringify(templates || []));
 }
 
 export async function addTutanakTemplate(category: string, title: string, content: string) {
@@ -362,7 +362,7 @@ export async function addTutanakTemplate(category: string, title: string, conten
 
   revalidatePath("/settings");
   revalidatePath("/tutanak");
-  return data;
+  return JSON.parse(JSON.stringify(data));
 }
 
 export async function updateTutanakTemplate(id: string, category: string, title: string, content: string) {

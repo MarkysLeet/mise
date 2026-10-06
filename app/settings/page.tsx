@@ -6,7 +6,8 @@ export default async function SettingsPage() {
   const workspace = await getWorkspace();
   const profile = await getProfile();
   const roles = await getRoles();
-  const templates = await getTutanakTemplates();
+  const rawTemplates = await getTutanakTemplates();
+  const templates = JSON.parse(JSON.stringify(rawTemplates));
 
   if (!workspace || !profile) {
     redirect("/login");
