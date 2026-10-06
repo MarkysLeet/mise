@@ -74,9 +74,9 @@ export function MobilePuantajView({
   };
 
   return (
-    <div className="block md:hidden flex flex-col space-y-4">
+    <div className="block md:hidden flex flex-col gap-4">
       {/* 1. Filters & Search */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3">
         <div className="w-full">
           <EmployeeAutocomplete
             employees={employees}
@@ -115,7 +115,7 @@ export function MobilePuantajView({
       </div>
 
       {/* 2. Main Content (Accordions & Cards) */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {groupedEmployees.map((group) => {
           const isExpanded = expandedGroups[group.role] !== false;
           return (
@@ -152,7 +152,7 @@ export function MobilePuantajView({
                     const opacityClass = !emp.is_active ? "opacity-75 bg-red-50/30" : "";
 
                     return (
-                      <div key={emp.id} className={`p-4 space-y-4 ${opacityClass}`}>
+                      <div key={emp.id} className={`p-4 flex flex-col gap-4 ${opacityClass}`}>
                         {/* Card Header (Flex Layout) */}
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3 cursor-pointer" onClick={() => openDossier(emp)}>
