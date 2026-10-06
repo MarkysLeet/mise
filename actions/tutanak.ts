@@ -381,7 +381,7 @@ export async function getTutanakFormOptions() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("workspace_id, workspaces(name)")
+      .select("workspace_id, workspaces(name, hotel_name, drive_folder_id)")
       .eq("id", user.id)
       .single();
 
@@ -438,10 +438,14 @@ export async function getTutanakFormOptions() {
     }
 
     const getWorkspaceData = () => {
-      if (!profile.workspaces) return { name: "", hotel_name: "" };
+      if (!profile.workspaces) return { name: "", hotel_name: "", drive_folder_id: "" };
       const ws = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return { name: (ws as any)?.name || "", hotel_name: (ws as any)?.hotel_name || "" };
+      return {
+        name: (ws as any)?.name || "",
+        hotel_name: (ws as any)?.hotel_name || "",
+        drive_folder_id: (ws as any)?.drive_folder_id || ""
+      };
     };
 
     const wsData = getWorkspaceData();
@@ -450,7 +454,8 @@ export async function getTutanakFormOptions() {
       employees: employeesResponse.data || [],
       templates: templates,
       workspaceName: wsData.name,
-      hotelName: wsData.hotel_name || wsData.name,
+      hotelName: wsData.hotel_name || wsData.name || "Anex Hotels",
+      driveFolderId: wsData.drive_folder_id,
     };
   } catch (error) {
     console.error("Error fetching form options:", error);
