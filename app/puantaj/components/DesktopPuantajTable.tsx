@@ -70,7 +70,7 @@ export function DesktopPuantajTable({
   const totalCols = 4 + 31 + 4; // 4 fixed left, 31 days, 4 fixed right
 
   return (
-    <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
       <div className="overflow-x-auto h-[65vh]">
         <table className="w-full text-sm text-left border-collapse table-fixed">
           <thead className="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 z-20">

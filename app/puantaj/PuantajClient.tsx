@@ -670,10 +670,10 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   }
 
   return (
-    <div className="flex-1 w-full px-4 py-4 space-y-4 max-w-full overflow-hidden bg-gray-50/50">
+    <div className="flex-1 w-full px-4 py-4 md:py-8 flex flex-col gap-4 md:gap-8 max-w-full overflow-hidden bg-gray-50/50">
 
       {/* Mobile Header */}
-      <div className="flex md:hidden w-full items-center justify-between pb-2">
+      <div className="flex md:hidden w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
@@ -886,7 +886,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       </div>
 
       {/* Matrix Table */}
-      <div className={`transition-opacity duration-200 relative pb-24 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className={`hidden md:block transition-opacity duration-200 relative pb-24 ${isPending ? "opacity-50 pointer-events-none" : ""}`}>
         {isPending && (
           <div className="absolute inset-0 z-50 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
