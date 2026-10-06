@@ -22,6 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Trash2, AlertTriangle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeAutocomplete } from "@/app/puantaj/components/EmployeeAutocomplete";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function FazlaMesaiPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -31,17 +34,37 @@ export default function FazlaMesaiPage() {
   // Form State
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
-  const [formData, setFormData] = useState({ id: "", date: "", hours: "", description: "" });
+  const [formData, setFormData] = useState({ id: "", date: format(new Date(), "yyyy-MM-dd"), hours: "", description: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filter State
-  const now = new Date();
-  const [filterYear, setFilterYear] = useState(now.getFullYear().toString());
-  const [filterMonth, setFilterMonth] = useState((now.getMonth() + 1).toString());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Automatically update the default form date when selectedDate changes
+  useEffect(() => {
+    if (!formData.id) {
+      setFormData(prev => ({ ...prev, date: format(selectedDate, "yyyy-MM-dd") }));
+    }
+  }, [selectedDate, formData.id]);
+  // Derive month/year from selectedDate
+  const filterYear = selectedDate.getFullYear().toString();
+  const filterMonth = (selectedDate.getMonth() + 1).toString();
 
   useEffect(() => {
     fetchInitialData();
   }, [filterYear, filterMonth]);
+
+  const handlePrevDay = () => {
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 1);
+    setSelectedDate(prev);
+  };
+
+  const handleNextDay = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    setSelectedDate(next);
+  };
 
   const fetchInitialData = async () => {
     setIsLoading(true);
@@ -84,7 +107,7 @@ export default function FazlaMesaiPage() {
         toast.error(res.error);
       } else {
         toast.success(formData.id ? "Fazla mesai güncellendi." : "Fazla mesai eklendi.");
-        setFormData({ id: "", date: "", hours: "", description: "" });
+        setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
         setSelectedEmployeeId("");
         setSelectedEmployeeName("");
         fetchInitialData();
@@ -150,11 +173,13 @@ export default function FazlaMesaiPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Ekleme Formu */}
-        <Card className="md:col-span-1 shadow-sm border-zinc-200 h-fit">
-          <CardHeader>
-            <CardTitle className="text-lg">Kayıt Ekle</CardTitle>
-            <CardDescription>Yeni bir mesai kaydı oluşturun</CardDescription>
-          </CardHeader>
+        <div className="md:col-span-1">
+          <div className="sticky top-6">
+            <Card className="shadow-sm border-zinc-200">
+              <CardHeader>
+                <CardTitle className="text-lg">Kayıt Ekle</CardTitle>
+                <CardDescription>Yeni bir mesai kaydı oluşturun</CardDescription>
+              </CardHeader>
           <CardContent>
             <form onSubmit={handleAddSubmit} className="space-y-4">
               <div className="space-y-1.5">
@@ -212,7 +237,7 @@ export default function FazlaMesaiPage() {
               <div className="flex gap-2">
                 {formData.id && (
                   <Button type="button" variant="outline" className="w-full" onClick={() => {
-                    setFormData({ id: "", date: "", hours: "", description: "" });
+                    setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
                     setSelectedEmployeeId("");
                     setSelectedEmployeeName("");
                   }}>
@@ -226,7 +251,9 @@ export default function FazlaMesaiPage() {
               </div>
             </form>
           </CardContent>
-        </Card>
+            </Card>
+          </div>
+        </div>
 
         {/* Raporlar */}
         <div className="md:col-span-2 space-y-6">
@@ -236,29 +263,31 @@ export default function FazlaMesaiPage() {
                 <CardTitle className="text-lg">Aylık Rapor</CardTitle>
                 <CardDescription>Mevcut ayın özet tablosu ve detayları</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <Select value={filterMonth} onValueChange={(val) => val && setFilterMonth(val)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Ay" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        {format(new Date(2024, i, 1), "MMMM", { locale: tr })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={filterYear} onValueChange={(val) => val && setFilterYear(val)}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Yıl" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={(now.getFullYear() - 1).toString()}>{now.getFullYear() - 1}</SelectItem>
-                    <SelectItem value={now.getFullYear().toString()}>{now.getFullYear()}</SelectItem>
-                    <SelectItem value={(now.getFullYear() + 1).toString()}>{now.getFullYear() + 1}</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border">
+                <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-8 w-8">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                <Popover>
+                  <PopoverTrigger render={
+                    <Button variant="ghost" className="h-8 min-w-[140px] font-medium justify-center flex gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {format(selectedDate, "dd MMMM yyyy", { locale: tr })}
+                    </Button>
+                  } />
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      locale={tr}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Button variant="ghost" size="icon" onClick={handleNextDay} className="h-8 w-8">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -273,10 +302,29 @@ export default function FazlaMesaiPage() {
                 </div>
               ) : (
                 <div className="p-4 space-y-8">
+                  {/* Global Statistics Cards */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                      <h3 className="text-sm font-medium text-blue-800 mb-1">Seçili Gün Toplamı</h3>
+                      <p className="text-3xl font-bold text-blue-900">
+                        {mesaiList
+                          .filter(m => m.mesai_date === format(selectedDate, "yyyy-MM-dd"))
+                          .reduce((acc, curr) => acc + curr.hours, 0)
+                        } <span className="text-sm font-normal text-blue-700">saat</span>
+                      </p>
+                    </div>
+                    <div className="bg-white border rounded-xl p-4 shadow-sm">
+                      <h3 className="text-sm font-medium text-slate-500 mb-1">Aylık Toplam</h3>
+                      <p className="text-3xl font-bold text-slate-900">
+                        {mesaiList.reduce((acc, curr) => acc + curr.hours, 0)} <span className="text-sm font-normal text-slate-500">saat</span>
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Summary Section */}
                   <div>
                      <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Personel Özeti</h3>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-1">
                         {summaryList.map((summary: any, idx) => (
                           <div key={idx} className="bg-slate-50 border rounded-xl p-3 flex justify-between items-center">
                             <div className="truncate pr-2">
@@ -294,29 +342,40 @@ export default function FazlaMesaiPage() {
                   {/* Details Section */}
                   <div>
                     <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Kayıt Detayları</h3>
-                    <div className="rounded-xl border overflow-hidden">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Tarih</th>
-                            <th className="px-4 py-3 font-medium">Personel</th>
-                            <th className="px-4 py-3 font-medium">Saat</th>
-                            <th className="px-4 py-3 font-medium">Açıklama</th>
-                            <th className="px-4 py-3 font-medium text-right">İşlem</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {mesaiList.map((mesai) => {
-                            const isOverLimit = mesai.hours > 3;
-                            return (
-                              <tr key={mesai.id} className={`hover:bg-slate-50/50 transition-colors ${isOverLimit ? 'bg-red-50/30' : ''}`}>
-                                <td className="px-4 py-3 font-medium whitespace-nowrap">
-                                  {mesai.mesai_date.split('-').reverse().join('.')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="font-medium text-slate-900">{mesai.employees?.full_name}</div>
-                                  <div className="text-xs text-slate-500">{mesai.employees?.role_title}</div>
-                                </td>
+                    {(() => {
+                      const dailyRecords = mesaiList.filter(
+                        (m) => m.mesai_date === format(selectedDate, "yyyy-MM-dd")
+                      );
+
+                      if (dailyRecords.length === 0) {
+                        return (
+                          <div className="rounded-xl border border-dashed flex flex-col items-center justify-center p-8 text-center text-slate-500">
+                            <Clock className="w-8 h-8 mb-2 opacity-50" />
+                            <p>Bu tarihte mesai kaydı bulunmuyor.</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="rounded-xl border overflow-hidden">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+                              <tr>
+                                <th className="px-4 py-3 font-medium">Personel</th>
+                                <th className="px-4 py-3 font-medium">Saat</th>
+                                <th className="px-4 py-3 font-medium">Açıklama</th>
+                                <th className="px-4 py-3 font-medium text-right">İşlem</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {dailyRecords.map((mesai) => {
+                                const isOverLimit = mesai.hours > 3;
+                                return (
+                                  <tr key={mesai.id} className={`hover:bg-slate-50/50 transition-colors ${isOverLimit ? 'bg-red-50/30' : ''}`}>
+                                    <td className="px-4 py-3">
+                                      <div className="font-medium text-slate-900">{mesai.employees?.full_name}</div>
+                                      <div className="text-xs text-slate-500">{mesai.employees?.role_title}</div>
+                                    </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className={isOverLimit ? 'bg-red-100 text-red-700' : ''}>
@@ -331,21 +390,23 @@ export default function FazlaMesaiPage() {
                                   {mesai.description || "-"}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  <div className="flex justify-end gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(mesai)}>
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit2 w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(mesai.id)}>
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                      <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(mesai)}>
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit2 w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(mesai.id)}>
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
