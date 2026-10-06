@@ -245,9 +245,9 @@ export default function FazlaMesaiPage() {
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-3">
                 {formData.id && (
-                  <Button type="button" variant="outline" className="w-full" onClick={() => {
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => {
                     setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
                     setSelectedEmployeeId("");
                     setSelectedEmployeeName("");
@@ -255,7 +255,7 @@ export default function FazlaMesaiPage() {
                     İptal
                   </Button>
                 )}
-                <Button type="submit" className="w-full" disabled={isSubmitting || !selectedEmployeeId}>
+                <Button type="submit" className="flex-1" disabled={isSubmitting || !selectedEmployeeId}>
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Clock className="w-4 h-4 mr-2" />}
                   {formData.id ? "Güncelle" : "Mesai Ekle"}
                 </Button>
