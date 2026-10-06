@@ -5,8 +5,8 @@
 ▲ Next.js 16.3.6 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 535ms
-✓ Running next.config.ts took 961ms
+✓ Ready in 531ms
+✓ Running next.config.ts took 941ms
 
 ⨯ Error: Your project's URL and Key are required to create a Supabase client!
 
@@ -23,7 +23,7 @@ https://supabase.com/dashboard/project/_/settings/api
   10 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
   11 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   12 |     {
- GET /api/auth/dev-login 404 in 1801ms (next.js: -181.3ms, proxy.ts: 1778ms, application-code: 205ms)
+ GET /api/auth/dev-login 404 in 1736ms (next.js: -168.1ms, proxy.ts: 1722ms, application-code: 182ms)
 [browser] Uncaught Error: Your project's URL and Key are required to create a Supabase client!
 
 Check your Supabase project's API settings to find these values
@@ -55,7 +55,7 @@ https://supabase.com/dashboard/project/_/settings/api
   10 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
   11 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   12 |     {
- GET /fazla-mesai 404 in 35ms (next.js: -15.8ms, proxy.ts: 32ms, application-code: 19ms)
+ GET /fazla-mesai 404 in 49ms (next.js: -13.3ms, proxy.ts: 45ms, application-code: 17ms)
 [browser] Uncaught Error: Your project's URL and Key are required to create a Supabase client!
 
 Check your Supabase project's API settings to find these values
