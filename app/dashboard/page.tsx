@@ -165,25 +165,25 @@ export default async function DashboardPage() {
   const formattedDate = new Intl.DateTimeFormat('tr-TR', { dateStyle: 'full' }).format(now);
 
   return (
-    <div className="flex flex-col gap-8 h-full max-w-7xl mx-auto p-8">
+    <div className="flex flex-col gap-4 md:gap-8 h-full max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
       {/* Header */}
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">Kontrol Paneli</h1>
-          <p className="text-muted-foreground mt-1">Merhaba, {profile.first_name} {profile.last_name} — {workspace.hotel_group || 'Anex Hotels'} ({workspace.name})</p>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Merhaba, {profile.first_name} {profile.last_name} — {workspace.hotel_group || 'Anex Hotels'} ({workspace.name})</p>
           <p className="text-xs text-muted-foreground mt-1">{formattedDate}</p>
         </div>
       </header>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-12 gap-6 pb-8">
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-6 pb-8">
         
         {/* Left Column - Main Status */}
-        <div className="col-span-8 flex flex-col gap-6">
+        <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6 w-full">
           
           {/* Shift Overview Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 col-span-1">
               <CardHeader className="pb-2">
                 <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
                   <Users className="h-4 w-4" /> Aktif Personel
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
             </Card>
             
             <MissingEmployeesSheet missingEmployees={missingEmployees} onLeaveCount={onLeaveToday}>
-              <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 cursor-pointer hover:bg-zinc-100 transition-colors">
+              <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 cursor-pointer hover:bg-zinc-100 transition-colors col-span-1">
                 <CardHeader className="pb-2">
                   <CardDescription className="font-medium flex items-center justify-between text-zinc-600">
                     <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default async function DashboardPage() {
               </Card>
             </MissingEmployeesSheet>
 
-            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50">
+            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 col-span-2 lg:col-span-1">
               <CardHeader className="pb-2">
                 <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
                   <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
@@ -229,24 +229,24 @@ export default async function DashboardPage() {
               <CardTitle className="text-xl font-medium text-zinc-900">Hızlı İşlemler</CardTitle>
               <CardDescription>Sık kullanılan operasyonel araçlar</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <Link href="/puantaj" className="group flex flex-col gap-3 p-5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-all duration-200 cursor-pointer">
-                <div className="h-10 w-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Clock className="h-5 w-5" />
+            <CardContent className="grid grid-cols-2 gap-3 md:gap-4">
+              <Link href="/puantaj" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-all duration-200 cursor-pointer">
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Clock className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-zinc-900">Puantaj Yönetimi</h3>
-                  <p className="text-sm text-zinc-500 mt-1">Personel devam durumunu ve vardiyaları yönetin</p>
+                  <h3 className="text-sm md:text-base font-medium text-zinc-900">Puantaj Yönetimi</h3>
+                  <p className="text-xs md:text-sm text-zinc-500 mt-1">Personel devam durumunu ve vardiyaları yönetin</p>
                 </div>
               </Link>
               
-              <Link href="/tutanak" className="group flex flex-col gap-3 p-5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-all duration-200 cursor-pointer">
-                <div className="h-10 w-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <FileText className="h-5 w-5" />
+              <Link href="/tutanak" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-all duration-200 cursor-pointer">
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <FileText className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-zinc-900">Yeni Tutanak Oluştur</h3>
-                  <p className="text-sm text-zinc-500 mt-1">Devamsızlık veya olay tutanağı hazırlayın</p>
+                  <h3 className="text-sm md:text-base font-medium text-zinc-900">Yeni Tutanak Oluştur</h3>
+                  <p className="text-xs md:text-sm text-zinc-500 mt-1">Devamsızlık veya olay tutanağı hazırlayın</p>
                 </div>
               </Link>
             </CardContent>
@@ -255,8 +255,8 @@ export default async function DashboardPage() {
         </div>
 
         {/* Right Column - Alerts & Activity */}
-        <div className="col-span-4 flex flex-col gap-6">
-          <Card className="border-zinc-200 shadow-sm rounded-2xl flex-1 bg-white">
+        <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6 w-full">
+          <Card className="border-zinc-200 shadow-sm rounded-2xl flex-1 bg-white w-full overflow-hidden">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg font-medium text-zinc-900">
                 <AlertCircle className="h-5 w-5 text-zinc-900" />
@@ -269,11 +269,11 @@ export default async function DashboardPage() {
                   const emp = employees?.find(e => e.id === d.employee_id);
                   return (
                     <div key={i} className="flex flex-col gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2 overflow-hidden">
                         <div className="mt-1.5 w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-zinc-900">{emp?.full_name}</p>
-                          <p className="text-xs text-zinc-500 mt-0.5">{d.date} tarihinde Devamsızlık (D) işaretlendi.</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-900 truncate">{emp?.full_name}</p>
+                          <p className="text-xs text-zinc-500 mt-0.5 break-words line-clamp-2">{d.date} tarihinde Devamsızlık (D) işaretlendi.</p>
                         </div>
                       </div>
                       <Link href="/tutanak" className="self-end">
@@ -288,26 +288,26 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-zinc-200 shadow-sm rounded-2xl bg-white">
+          <Card className="border-zinc-200 shadow-sm rounded-2xl bg-white w-full overflow-hidden">
             <CardHeader className="pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-medium text-zinc-900">Son İşlemler</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {recentActivities.length > 0 ? (
                 recentActivities.map((log, i) => (
-                  <div key={i} className="flex gap-4 group">
-                    <div className="text-xs text-zinc-400 font-mono w-12 pt-0.5 whitespace-nowrap">
+                  <div key={i} className="flex gap-3 md:gap-4 group overflow-hidden">
+                    <div className="text-xs text-zinc-400 font-mono w-10 md:w-12 pt-0.5 whitespace-nowrap flex-shrink-0">
                       {log.date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}
                     </div>
-                    <div className="flex-1 pb-4 border-b border-zinc-100 group-last:border-0 group-last:pb-0">
+                    <div className="flex-1 pb-4 border-b border-zinc-100 group-last:border-0 group-last:pb-0 min-w-0">
                       {log.url ? (
-                         <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-900 hover:underline transition-colors block">
+                         <a href={log.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-zinc-900 hover:underline transition-colors block truncate">
                            {log.title}
                          </a>
                       ) : (
-                        <p className="text-sm font-medium text-zinc-900 transition-colors">{log.title}</p>
+                        <p className="text-sm font-medium text-zinc-900 transition-colors truncate">{log.title}</p>
                       )}
-                      <p className="text-xs text-zinc-500 mt-0.5">{log.desc}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5 break-words line-clamp-2">{log.desc}</p>
                     </div>
                   </div>
                 ))
