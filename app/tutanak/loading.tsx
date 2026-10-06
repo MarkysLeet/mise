@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 
 export default function TutanakLoading() {
@@ -20,19 +20,19 @@ export default function TutanakLoading() {
       </header>
 
       {/* Grid of Documents Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="border-border/50 shadow-sm rounded-2xl">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-5 w-10/12 mb-2" />
-              <Skeleton className="h-4 w-1/2" />
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <Card key={i} className="border-border/50 shadow-sm rounded-xl">
+            <CardHeader className="p-4 pb-2">
+              <Skeleton className="h-4 w-10/12 mb-1" />
+              <Skeleton className="h-3 w-1/2" />
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3 mt-4">
-                <Skeleton className="h-10 w-10 rounded-xl" />
+            <CardContent className="p-4 pt-0">
+              <div className="flex items-center gap-3 mt-2">
+                <Skeleton className="h-8 w-8 rounded-lg" />
                 <div className="flex-1">
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-full mb-1.5" />
+                  <Skeleton className="h-3 w-3/4" />
                 </div>
               </div>
             </CardContent>
