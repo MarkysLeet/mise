@@ -440,7 +440,7 @@ export async function getTutanakFormOptions() {
     const getWorkspaceData = () => {
       if (!profile.workspaces) return { name: "", hotel_name: "", drive_folder_id: "" };
       const ws = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       return {
         name: (ws as any)?.name || "",
         hotel_name: (ws as any)?.hotel_name || "",

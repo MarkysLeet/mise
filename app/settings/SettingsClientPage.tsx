@@ -21,7 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RolesTab } from "@/components/settings/RolesTab";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 import { TutanakTemplatesTab } from "./TutanakTemplatesTab";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
