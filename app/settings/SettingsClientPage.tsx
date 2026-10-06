@@ -22,7 +22,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RolesTab } from "@/components/settings/RolesTab";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function SettingsClientPage({ initialWorkspace, initialProfile, initialRoles }: { initialWorkspace: any, initialProfile: any, initialRoles: any[] }) {
+import { TutanakTemplatesTab } from "./TutanakTemplatesTab";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function SettingsClientPage({ initialWorkspace, initialProfile, initialRoles, initialTemplates }: { initialWorkspace: any, initialProfile: any, initialRoles: any[], initialTemplates: any[] }) {
   const router = useRouter();
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -109,9 +112,10 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="mb-6 w-full max-w-sm grid grid-cols-2">
+          <TabsList className="mb-6 w-full max-w-md grid grid-cols-3">
             <TabsTrigger value="general">Genel</TabsTrigger>
             <TabsTrigger value="roles">Görevler</TabsTrigger>
+            <TabsTrigger value="templates">Şablonlar</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-6 outline-none">
@@ -313,6 +317,10 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
 
           <TabsContent value="roles" className="outline-none">
             <RolesTab initialRoles={initialRoles} />
+          </TabsContent>
+
+          <TabsContent value="templates" className="outline-none">
+            <TutanakTemplatesTab initialTemplates={initialTemplates} />
           </TabsContent>
         </Tabs>
       </div>

@@ -325,19 +325,19 @@ BEGIN
     FOR w_id IN SELECT id FROM workspaces LOOP
         -- Hastalik (Haber Verdi)
         INSERT INTO tutanak_templates (workspace_id, category, title, content)
-        VALUES (w_id, 'Devamsizlik', 'Hastalik (Haber Verdi)', t_hastalik_haber_verdi);
+        VALUES (w_id, 'Devamsızlık', 'Hastalik (Haber Verdi)', t_hastalik_haber_verdi);
 
         -- Hastalik (Haber Vermedi)
         INSERT INTO tutanak_templates (workspace_id, category, title, content)
-        VALUES (w_id, 'Devamsizlik', 'Hastalik (Haber Vermedi)', t_hastalik_haber_vermedi);
+        VALUES (w_id, 'Devamsızlık', 'Hastalik (Haber Vermedi)', t_hastalik_haber_vermedi);
 
         -- Ozel Sebepler (Haber Verdi)
         INSERT INTO tutanak_templates (workspace_id, category, title, content)
-        VALUES (w_id, 'Devamsizlik', 'Ozel Sebepler (Haber Verdi)', t_ozel_sebepler_haber_verdi);
+        VALUES (w_id, 'Devamsızlık', 'Ozel Sebepler (Haber Verdi)', t_ozel_sebepler_haber_verdi);
 
         -- Ozel Sebepler (Haber Vermedi)
         INSERT INTO tutanak_templates (workspace_id, category, title, content)
-        VALUES (w_id, 'Devamsizlik', 'Ozel Sebepler (Haber Vermedi)', t_ozel_sebepler_haber_vermedi);
+        VALUES (w_id, 'Devamsızlık', 'Ozel Sebepler (Haber Vermedi)', t_ozel_sebepler_haber_vermedi);
     END LOOP;
 END;
 $$;

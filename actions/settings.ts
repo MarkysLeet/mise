@@ -301,3 +301,136 @@ export async function deleteRole(id: string) {
   revalidatePath("/puantaj");
   return { success: true };
 }
+
+export async function getTutanakTemplates() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return [];
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    return [];
+  }
+
+  const { data: templates } = await supabase
+    .from("tutanak_templates")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("category", { ascending: true })
+    .order("title", { ascending: true });
+
+  return JSON.parse(JSON.stringify(templates || []));
+}
+
+export async function addTutanakTemplate(category: string, title: string, content: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { data, error } = await supabase
+    .from("tutanak_templates")
+    .insert([{ workspace_id: workspaceId, category, title, content }])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/tutanak");
+  return JSON.parse(JSON.stringify(data));
+}
+
+export async function updateTutanakTemplate(id: string, category: string, title: string, content: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { data, error } = await supabase
+    .from("tutanak_templates")
+    .update({ category, title, content })
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/tutanak");
+  return data;
+}
+
+export async function deleteTutanakTemplate(id: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const workspaceId = profile?.workspace_id;
+  if (!workspaceId) {
+    throw new Error("Workspace not found");
+  }
+
+  const { error } = await supabase
+    .from("tutanak_templates")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", workspaceId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/tutanak");
+  return { success: true };
+}
