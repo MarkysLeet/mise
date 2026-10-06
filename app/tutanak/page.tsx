@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, User, Download, Plus, ExternalLink } from "lucide-react";
+import { FileText, User, Download, Plus, ExternalLink, Folder } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ export default function TutanakPage() {
   const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
   const [workspaceName, setWorkspaceName] = useState<string>("");
   const [hotelName, setHotelName] = useState<string>("");
+  const [driveFolderId, setDriveFolderId] = useState<string>("");
 
   // Form state
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
@@ -62,6 +63,9 @@ export default function TutanakPage() {
       setTemplates(opts.templates || []);
       setWorkspaceName(opts.workspaceName || "");
       setHotelName(opts.hotelName || "");
+      if (opts.driveFolderId) {
+        setDriveFolderId(opts.driveFolderId);
+      }
     }
   };
 
@@ -158,12 +162,18 @@ export default function TutanakPage() {
           </div>
         </div>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger render={
-            <Button className="rounded-xl">
-              <Plus className="mr-2 h-4 w-4" /> Yeni Tutanak Oluştur
+        <div className="flex items-center gap-2">
+          {driveFolderId && (
+            <Button variant="outline" className="rounded-xl" render={<a href={`https://drive.google.com/drive/folders/${driveFolderId}`} target="_blank" rel="noopener noreferrer" />}>
+                <Folder className="mr-2 h-4 w-4" /> Klasörü Aç
             </Button>
-          } />
+          )}
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger render={
+              <Button className="rounded-xl">
+                <Plus className="mr-2 h-4 w-4" /> Yeni Tutanak Oluştur
+              </Button>
+            } />
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Yeni Tutanak Oluştur</DialogTitle>
@@ -326,6 +336,7 @@ export default function TutanakPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </header>
 
       {/* Grid of Documents */}
