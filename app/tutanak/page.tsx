@@ -211,10 +211,10 @@ export default function TutanakPage() {
                         <SelectValue placeholder="Kategori Seçin" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Devamsizlik">Devamsızlık</SelectItem>
-                        <SelectItem value="Is Kazasi">İş Kazası</SelectItem>
+                        <SelectItem value="Devamsızlık">Devamsızlık</SelectItem>
+                        <SelectItem value="İş Kazası">İş Kazası</SelectItem>
                         <SelectItem value="Disiplin">Disiplin</SelectItem>
-                        <SelectItem value="Diger">Diğer</SelectItem>
+                        <SelectItem value="Diğer">Diğer</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
