@@ -182,7 +182,7 @@ export async function generateTutanak(formData: FormData) {
     const aciklama = formData.get("aciklama") as string || "";
 
     const hazirlayan = `${profile.first_name} ${profile.last_name}`;
-    const otel = workspace.hotel_name || workspace.hotel_group || "Anex Hotels";
+    const otel = workspace.hotel_name || workspace.name || "Anex Hotels";
 
     // 5. Copy the file to the user's folder
     const safeDate = new Date().toISOString().split('T')[0];
@@ -437,11 +437,20 @@ export async function getTutanakFormOptions() {
       }
     }
 
+    const getWorkspaceData = () => {
+      if (!profile.workspaces) return { name: "", hotel_name: "" };
+      const ws = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { name: (ws as any)?.name || "", hotel_name: (ws as any)?.hotel_name || "" };
+    };
+
+    const wsData = getWorkspaceData();
+
     return {
       employees: employeesResponse.data || [],
       templates: templates,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      workspaceName: (profile.workspaces && !Array.isArray(profile.workspaces) ? (profile.workspaces as any).name : Array.isArray(profile.workspaces) ? (profile.workspaces[0] as any)?.name : "") || "",
+      workspaceName: wsData.name,
+      hotelName: wsData.hotel_name || wsData.name,
     };
   } catch (error) {
     console.error("Error fetching form options:", error);

@@ -29,6 +29,7 @@ export default function TutanakPage() {
   const [employees, setEmployees] = useState<{id: string, full_name: string, role_title: string, department_outlet: string}[]>([]);
   const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
   const [workspaceName, setWorkspaceName] = useState<string>("");
+  const [hotelName, setHotelName] = useState<string>("");
 
   // Form state
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
@@ -37,6 +38,7 @@ export default function TutanakPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [aciklama, setAciklama] = useState("");
   const [incidentDate, setIncidentDate] = useState("");
+  const [olayYeri, setOlayYeri] = useState("");
 
   const fetchFiles = async () => {
     setIsLoadingFiles(true);
@@ -59,6 +61,7 @@ export default function TutanakPage() {
       setEmployees(opts.employees || []);
       setTemplates(opts.templates || []);
       setWorkspaceName(opts.workspaceName || "");
+      setHotelName(opts.hotelName || "");
     }
   };
 
@@ -78,6 +81,13 @@ export default function TutanakPage() {
     setSelectedEmployeeId(empId);
     setEmployeeSearchQuery(fullName);
   };
+
+  // Watch for category change to auto-fill olayYeri
+  useEffect(() => {
+    if (selectedCategory === "Devamsızlık") {
+      setOlayYeri(hotelName || workspaceName);
+    }
+  }, [selectedCategory, hotelName, workspaceName]);
 
   const handleTemplateChange = (templateId: string) => {
     setSelectedTemplateId(templateId);
@@ -169,36 +179,7 @@ export default function TutanakPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="olayTarihi" className="text-muted-foreground">Olay Tarihi ve Saati</Label>
-                    <div className="relative">
-                      <Input
-                        id="olayTarihi"
-                        name="olayTarihi"
-                        type="datetime-local"
-                        value={incidentDate}
-                        onChange={(e) => setIncidentDate(e.target.value)}
-                        required
-                        className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="olayYeri" className="text-muted-foreground">Olay Yeri</Label>
-                    <div className="relative">
-                      <Input
-                        id="olayYeri"
-                        name="olayYeri"
-                        placeholder="Örn. Ana Restoran, Kat 3"
-                        required
-                        className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
-                      />
-                    </div>
-                  </div>
-                </div>
-
+                {/* 1. Category Selection */}
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="kategori" className="text-muted-foreground">Tutanak Kategorisi</Label>
@@ -220,7 +201,8 @@ export default function TutanakPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                {/* 2. Employee Selection (Visible if category is selected) */}
+                <div className={`grid grid-cols-2 gap-6 transition-all duration-300 ease-in-out ${selectedCategory ? 'opacity-100 max-h-[200px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                   <div className="space-y-2">
                     <Label htmlFor="adSoyad" className="text-muted-foreground">Personel Adı Soyadı</Label>
                     <EmployeeAutocomplete
@@ -249,61 +231,98 @@ export default function TutanakPage() {
                         }
                         readOnly
                         placeholder="Otomatik Doldurulur"
-                        required
+                        required={!!selectedCategory}
                         className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl bg-slate-100"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+                {/* 3. Details (Visible if employee is selected) */}
+                <div className={`grid gap-6 transition-all duration-500 ease-in-out ${selectedEmployeeId ? 'opacity-100 max-h-[800px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="olayTarihi" className="text-muted-foreground">Olay Tarihi ve Saati</Label>
+                      <div className="relative">
+                        <Input
+                          id="olayTarihi"
+                          name="olayTarihi"
+                          type="datetime-local"
+                          value={incidentDate}
+                          onChange={(e) => setIncidentDate(e.target.value)}
+                          required={!!selectedEmployeeId}
+                          className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                        />
+                      </div>
+                    </div>
 
-                    <div className="w-48 shrink-0 ml-4">
-                      <Select
-                        value={selectedTemplateId}
-                        onValueChange={(val) => handleTemplateChange(val || "")}
-                        disabled={!selectedCategory || templates.filter(t => t.category === selectedCategory).length === 0}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
-                          <SelectValue placeholder="Şablon Seç..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedCategory && templates.filter(t => t.category === selectedCategory).map(t => (
-                            <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="olayYeri" className="text-muted-foreground">Olay Yeri</Label>
+                      <div className="relative">
+                        <Input
+                          id="olayYeri"
+                          name="olayYeri"
+                          value={olayYeri}
+                          onChange={(e) => setOlayYeri(e.target.value)}
+                          placeholder="Örn. Ana Restoran, Kat 3"
+                          required={!!selectedEmployeeId}
+                          className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <textarea
-                    id="aciklama"
-                    name="aciklama"
-                    value={aciklama}
-                    onChange={(e) => setAciklama(e.target.value)}
-                    rows={6}
-                    required
-                    placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
-                    className="w-full p-4 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                  />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
+
+                      <div className="w-48 shrink-0 ml-4">
+                        <Select
+                          value={selectedTemplateId}
+                          onValueChange={(val) => handleTemplateChange(val || "")}
+                          disabled={!selectedCategory || templates.filter(t => t.category === selectedCategory).length === 0}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
+                            <SelectValue placeholder="Şablon Seç..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedCategory && templates.filter(t => t.category === selectedCategory).map(t => (
+                              <SelectItem key={t.id} value={t.id} className="text-xs">{t.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <textarea
+                      id="aciklama"
+                      name="aciklama"
+                      value={aciklama}
+                      onChange={(e) => setAciklama(e.target.value)}
+                      rows={6}
+                      required={!!selectedEmployeeId}
+                      placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
+                      className="w-full p-4 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                    />
+                  </div>
                 </div>
 
               </div>
-              <DialogFooter className="mt-6 border-t border-border/50 pt-4 bg-transparent sm:bg-transparent -mx-0 -mb-0 p-0 sm:p-0">
-                <div className="flex justify-end gap-3 w-full">
-                  <DialogClose render={<Button type="button" variant="outline" className="rounded-xl">İptal</Button>} />
-                  <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-sm">
-                    {isSubmitting ? (
-                      "Oluşturuluyor..."
-                    ) : (
-                      <>
-                        <Download className="mr-2 h-4 w-4" /> Oluştur
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </DialogFooter>
+              <div className={`transition-all duration-500 ease-in-out ${selectedEmployeeId ? 'opacity-100 max-h-[100px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+                <DialogFooter className="mt-6 border-t border-border/50 pt-4 bg-transparent sm:bg-transparent -mx-0 -mb-0 p-0 sm:p-0">
+                  <div className="flex justify-end gap-3 w-full">
+                    <DialogClose render={<Button type="button" variant="outline" className="rounded-xl">İptal</Button>} />
+                    <Button type="submit" disabled={isSubmitting} className="rounded-xl shadow-sm">
+                      {isSubmitting ? (
+                        "Oluşturuluyor..."
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" /> Oluştur
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </div>
             </form>
           </DialogContent>
         </Dialog>
