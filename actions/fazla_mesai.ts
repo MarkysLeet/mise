@@ -3,7 +3,53 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function getFazlaMesaiByMonth(year: number, month: number) {
+export async function getFazlaMesaiByDate(dateString: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.workspace_id) {
+      throw new Error("No workspace found");
+    }
+
+    const { data, error } = await supabase
+      .from("fazla_mesai")
+      .select(`
+        id,
+        employee_id,
+        mesai_date,
+        hours,
+        description,
+        created_at,
+        employees:employee_id (
+          id,
+          full_name,
+          role_title
+        )
+      `)
+      .eq("workspace_id", profile.workspace_id)
+      .eq("mesai_date", dateString)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching fazla_mesai by date:", error);
+    return [];
+  }
+}
+
+export async function getFazlaMesaiTotalByMonth(year: number, month: number) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -28,29 +74,18 @@ export async function getFazlaMesaiByMonth(year: number, month: number) {
 
     const { data, error } = await supabase
       .from("fazla_mesai")
-      .select(`
-        id,
-        employee_id,
-        mesai_date,
-        hours,
-        description,
-        created_at,
-        employees:employee_id (
-          id,
-          full_name,
-          role_title
-        )
-      `)
+      .select("hours")
       .eq("workspace_id", profile.workspace_id)
       .gte("mesai_date", startDate)
-      .lte("mesai_date", endDate)
-      .order("mesai_date", { ascending: false });
+      .lte("mesai_date", endDate);
 
     if (error) throw error;
-    return data || [];
+
+    const totalHours = data.reduce((acc, row) => acc + (row.hours || 0), 0);
+    return totalHours;
   } catch (error) {
-    console.error("Error fetching fazla_mesai by month:", error);
-    return [];
+    console.error("Error fetching fazla_mesai total by month:", error);
+    return 0;
   }
 }
 
