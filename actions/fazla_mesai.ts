@@ -23,8 +23,9 @@ export async function getFazlaMesaiByMonth(year: number, month: number) {
     }
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextMonthYear = month === 12 ? year + 1 : year;
+    const nextMonthStartDate = `${nextMonthYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
     const { data, error } = await supabase
       .from("fazla_mesai")
@@ -43,10 +44,13 @@ export async function getFazlaMesaiByMonth(year: number, month: number) {
       `)
       .eq("workspace_id", profile.workspace_id)
       .gte("mesai_date", startDate)
-      .lte("mesai_date", endDate)
+      .lt("mesai_date", nextMonthStartDate)
       .order("mesai_date", { ascending: false });
 
     if (error) throw error;
+
+    // Server log to verify raw DB count and workspace
+    console.log(`[getFazlaMesaiByMonth] Year: ${year}, Month: ${month}, Workspace: ${profile.workspace_id}, Records returned: ${data?.length || 0}`);
     return data || [];
   } catch (error) {
     console.error("Error fetching fazla_mesai by month:", error);
@@ -270,15 +274,16 @@ export async function getDashboardTotalFazlaMesai() {
     const month = now.getMonth() + 1;
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextMonthYear = month === 12 ? year + 1 : year;
+    const nextMonthStartDate = `${nextMonthYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
     const { data, error } = await supabase
       .from("fazla_mesai")
       .select("hours")
       .eq("workspace_id", profile.workspace_id)
       .gte("mesai_date", startDate)
-      .lte("mesai_date", endDate);
+      .lt("mesai_date", nextMonthStartDate);
 
     if (error) throw error;
 
