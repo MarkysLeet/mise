@@ -401,25 +401,25 @@ export async function getTutanakFormOptions() {
       const defaultTemplates = [
         {
           workspace_id: profile.workspace_id,
-          category: 'Devamsizlik',
+          category: 'Devamsızlık',
           title: 'Hastalık - Haber Verdi',
           content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) rahatsızlandığını ve işe gelemeyeceğini önceden bildirmiştir. Bu tutanak, personelin haberli devamsızlığını kayıt altına almak amacıyla düzenlenmiştir.'
         },
         {
           workspace_id: profile.workspace_id,
-          category: 'Devamsizlik',
+          category: 'Devamsızlık',
           title: 'Hastalık - Haber Vermedi',
           content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesaisine gelmemiş ve mazeret bildirmemiştir. Personelin habersiz devamsızlığı tespit edilmiş olup, işbu tutanak imza altına alınmıştır.'
         },
         {
           workspace_id: profile.workspace_id,
-          category: 'Devamsizlik',
+          category: 'Devamsızlık',
           title: 'İşe Geç Kalma',
           content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesai saatine uymamış ve işe geç kalmıştır. Personelin gecikmesi tespit edilmiş olup bu tutanak düzenlenmiştir.'
         },
         {
           workspace_id: profile.workspace_id,
-          category: 'Devamsizlik',
+          category: 'Devamsızlık',
           title: 'İzinsiz Görev Yeri Terki',
           content: '{{tarih}} tarihinde personel {{personel_adi}} ({{gorevi}}) mesai saatleri içerisinde amirinden izin almaksızın görev yerini terk etmiştir. Bu durum tespit edilmiş olup işbu tutanak düzenlenmiştir.'
         }
