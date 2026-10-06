@@ -24,7 +24,7 @@ export async function getFazlaMesaiByMonth(year: number, month: number) {
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
     const { data, error } = await supabase
       .from("fazla_mesai")
@@ -271,7 +271,7 @@ export async function getDashboardTotalFazlaMesai() {
 
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
     const { data, error } = await supabase
       .from("fazla_mesai")

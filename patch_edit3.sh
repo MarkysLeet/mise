@@ -1,2 +1,0 @@
-sed -i 's/const \[formData, setFormData\] = useState({ date: "", hours: "", description: "" });/const [formData, setFormData] = useState({ id: "", date: "", hours: "", description: "" });/g' app/fazla-mesai/page.tsx
-sed -i 's/import { getFazlaMesaiByMonth, addFazlaMesai, deleteFazlaMesai } from "@\/actions\/fazla_mesai";/import { getFazlaMesaiByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@\/actions\/fazla_mesai";/g' app/fazla-mesai/page.tsx
