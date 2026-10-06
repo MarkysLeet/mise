@@ -14,6 +14,7 @@ const playfair = Playfair_Display({ subsets: ["latin"] });
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
   { name: "Puantaj", href: "/puantaj", icon: Clock },
+  { name: "Fazla Mesai", href: "/fazla-mesai", icon: Clock },
   { name: "Tutanak", href: "/tutanak", icon: FileText },
   { name: "Bilgi Bankası", href: "/base", icon: BookOpen },
   { name: "Ayarlar", href: "/settings", icon: Settings },

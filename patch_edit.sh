@@ -1,0 +1,2 @@
+sed -i 's/const \[mesaiFormData, setMesaiFormData\] = useState({ date: "", hours: "", description: "" });/const [mesaiFormData, setMesaiFormData] = useState({ id: "", date: "", hours: "", description: "" });/g' app/puantaj/components/EmployeeDossier.tsx
+sed -i 's/import { getFazlaMesaiByEmployee, addFazlaMesai, deleteFazlaMesai } from "@\/actions\/fazla_mesai";/import { getFazlaMesaiByEmployee, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@\/actions\/fazla_mesai";/g' app/puantaj/components/EmployeeDossier.tsx
