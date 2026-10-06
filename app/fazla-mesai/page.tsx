@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { getFazlaMesaiByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
+import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
 import { getEmployees } from "@/actions/puantaj";
 import { Employee } from "@/app/puantaj/types";
 import { toast } from "sonner";
@@ -28,7 +28,8 @@ import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function FazlaMesaiPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [mesaiList, setMesaiList] = useState<any[]>([]);
+  const [dailyMesaiList, setDailyMesaiList] = useState<any[]>([]);
+  const [monthlyTotal, setMonthlyTotal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form State
@@ -46,12 +47,21 @@ export default function FazlaMesaiPage() {
       setFormData(prev => ({ ...prev, date: format(selectedDate, "yyyy-MM-dd") }));
     }
   }, [selectedDate, formData.id]);
-  // Derive month/year from selectedDate
-  const filterYear = selectedDate.getFullYear().toString();
-  const filterMonth = (selectedDate.getMonth() + 1).toString();
 
   useEffect(() => {
-    fetchInitialData();
+    fetchEmployees();
+  }, []);
+
+  const filterYear = selectedDate.getFullYear();
+  const filterMonth = selectedDate.getMonth() + 1;
+  const dateString = format(selectedDate, "yyyy-MM-dd");
+
+  useEffect(() => {
+    fetchDailyData(dateString);
+  }, [dateString]);
+
+  useEffect(() => {
+    fetchMonthlyTotal(filterYear, filterMonth);
   }, [filterYear, filterMonth]);
 
   const handlePrevDay = () => {
@@ -66,20 +76,39 @@ export default function FazlaMesaiPage() {
     setSelectedDate(next);
   };
 
-  const fetchInitialData = async () => {
+  const fetchEmployees = async () => {
+    try {
+      const empRes = await getEmployees();
+      setEmployees(empRes || []);
+    } catch (error) {
+      toast.error("Personel listesi yüklenirken hata oluştu.");
+    }
+  };
+
+  const fetchDailyData = async (dateStr: string) => {
     setIsLoading(true);
     try {
-      const [empRes, mesaiRes] = await Promise.all([
-        getEmployees(),
-        getFazlaMesaiByMonth(parseInt(filterYear), parseInt(filterMonth))
-      ]);
-      setEmployees(empRes || []);
-      setMesaiList(mesaiRes || []);
+      const mesaiRes = await getFazlaMesaiByDate(dateStr);
+      setDailyMesaiList(mesaiRes || []);
     } catch (error) {
-      toast.error("Veriler yüklenirken hata oluştu.");
+      toast.error("Günlük veriler yüklenirken hata oluştu.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchMonthlyTotal = async (year: number, month: number) => {
+    try {
+      const total = await getFazlaMesaiTotalByMonth(year, month);
+      setMonthlyTotal(total || 0);
+    } catch (error) {
+      toast.error("Aylık toplam yüklenirken hata oluştu.");
+    }
+  };
+
+  const refreshData = () => {
+    fetchDailyData(dateString);
+    fetchMonthlyTotal(filterYear, filterMonth);
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -110,7 +139,7 @@ export default function FazlaMesaiPage() {
         setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
         setSelectedEmployeeId("");
         setSelectedEmployeeName("");
-        fetchInitialData();
+        refreshData();
       }
     } catch (error) {
       toast.error("Bir hata oluştu.");
@@ -139,30 +168,12 @@ export default function FazlaMesaiPage() {
         toast.error(res.error);
       } else {
         toast.success("Kayıt silindi.");
-        fetchInitialData();
+        refreshData();
       }
     } catch (error) {
       toast.error("Bir hata oluştu.");
     }
   };
-
-  // Calculate Summary
-  const summaryByEmployee = mesaiList.reduce((acc, curr) => {
-    const empId = curr.employee_id;
-    if (!acc[empId]) {
-      acc[empId] = {
-        name: curr.employees?.full_name || "Bilinmiyor",
-        role: curr.employees?.role_title || "-",
-        totalHours: 0,
-        recordsCount: 0
-      };
-    }
-    acc[empId].totalHours += curr.hours;
-    acc[empId].recordsCount += 1;
-    return acc;
-  }, {} as Record<string, any>);
-
-  const summaryList = Object.values(summaryByEmployee).sort((a: any, b: any) => b.totalHours - a.totalHours);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -291,91 +302,56 @@ export default function FazlaMesaiPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : mesaiList.length === 0 ? (
-                <div className="text-center py-12">
-                  <Clock className="w-12 h-12 text-zinc-200 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Bu ay için mesai kaydı bulunmuyor.</p>
-                </div>
-              ) : (
-                <div className="p-4 space-y-8">
-                  {/* Global Statistics Cards */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-blue-800 mb-1">Seçili Gün Toplamı</h3>
-                      <p className="text-3xl font-bold text-blue-900">
-                        {mesaiList
-                          .filter(m => m.mesai_date === format(selectedDate, "yyyy-MM-dd"))
-                          .reduce((acc, curr) => acc + curr.hours, 0)
-                        } <span className="text-sm font-normal text-blue-700">saat</span>
-                      </p>
-                    </div>
-                    <div className="bg-white border rounded-xl p-4 shadow-sm">
-                      <h3 className="text-sm font-medium text-slate-500 mb-1">Aylık Toplam</h3>
-                      <p className="text-3xl font-bold text-slate-900">
-                        {mesaiList.reduce((acc, curr) => acc + curr.hours, 0)} <span className="text-sm font-normal text-slate-500">saat</span>
-                      </p>
-                    </div>
+              <div className="p-4 space-y-8">
+                {/* Global Statistics Cards */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <h3 className="text-sm font-medium text-blue-800 mb-1">Seçili Gün Toplamı</h3>
+                    <p className="text-3xl font-bold text-blue-900">
+                      {dailyMesaiList.reduce((acc, curr) => acc + curr.hours, 0)} <span className="text-sm font-normal text-blue-700">saat</span>
+                    </p>
                   </div>
-
-                  {/* Summary Section */}
-                  <div>
-                     <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Personel Özeti</h3>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-1">
-                        {summaryList.map((summary: any, idx) => (
-                          <div key={idx} className="bg-slate-50 border rounded-xl p-3 flex justify-between items-center">
-                            <div className="truncate pr-2">
-                              <p className="text-sm font-medium text-slate-900 truncate">{summary.name}</p>
-                              <p className="text-xs text-slate-500 truncate">{summary.role}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-lg font-bold text-slate-900">{summary.totalHours} <span className="text-xs font-normal text-slate-500">saat</span></p>
-                            </div>
-                          </div>
-                        ))}
-                     </div>
+                  <div className="bg-white border rounded-xl p-4 shadow-sm">
+                    <h3 className="text-sm font-medium text-slate-500 mb-1">Aylık Toplam</h3>
+                    <p className="text-3xl font-bold text-slate-900">
+                      {monthlyTotal} <span className="text-sm font-normal text-slate-500">saat</span>
+                    </p>
                   </div>
+                </div>
 
-                  {/* Details Section */}
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Kayıt Detayları</h3>
-                    {(() => {
-                      const dailyRecords = mesaiList.filter(
-                        (m) => m.mesai_date === format(selectedDate, "yyyy-MM-dd")
-                      );
+                {/* Details Section */}
+                <div>
+                  <h3 className="text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">Kayıt Detayları</h3>
 
-                      if (dailyRecords.length === 0) {
-                        return (
-                          <div className="rounded-xl border border-dashed flex flex-col items-center justify-center p-8 text-center text-slate-500">
-                            <Clock className="w-8 h-8 mb-2 opacity-50" />
-                            <p>Bu tarihte mesai kaydı bulunmuyor.</p>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="rounded-xl border overflow-hidden">
-                          <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
-                              <tr>
-                                <th className="px-4 py-3 font-medium">Personel</th>
-                                <th className="px-4 py-3 font-medium">Saat</th>
-                                <th className="px-4 py-3 font-medium">Açıklama</th>
-                                <th className="px-4 py-3 font-medium text-right">İşlem</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                              {dailyRecords.map((mesai) => {
-                                const isOverLimit = mesai.hours > 3;
-                                return (
-                                  <tr key={mesai.id} className={`hover:bg-slate-50/50 transition-colors ${isOverLimit ? 'bg-red-50/30' : ''}`}>
-                                    <td className="px-4 py-3">
-                                      <div className="font-medium text-slate-900">{mesai.employees?.full_name}</div>
-                                      <div className="text-xs text-slate-500">{mesai.employees?.role_title}</div>
-                                    </td>
+                  {isLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : dailyMesaiList.length === 0 ? (
+                    <div className="rounded-xl border border-dashed flex flex-col items-center justify-center p-8 text-center text-slate-500">
+                      <Clock className="w-8 h-8 mb-2 opacity-50" />
+                      <p>Bu tarihte mesai kaydı bulunmuyor.</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border overflow-hidden">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Personel</th>
+                            <th className="px-4 py-3 font-medium">Saat</th>
+                            <th className="px-4 py-3 font-medium">Açıklama</th>
+                            <th className="px-4 py-3 font-medium text-right">İşlem</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {dailyMesaiList.map((mesai) => {
+                            const isOverLimit = mesai.hours > 3;
+                            return (
+                              <tr key={mesai.id} className={`hover:bg-slate-50/50 transition-colors ${isOverLimit ? 'bg-red-50/30' : ''}`}>
+                                <td className="px-4 py-3">
+                                  <div className="font-medium text-slate-900">{mesai.employees?.full_name}</div>
+                                  <div className="text-xs text-slate-500">{mesai.employees?.role_title}</div>
+                                </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className={isOverLimit ? 'bg-red-100 text-red-700' : ''}>
@@ -390,26 +366,24 @@ export default function FazlaMesaiPage() {
                                   {mesai.description || "-"}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                      <div className="flex justify-end gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(mesai)}>
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit2 w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(mesai.id)}>
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })()}
-                  </div>
+                                  <div className="flex justify-end gap-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(mesai)}>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit2 w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(mesai.id)}>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </div>
