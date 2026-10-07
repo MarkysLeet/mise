@@ -10,7 +10,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateTutanak, getTutanakFiles, getTutanakFormOptions, TutanakFile } from "@/actions/tutanak";
-import { EmployeeAutocomplete } from "@/app/puantaj/components/EmployeeAutocomplete";
+import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";

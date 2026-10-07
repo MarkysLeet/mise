@@ -1,0 +1,23 @@
+
+> tmp-app@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.3.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Environments: .env.local
+✓ Ready in 560ms
+✓ Running next.config.ts took 989ms
+ ○ (pwa) PWA support is disabled.
+
+○ Compiling /login ...
+ GET /login 200 in 9.5s (next.js: 8.6s, proxy.ts: 470ms, application-code: 400ms)
+ GET /login 200 in 92ms (next.js: 5ms, proxy.ts: 11ms, application-code: 76ms)
+ GET /login 200 in 72ms (next.js: 4ms, proxy.ts: 7ms, application-code: 61ms)
+ GET /login 200 in 79ms (next.js: 7ms, proxy.ts: 8ms, application-code: 63ms)
+ GET /login 200 in 84ms (next.js: 3ms, proxy.ts: 10ms, application-code: 71ms)
+ GET /login 200 in 70ms (next.js: 5ms, proxy.ts: 7ms, application-code: 58ms)
+ GET /login 200 in 70ms (next.js: 4ms, proxy.ts: 6ms, application-code: 60ms)
+ GET /login 200 in 69ms (next.js: 3ms, proxy.ts: 6ms, application-code: 60ms)
+ GET /login 200 in 87ms (next.js: 4ms, proxy.ts: 10ms, application-code: 74ms)
+ GET /register 200 in 1985ms (next.js: 1658ms, proxy.ts: 6ms, application-code: 321ms)
