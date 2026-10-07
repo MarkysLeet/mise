@@ -7,6 +7,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { SidebarProvider } from "@/components/providers/SidebarProvider";
+import { SyncProvider } from "@/components/providers/SyncProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -37,17 +38,19 @@ export default function RootLayout({
     <html lang="tr">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground flex h-screen overflow-hidden`}>
         <QueryProvider>
-          <SidebarProvider>
-            <Sidebar />
-            <main className="flex-1 h-screen overflow-y-auto bg-stone-50/50 pb-16 md:pb-0 transition-all duration-300">
-              <TopBar />
-              <div className="w-full min-h-[calc(100vh-3.5rem)]">
-                {children}
-              </div>
-            </main>
-            <BottomNavBar />
-            <Toaster />
-          </SidebarProvider>
+          <SyncProvider>
+            <SidebarProvider>
+              <Sidebar />
+              <main className="flex-1 h-screen overflow-y-auto bg-stone-50/50 pb-16 md:pb-0 transition-all duration-300">
+                <TopBar />
+                <div className="w-full min-h-[calc(100vh-3.5rem)]">
+                  {children}
+                </div>
+              </main>
+              <BottomNavBar />
+              <Toaster />
+            </SidebarProvider>
+          </SyncProvider>
         </QueryProvider>
       </body>
     </html>

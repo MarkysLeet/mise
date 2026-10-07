@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Bell, User } from "lucide-react"
+import { Search, Bell, User, CloudOff, Loader2 } from "lucide-react"
 import { Playfair_Display } from "next/font/google"
+import { useSync } from "@/components/providers/SyncProvider"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,9 @@ export function TopBar() {
 
           {/* Right Side: Actions. Pushed to right via ml-auto on desktop if needed, but justify-between handles it if left side is empty on desktop, wait, if left side is hidden, justify-between will put right side on the left. So let's wrap left side in a div that is hidden on md, and on md right side ml-auto. Or just justify-end on md */}
           <div className="flex items-center gap-2 md:ml-auto ml-auto">
+            {/* Offline/Sync Indicator */}
+            <SyncIndicator />
+
             {/* Search */}
             <Button
               variant="ghost"
@@ -95,5 +99,29 @@ export function TopBar() {
         </CommandList>
       </CommandDialog>
     </>
+  )
+}
+
+function SyncIndicator() {
+  const { isOffline, isSyncing } = useSync()
+
+  if (!isOffline && !isSyncing) return null
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mr-2 bg-muted/50 border border-border">
+      {isOffline ? (
+        <>
+          <CloudOff className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="hidden sm:inline-block text-muted-foreground">Offline (Değişiklikler kaydediliyor)</span>
+          <span className="sm:hidden text-muted-foreground">Offline</span>
+        </>
+      ) : isSyncing ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+          <span className="hidden sm:inline-block text-primary">Senkronize ediliyor...</span>
+          <span className="sm:hidden text-primary">Senkronize</span>
+        </>
+      ) : null}
+    </div>
   )
 }
