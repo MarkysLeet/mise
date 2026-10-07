@@ -678,12 +678,8 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex flex-col items-center justify-center">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <img src="/logo.svg" alt="Mise Logo" className="h-4 w-4" />
-              <span className="text-sm font-serif text-slate-800 font-bold">Mise</span>
-            </div>
-            <h1 className="text-xs text-slate-600 font-medium w-24 text-center leading-tight">
+          <div className="flex flex-col items-center justify-center px-4">
+            <h1 className="text-sm text-slate-700 font-semibold text-center leading-tight">
               {MONTH_NAMES[currentMonth - 1]} {currentYear}
             </h1>
           </div>
