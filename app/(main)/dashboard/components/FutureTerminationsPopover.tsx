@@ -21,12 +21,20 @@ export function FutureTerminationsPopover({ terminations }: { terminations: Futu
   return (
     <Popover>
       <PopoverTrigger render={
-        <button className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors mt-2 cursor-pointer outline-none">
+        <button
+          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors mt-2 cursor-pointer outline-none"
+          onClick={(e) => e.stopPropagation()}
+        >
           <span>İleri tarihli çıkış: {terminations.length}</span>
           <Info className="h-3.5 w-3.5" />
         </button>
       } />
-      <PopoverContent className="w-80 p-0 overflow-hidden" align="start">
+      <PopoverContent
+        className="w-80 p-0 overflow-hidden"
+        align="start"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-zinc-50/50 px-4 py-3 border-b border-zinc-100">
           <h4 className="text-sm font-medium text-zinc-900">İleri Tarihli Çıkışlar</h4>
           <p className="text-xs text-zinc-500 mt-0.5">Çıkış tarihi gelmemiş olan personeller</p>

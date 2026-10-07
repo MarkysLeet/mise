@@ -94,14 +94,18 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(searchParams.get("empId") || null);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(searchParams.get("role") || "Tümü");
+  const [selectedOutletFilter, setSelectedOutletFilter] = useState<string>(searchParams.get("outlet") || "Tümü");
 
-  const updateFiltersInUrl = (newEmpId: string | null, newRole: string, newSearchQuery: string) => {
+  const updateFiltersInUrl = (newEmpId: string | null, newRole: string, newSearchQuery: string, newOutlet: string) => {
     const params = new URLSearchParams(searchParams);
     if (newEmpId) params.set("empId", newEmpId);
     else params.delete("empId");
 
     if (newRole && newRole !== "Tümü") params.set("role", newRole);
     else params.delete("role");
+
+    if (newOutlet && newOutlet !== "Tümü") params.set("outlet", newOutlet);
+    else params.delete("outlet");
 
     if (newSearchQuery) params.set("q", newSearchQuery);
     else params.delete("q");
@@ -111,7 +115,12 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
 
   const handleSelectRole = (role: string) => {
     setSelectedRoleFilter(role);
-    updateFiltersInUrl(selectedEmployeeId, role, searchQuery);
+    updateFiltersInUrl(selectedEmployeeId, role, searchQuery, selectedOutletFilter);
+  };
+
+  const handleSelectOutlet = (outlet: string) => {
+    setSelectedOutletFilter(outlet);
+    updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, searchQuery, outlet);
   };
 
   const handleSearchQueryChange = (query: string) => {
@@ -119,9 +128,9 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     // so the table reverts to text-based filtering instead of staying locked to the previous ID.
     if (selectedEmployeeId) {
       setSelectedEmployeeId(null);
-      updateFiltersInUrl(null, selectedRoleFilter, query);
+      updateFiltersInUrl(null, selectedRoleFilter, query, selectedOutletFilter);
     } else {
-      updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query);
+      updateFiltersInUrl(selectedEmployeeId, selectedRoleFilter, query, selectedOutletFilter);
     }
     setSearchQuery(query);
   };
@@ -129,13 +138,13 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   const handleSelectEmployeeAutocomplete = (empId: string, fullName: string) => {
     setSelectedEmployeeId(empId);
     setSearchQuery(fullName);
-    updateFiltersInUrl(empId, selectedRoleFilter, fullName);
+    updateFiltersInUrl(empId, selectedRoleFilter, fullName, selectedOutletFilter);
   };
 
   const handleClearAutocomplete = () => {
     setSelectedEmployeeId(null);
     setSearchQuery("");
-    updateFiltersInUrl(null, selectedRoleFilter, "");
+    updateFiltersInUrl(null, selectedRoleFilter, "", selectedOutletFilter);
   };
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -167,8 +176,12 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const daysArray = Array.from({ length: 31 }, (_, i) => i + 1);
 
+  const uniqueOutlets = Array.from(new Set(employees.map(emp => emp.department_outlet || "Belirtilmemiş"))).sort();
+
   const roleFilteredEmployees = employees.filter(emp => {
     if (selectedRoleFilter !== "Tümü" && emp.role_title !== selectedRoleFilter) return false;
+    const empOutlet = emp.department_outlet || "Belirtilmemiş";
+    if (selectedOutletFilter !== "Tümü" && empOutlet !== selectedOutletFilter) return false;
     return true;
   });
 
@@ -746,6 +759,18 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={selectedOutletFilter} onValueChange={(val) => handleSelectOutlet(val || "Tümü")}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Bölüm / Outlet seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Tümü">Tümü (Tüm Bölümler)</SelectItem>
+                {uniqueOutlets.map((outlet) => (
+                  <SelectItem key={outlet} value={outlet}>{outlet}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -950,6 +975,9 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         onClearSearch={handleClearAutocomplete}
         selectedRoleFilter={selectedRoleFilter}
         setSelectedRoleFilter={handleSelectRole}
+        uniqueOutlets={uniqueOutlets}
+        selectedOutletFilter={selectedOutletFilter}
+        setSelectedOutletFilter={handleSelectOutlet}
       />
 
       {/* Terminate Modal */}
