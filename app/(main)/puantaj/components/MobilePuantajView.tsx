@@ -35,6 +35,9 @@ export function MobilePuantajView({
   onClearSearch,
   selectedRoleFilter,
   setSelectedRoleFilter,
+  uniqueOutlets,
+  selectedOutletFilter,
+  setSelectedOutletFilter,
 }: MobilePuantajViewProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -87,6 +90,8 @@ export function MobilePuantajView({
             onClear={onClearSearch}
           />
         </div>
+
+        {/* Role Filters */}
         <div className="flex overflow-x-auto gap-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setSelectedRoleFilter("Tümü")}
@@ -111,6 +116,33 @@ export function MobilePuantajView({
               {role.title}
             </button>
           ))}
+        </div>
+
+        {/* Outlet Filters */}
+        <div className="flex overflow-x-auto gap-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <button
+            onClick={() => setSelectedOutletFilter("Tümü")}
+            className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              selectedOutletFilter === "Tümü"
+                ? "bg-zinc-900 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            Tüm Bölümler
+          </button>
+          {uniqueOutlets.map((outlet) => (
+              <button
+                key={outlet}
+                onClick={() => setSelectedOutletFilter(outlet)}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  selectedOutletFilter === outlet
+                    ? "bg-zinc-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {outlet}
+              </button>
+            ))}
         </div>
       </div>
 

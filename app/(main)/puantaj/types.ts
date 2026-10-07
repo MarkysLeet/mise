@@ -78,4 +78,7 @@ export interface MobilePuantajViewProps {
   onClearSearch: () => void;
   selectedRoleFilter: string;
   setSelectedRoleFilter: (role: string) => void;
+  uniqueOutlets: string[];
+  selectedOutletFilter: string;
+  setSelectedOutletFilter: (outlet: string) => void;
 }
