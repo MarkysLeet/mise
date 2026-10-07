@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MissingEmployeesSheet } from "./components/MissingEmployeesSheet";
 import { FutureTerminationsPopover } from "./components/FutureTerminationsPopover";
+import { ActivePersonnelModal } from "./components/ActivePersonnelModal";
 import { getDashboardTotalFazlaMesai } from "@/actions/fazla_mesai";
 
 export default async function DashboardPage() {
@@ -183,19 +184,26 @@ export default async function DashboardPage() {
           
           {/* Shift Overview Row */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-            <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 col-span-1">
-              <CardHeader className="pb-2">
-                <CardDescription className="font-medium flex items-center gap-2 text-zinc-600">
-                  <Users className="h-4 w-4" /> Aktif Personel
-                </CardDescription>
-                <div className="flex flex-col">
-                  <CardTitle className="text-3xl font-light text-zinc-900">
-                    {activeEmployees.length}
-                  </CardTitle>
-                  <FutureTerminationsPopover terminations={futureTerminations} />
-                </div>
-              </CardHeader>
-            </Card>
+            <ActivePersonnelModal employees={activeEmployees}>
+              <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 cursor-pointer hover:bg-zinc-100 transition-colors col-span-1">
+                <CardHeader className="pb-2">
+                  <CardDescription className="font-medium flex items-center justify-between text-zinc-600">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Aktif Personel
+                    </div>
+                    <Info className="h-4 w-4 text-zinc-400" />
+                  </CardDescription>
+                  <div className="flex flex-col">
+                    <CardTitle className="text-3xl font-light text-zinc-900 text-left">
+                      {activeEmployees.length}
+                    </CardTitle>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <FutureTerminationsPopover terminations={futureTerminations} />
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            </ActivePersonnelModal>
             
             <MissingEmployeesSheet missingEmployees={missingEmployees} onLeaveCount={onLeaveToday}>
               <Card className="border-zinc-200 shadow-sm rounded-2xl bg-zinc-50/50 cursor-pointer hover:bg-zinc-100 transition-colors col-span-1">

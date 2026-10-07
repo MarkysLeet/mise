@@ -1,12 +1,21 @@
-▲ Next.js 16.3.6 (webpack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
-- Environments: .env.local
-✓ Ready in 572ms
-✓ Running next.config.ts took 1018ms
- ○ (pwa) PWA support is disabled.
 
-○ Compiling /login ...
- GET /login 200 in 4.7s (next.js: 4.3s, proxy.ts: 11ms, application-code: 399ms)
- GET /login 200 in 77ms (next.js: 6ms, proxy.ts: 10ms, application-code: 61ms)
- GET /login 200 in 87ms (next.js: 7ms, proxy.ts: 9ms, application-code: 71ms)
+> tmp-app@0.1.0 dev
+> next dev --webpack
+
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.3.6 (webpack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.0.2:3001
+- Environments: .env.local
+✓ Ready in 1192ms
+✓ Running next.config.ts took 1924ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          214076
+- Dir:          /app
+- Log:          .next/dev/logs/next-development.log
+
+You can access the existing server at http://localhost:3000,
+or run kill 214076 to stop it and start a new one.
+[?25h
