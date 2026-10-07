@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { getEmployees, getPuantajEntries, bulkUpsertPuantaj } from "@/actions/puantaj";
 import { Database } from "@/types/database";
+import { addToQueue } from "@/lib/syncManager";
 
 type Employee = Database["public"]["Tables"]["employees"]["Row"];
 type PuantajEntry = Database["public"]["Tables"]["puantaj_entries"]["Row"];
@@ -41,7 +42,22 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
 
   const updateEntryMutation = useMutation({
     mutationFn: async (entries: { employee_id: string; date: string; status: string }[]) => {
-      return bulkUpsertPuantaj(entries);
+      if (!navigator.onLine) {
+        // If offline, just queue it and resolve immediately to avoid rejecting the mutation
+        await addToQueue("bulkUpsertPuantaj", entries);
+        return { error: null }; // Simulate success for optimistic UI
+      }
+      try {
+        const result = await bulkUpsertPuantaj(entries);
+        return result;
+      } catch (error) {
+        // If it's a network error (e.g. TypeError: Failed to fetch), queue it
+        if (error instanceof TypeError) {
+          await addToQueue("bulkUpsertPuantaj", entries);
+          return { error: null }; // Simulate success
+        }
+        throw error;
+      }
     },
     onMutate: async () => {
       // Cancel any outgoing refetches
