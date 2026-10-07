@@ -324,3 +324,51 @@ export async function getDashboardTotalFazlaMesai() {
     return 0;
   }
 }
+
+export async function getOvertimeAlerts() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.workspace_id) return [];
+
+    const todayDate = new Date();
+    const sevenDaysAgoDate = new Date(todayDate);
+    sevenDaysAgoDate.setDate(todayDate.getDate() - 7);
+
+    const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
+    const sevenDaysAgoStr = `${sevenDaysAgoDate.getFullYear()}-${String(sevenDaysAgoDate.getMonth() + 1).padStart(2, "0")}-${String(sevenDaysAgoDate.getDate()).padStart(2, "0")}`;
+
+    const { data, error } = await supabase
+      .from("fazla_mesai")
+      .select(`
+        id,
+        mesai_date,
+        hours,
+        employees:employee_id (
+          full_name
+        )
+      `)
+      .eq("workspace_id", profile.workspace_id)
+      .gt("hours", 3)
+      .gte("mesai_date", sevenDaysAgoStr)
+      .lte("mesai_date", todayStr)
+      .order("mesai_date", { ascending: false })
+      .limit(15);
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching overtime alerts:", error);
+    return [];
+  }
+}
