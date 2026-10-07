@@ -33,7 +33,11 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50/50 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white p-4">
+      <div className="mb-8 flex flex-col items-center justify-center gap-3">
+        <img src="/logo.svg" alt="Mise Logo" className="h-16 w-16" />
+        <h1 className="text-5xl font-bold text-slate-900 tracking-wide" style={{ fontFamily: "var(--font-sans), 'Playfair Display', serif" }}>Mise</h1>
+      </div>
       <Card className="w-full max-w-lg border-stone-200 shadow-sm">
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-2xl font-semibold tracking-tight text-stone-900">Google Drive Bağlantısı</CardTitle>

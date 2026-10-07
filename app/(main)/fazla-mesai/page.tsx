@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
 import { getEmployees } from "@/actions/puantaj";
-import { Employee } from "@/app/puantaj/types";
+import { Employee } from "@/app/(main)/puantaj/types";
 import { toast } from "sonner";
 import {
   Card,
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Trash2, AlertTriangle, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { EmployeeAutocomplete } from "@/app/puantaj/components/EmployeeAutocomplete";
+import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";

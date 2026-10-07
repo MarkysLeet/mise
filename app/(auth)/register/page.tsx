@@ -40,13 +40,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-stone-50/50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-white p-4">
+      <div className="mb-8 flex flex-col items-center justify-center gap-3">
+        <img src="/logo.svg" alt="Mise Logo" className="h-16 w-16" />
+        <h1 className={cn("text-5xl font-bold text-slate-900 tracking-wide", playfair.className)}>Mise</h1>
+      </div>
+      <Card className="w-full max-w-md shadow-sm border-stone-200">
         <CardHeader className="text-center">
-          <div className="mb-2 flex items-center justify-center gap-2">
-            <img src="/logo.svg" alt="Mise Logo" className="h-8 w-8" />
-             <h1 className={cn("text-3xl font-bold text-primary tracking-wide", playfair.className)}>Mise</h1>
-          </div>
           <CardTitle className="text-2xl">Kayıt Ol</CardTitle>
           <CardDescription>Operasyon Merkezinizi kurmak için bilgilerinizi girin.</CardDescription>
         </CardHeader>
