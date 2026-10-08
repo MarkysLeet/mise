@@ -34,14 +34,20 @@ function OnboardingContent() {
       if (!res.ok) {
         throw new Error("Bağlantı URL'si alınamadı.");
       }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(`Beklenmeyen yanıt formatı alındı (HTML/Text). Status: ${res.status}`);
+      }
+
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error("Geçersiz yanıt alındı.");
+        throw new Error("Geçersiz yanıt alındı. 'url' bulunamadı.");
       }
     } catch (error) {
-      console.error(error);
+      console.error("[Onboarding] Google Drive bağlantı hatası:", error);
       toast.error("Google Drive'a bağlanırken bir hata oluştu. Lütfen tekrar deneyin.");
       setIsLoading(false);
     }

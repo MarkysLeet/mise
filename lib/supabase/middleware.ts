@@ -49,7 +49,8 @@ export async function updateSession(request: NextRequest) {
   const isOnboarded = user.user_metadata?.is_onboarded === true;
 
   // If user is NOT onboarded and trying to access protected areas, redirect to /onboarding
-  if (!isOnboarded && path !== '/onboarding') {
+  // Do not redirect /api/auth routes as they are used during the onboarding process
+  if (!isOnboarded && path !== '/onboarding' && !path.startsWith('/api/auth')) {
     const url = request.nextUrl.clone()
     url.pathname = '/onboarding'
     return NextResponse.redirect(url)
