@@ -362,13 +362,22 @@ export async function bulkUpsertPuantaj(entries: { employee_id: string; date: st
   const entriesToUpsert = formattedEntries.filter(e => e.status !== "");
 
   if (entriesToDelete.length > 0) {
-    // Delete one by one for now since supabase delete with OR/IN can be tricky with composite keys
-    for (const entry of entriesToDelete) {
-      await supabase
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < entriesToDelete.length; i += CHUNK_SIZE) {
+      const chunk = entriesToDelete.slice(i, i + CHUNK_SIZE);
+      const orQuery = chunk
+        .map(e => `and(employee_id.eq.${e.employee_id},date.eq.${e.date})`)
+        .join(",");
+
+      const { error } = await supabase
         .from("puantaj_entries")
         .delete()
-        .eq("employee_id", entry.employee_id)
-        .eq("date", entry.date);
+        .or(orQuery);
+
+      if (error) {
+        console.error("Batch delete error:", error);
+        throw new Error(error.message);
+      }
     }
   }
 
