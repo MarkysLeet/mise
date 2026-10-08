@@ -28,6 +28,7 @@ import { TutanakTemplatesTab } from "./TutanakTemplatesTab";
 export default function SettingsClientPage({ initialWorkspace, initialProfile, initialRoles, initialTemplates }: { initialWorkspace: any, initialProfile: any, initialRoles: any[], initialTemplates: any[] }) {
   const router = useRouter();
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const [firstName, setFirstName] = useState(initialProfile.first_name);
@@ -86,6 +87,25 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
       toast.error(res.error);
     } else {
       toast.success("Çalışma alanı başarıyla güncellendi.");
+    }
+  };
+
+  const handleGoogleConnect = async () => {
+    setIsConnectingGoogle(true);
+    try {
+      const res = await fetch("/api/auth/google");
+      if (!res.ok) {
+        throw new Error("Bağlantı URL'si alınamadı.");
+      }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("Geçersiz yanıt alındı.");
+      }
+    } catch (error) {
+      toast.error("Google Drive'a bağlanırken bir hata oluştu. Lütfen tekrar deneyin.");
+      setIsConnectingGoogle(false);
     }
   };
 
@@ -230,10 +250,11 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
                 <h3 className="text-sm font-medium mb-1">Bağlantı Gerekli</h3>
                 <p className="text-xs text-muted-foreground text-center max-w-xs mb-4">Sistemi kullanabilmek için Google hesabınızı bağlamanız gerekmektedir.</p>
                 <Button
-                  onClick={() => router.push("/api/auth/google")}
+                  onClick={handleGoogleConnect}
+                  disabled={isConnectingGoogle}
                   className="rounded-xl shadow-sm"
                 >
-                  Google ile Bağlan
+                  {isConnectingGoogle ? "Bağlanıyor..." : "Google ile Bağlan"}
                 </Button>
               </div>
             ) : (
@@ -267,10 +288,17 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
                   <div className="space-y-4 pt-2">
                     <p className="text-sm text-muted-foreground">Google hesabınızı yeniden bağlayarak yapılandırmanızı tazeleyebilirsiniz.</p>
                     <Button
-                      onClick={() => router.push("/api/auth/google")}
+                      onClick={handleGoogleConnect}
+                      disabled={isConnectingGoogle}
                       className="h-11 px-6 rounded-xl shadow-sm w-full sm:w-auto"
                     >
-                      <RefreshCw className="mr-2 h-4 w-4" /> Google Hesabını Yeniden Bağla
+                      {isConnectingGoogle ? (
+                        "Bağlanıyor..."
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" /> Google Hesabını Yeniden Bağla
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
