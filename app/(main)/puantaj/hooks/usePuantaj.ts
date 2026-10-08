@@ -10,7 +10,7 @@ import { getRoles } from "@/actions/settings";
 
 type Role = Database["public"]["Tables"]["roles"]["Row"];
 
-export function usePuantaj(year: number, month: number, initialEmployees?: Employee[], initialEntries?: PuantajEntry[], initialRoles?: Role[]) {
+export function usePuantaj(year: number, month: number) {
   const queryClient = useQueryClient();
 
   const employeesKey = ["employees", year, month];
@@ -20,7 +20,6 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
   const employeesQuery = useQuery({
     queryKey: employeesKey,
     queryFn: () => getEmployees(year, month),
-    initialData: initialEmployees,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -28,7 +27,6 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
   const entriesQuery = useQuery({
     queryKey: entriesKey,
     queryFn: () => getPuantajEntries(year, month),
-    initialData: initialEntries,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   });
@@ -36,7 +34,6 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
   const rolesQuery = useQuery({
     queryKey: rolesKey,
     queryFn: () => getRoles(),
-    initialData: initialRoles,
     staleTime: 5 * 60 * 1000,
   });
 

@@ -27,7 +27,7 @@ import {
   Loader2
 } from "lucide-react";
 
-import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee } from "@/actions/puantaj";
+import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee, getEmployees, getPuantajEntries } from "@/actions/puantaj";
 import { syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 import { ImportModal } from "./components/import/ImportModal";
 import { initializeNewMonth } from "@/actions/puantaj-init";
@@ -72,7 +72,7 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, initialRoles = [], currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
+export function PuantajClient({ currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -84,7 +84,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     isEmployeesLoading,
     isEntriesLoading,
     updateEntryAsync,
-  } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries, initialRoles);
+  } = usePuantaj(currentYear, currentMonth);
 
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
@@ -266,6 +266,25 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       params.set("month", m.toString());
       params.set("year", y.toString());
       router.push(`${pathname}?${params.toString()}`);
+    });
+  };
+
+  const prefetchMonth = (offset: number) => {
+    let m = currentMonth + offset;
+    let y = currentYear;
+    if (m < 1) { m = 12; y--; }
+    if (m > 12) { m = 1; y++; }
+
+    queryClient.prefetchQuery({
+      queryKey: ["employees", y, m],
+      queryFn: () => getEmployees(y, m),
+      staleTime: 5 * 60 * 1000,
+    });
+
+    queryClient.prefetchQuery({
+      queryKey: ["entries", y, m],
+      queryFn: () => getPuantajEntries(y, m),
+      staleTime: 5 * 60 * 1000,
     });
   };
 
@@ -688,7 +707,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       {/* Mobile Header */}
       <div className="flex md:hidden w-full items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(-1)} onMouseEnter={() => prefetchMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex flex-col items-center justify-center px-4">
@@ -696,7 +715,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
               {MONTH_NAMES[currentMonth - 1]} {currentYear}
             </h1>
           </div>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeMonth(1)} onMouseEnter={() => prefetchMonth(1)} disabled={!hasNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -720,13 +739,13 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       {/* Header Panel */}
       <div className="hidden md:flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(-1)} disabled={!hasPrevMonth}>
+          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(-1)} onMouseEnter={() => prefetchMonth(-1)} disabled={!hasPrevMonth}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-medium text-slate-900 w-48 text-center tracking-tight">
             {MONTH_NAMES[currentMonth - 1]} {currentYear}
           </h1>
-          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(1)} disabled={!hasNextMonth}>
+          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(1)} onMouseEnter={() => prefetchMonth(1)} disabled={!hasNextMonth}>
             <ChevronRight className="h-5 w-5" />
           </Button>
 

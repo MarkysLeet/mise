@@ -1,7 +1,5 @@
 import { Metadata } from "next";
 import { PuantajClient } from "./PuantajClient";
-import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
-import { getRoles } from "@/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -109,10 +107,6 @@ export default async function PuantajPage(props: {
     }
   }
 
-  const employees = await getEmployees(currentYear, currentMonth);
-  const entries = await getPuantajEntries(currentYear, currentMonth);
-  const roles = await getRoles();
-
   // Instead of querying all dates in the database (which scales poorly), we can simply
   // check if there is AT LEAST ONE entry for the previous month to unlock the navigation arrow.
   const prevMonthDateObj = new Date(currentYear, currentMonth - 2, 1);
@@ -133,9 +127,6 @@ export default async function PuantajPage(props: {
   return (
     <div className="flex flex-col min-h-screen w-full">
       <PuantajClient
-        initialEmployees={employees}
-        initialEntries={entries}
-        initialRoles={roles}
         currentMonth={currentMonth}
         currentYear={currentYear}
         initializedMonths={initializedMonths}
