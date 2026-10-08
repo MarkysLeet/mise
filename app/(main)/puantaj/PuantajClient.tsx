@@ -72,7 +72,7 @@ const STATUSES = [
   { code: "TERMINATED", label: "İşten Çıkış", color: "bg-black text-white" }
 ];
 
-export function PuantajClient({ initialEmployees, initialEntries, initialRoles = [], currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
+export function PuantajClient({ currentMonth, currentYear, initializedMonths = [], dbMonths = [] }: any) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -84,7 +84,7 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
     isEmployeesLoading,
     isEntriesLoading,
     updateEntryAsync,
-  } = usePuantaj(currentYear, currentMonth, initialEmployees, initialEntries, initialRoles);
+  } = usePuantaj(currentYear, currentMonth);
 
   const [activeBrush, setActiveBrush] = useState<string | null>(null);
 
@@ -473,7 +473,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
         if (!result.success) throw new Error(result.error);
         toast.success("Personel güncellendi.");
       }
-      queryClient.invalidateQueries({ queryKey: ["puantaj", currentMonth] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       setHasUnsavedDriveChanges(true);
       setIsEmployeeModalOpen(false);
@@ -492,7 +491,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       toast.success("Personel tamamen silindi");
       setIsDeleteOpen(false);
       setHasUnsavedDriveChanges(true);
-      queryClient.invalidateQueries({ queryKey: ["puantaj", currentMonth] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
@@ -510,7 +508,6 @@ export function PuantajClient({ initialEmployees, initialEntries, initialRoles =
       toast.success("Personel işten çıkarıldı");
       setIsTerminateOpen(false);
       setHasUnsavedDriveChanges(true);
-      queryClient.invalidateQueries({ queryKey: ["puantaj", currentMonth] });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
