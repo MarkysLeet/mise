@@ -77,6 +77,7 @@ export function usePuantaj(year: number, month: number, initialEmployees?: Emplo
       }
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["puantaj", month] });
       queryClient.invalidateQueries({ queryKey: entriesKey });
     },
   });

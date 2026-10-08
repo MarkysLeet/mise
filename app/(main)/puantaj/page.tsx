@@ -4,6 +4,7 @@ import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
 import { getRoles } from "@/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { QueryClient, dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
 export const metadata: Metadata = {
   title: "Puantaj | Quiet Luxury",
@@ -130,17 +131,36 @@ export default async function PuantajPage(props: {
 
   const dbMonths = prevMonthEntries && prevMonthEntries.length > 0 ? [prevMonthKey] : [];
 
+  const queryClient = new QueryClient();
+
+  await queryClient.prefetchQuery({
+    queryKey: ["employees", currentYear, currentMonth],
+    queryFn: () => getEmployees(currentYear, currentMonth),
+  });
+
+  await queryClient.prefetchQuery({
+    queryKey: ["entries", currentYear, currentMonth],
+    queryFn: () => getPuantajEntries(currentYear, currentMonth),
+  });
+
+  await queryClient.prefetchQuery({
+    queryKey: ["roles"],
+    queryFn: () => getRoles(),
+  });
+
   return (
-    <div className="flex flex-col min-h-screen w-full">
-      <PuantajClient
-        initialEmployees={employees}
-        initialEntries={entries}
-        initialRoles={roles}
-        currentMonth={currentMonth}
-        currentYear={currentYear}
-        initializedMonths={initializedMonths}
-        dbMonths={dbMonths}
-      />
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <div className="flex flex-col min-h-screen w-full">
+        <PuantajClient
+          initialEmployees={employees}
+          initialEntries={entries}
+          initialRoles={roles}
+          currentMonth={currentMonth}
+          currentYear={currentYear}
+          initializedMonths={initializedMonths}
+          dbMonths={dbMonths}
+        />
+      </div>
+    </HydrationBoundary>
   );
 }
