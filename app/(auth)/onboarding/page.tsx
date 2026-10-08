@@ -27,9 +27,24 @@ function OnboardingContent() {
     }
   }, [searchParams]);
 
-  function handleConnect() {
+  async function handleConnect() {
     setIsLoading(true);
-    router.push("/api/auth/google");
+    try {
+      const res = await fetch("/api/auth/google");
+      if (!res.ok) {
+        throw new Error("Bağlantı URL'si alınamadı.");
+      }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("Geçersiz yanıt alındı.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Google Drive'a bağlanırken bir hata oluştu. Lütfen tekrar deneyin.");
+      setIsLoading(false);
+    }
   }
 
   return (
