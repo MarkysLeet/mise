@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { X, Search } from "lucide-react";
 
@@ -69,6 +70,46 @@ export function EmployeeAutocomplete({
     emp.full_name.toLocaleLowerCase("tr-TR").includes(searchQuery.toLocaleLowerCase("tr-TR"))
   );
 
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (isOpen && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: `${rect.bottom + 4}px`,
+        left: `${rect.left}px`,
+        width: `${rect.width}px`,
+        zIndex: 110,
+      });
+    }
+  }, [isOpen, searchQuery, employees]); // Recalculate on relevant changes
+
+  // Update position on scroll/resize
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      if (wrapperRef.current) {
+        const rect = wrapperRef.current.getBoundingClientRect();
+        setDropdownStyle({
+          position: 'fixed',
+          top: `${rect.bottom + 4}px`,
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+          zIndex: 110,
+        });
+      }
+    };
+
+    window.addEventListener('scroll', updatePosition, true); // true for capturing phase to catch any scrolling parent
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
   return (
     <div className={`relative ${className}`} ref={wrapperRef}>
       <div className="relative flex items-center">
@@ -93,8 +134,11 @@ export function EmployeeAutocomplete({
         )}
       </div>
 
-      {isOpen && searchQuery.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
+      {isOpen && searchQuery.length > 0 && typeof window !== 'undefined' && document.body && createPortal(
+        <div
+          className="bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto"
+          style={dropdownStyle}
+        >
           {filteredEmployees.length > 0 ? (
             <ul className="py-1">
               {filteredEmployees.map((emp) => (
@@ -114,7 +158,8 @@ export function EmployeeAutocomplete({
               Personel bulunamadı.
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
