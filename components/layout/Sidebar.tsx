@@ -1,5 +1,6 @@
-import { GlobalSearch } from "./GlobalSearch";
 "use client";
+
+import { GlobalSearch } from "./GlobalSearch";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";

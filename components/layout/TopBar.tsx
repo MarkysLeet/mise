@@ -1,5 +1,6 @@
-import { GlobalSearch } from "./GlobalSearch";
 "use client"
+
+import { GlobalSearch } from "./GlobalSearch";
 
 import { useState, useEffect } from "react"
 import { Search, Bell, User, CloudOff, Loader2, LogOut, Settings as SettingsIcon, UserCircle } from "lucide-react"

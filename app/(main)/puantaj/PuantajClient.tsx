@@ -152,6 +152,16 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
   const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
 
+
+
+
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [employeeModalMode, setEmployeeModalMode] = useState<"create" | "edit">("create");
+  const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", phone: "", department_outlet: "", hire_date: "" });
+
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [dossierEmployee, setDossierEmployee] = useState<any>(null);
+
   const dossierEmpId = searchParams.get("dossierEmpId");
 
   useEffect(() => {
@@ -168,14 +178,6 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
       }
     }
   }, [dossierEmpId, employees, isDossierOpen, pathname, router, searchParams]);
-
-
-  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
-  const [employeeModalMode, setEmployeeModalMode] = useState<"create" | "edit">("create");
-  const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", phone: "", department_outlet: "", hire_date: "" });
-
-  const [isDossierOpen, setIsDossierOpen] = useState(false);
-  const [dossierEmployee, setDossierEmployee] = useState<any>(null);
 
   const [isTerminateOpen, setIsTerminateOpen] = useState(false);
   const [employeeToTerminate, setEmployeeToTerminate] = useState<any>(null);
