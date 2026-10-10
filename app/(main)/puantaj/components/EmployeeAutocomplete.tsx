@@ -144,7 +144,7 @@ export function EmployeeAutocomplete({
               {filteredEmployees.map((emp) => (
                 <li
                   key={emp.id}
-                  onClick={() => handleSelect(emp)}
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(emp); }}
                   className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 ${
                     selectedEmployeeId === emp.id ? "bg-slate-50 font-medium text-emerald-700" : "text-slate-700"
                   }`}
