@@ -1,5 +1,7 @@
 "use client"
 
+import { GlobalSearch } from "./GlobalSearch";
+
 import { useState, useEffect } from "react"
 import { Search, Bell, User, CloudOff, Loader2, LogOut, Settings as SettingsIcon, UserCircle } from "lucide-react"
 import { Playfair_Display } from "next/font/google"
@@ -150,17 +152,7 @@ export function TopBar() {
       </header>
 
       {/* Global Search Dialog */}
-      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen} showCloseButton={false}>
-        <CommandInput placeholder="Personel, belge veya işlem ara..." />
-        <CommandList>
-          <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
-          <CommandGroup heading="Son Aramalar">
-            <CommandItem value="ahmet-yilmaz">Ahmet Yılmaz</CommandItem>
-            <CommandItem value="ayse-demir">Ayşe Demir</CommandItem>
-            <CommandItem value="puantaj-raporu">Puantaj Raporu</CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   )
 }
