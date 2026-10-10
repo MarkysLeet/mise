@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FileText, User, Download, Plus, ExternalLink, Folder } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileText, Download, Plus, ExternalLink, Folder } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,23 +15,14 @@ import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAu
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { TutanakEmployee } from "@/app/types/employee";
 
-export default function TutanakPage() {
+export default function TutanakClient() {
   const router = useRouter();
-
-  const [files, setFiles] = useState<any[]>([]);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
+  const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  // Options state
-  const [employees, setEmployees] = useState<{id: string, full_name: string, role_title: string, department_outlet: string}[]>([]);
-  const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
-  const [workspaceName, setWorkspaceName] = useState<string>("");
-  const [hotelName, setHotelName] = useState<string>("");
-  const [driveFolderId, setDriveFolderId] = useState<string>("");
 
   // Form state
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
@@ -41,94 +33,36 @@ export default function TutanakPage() {
   const [incidentDate, setIncidentDate] = useState("");
   const [olayYeri, setOlayYeri] = useState("");
 
-  const fetchFiles = async () => {
-    setIsLoadingFiles(true);
-    const result = await getTutanakFiles();
+  const { data: filesData, isLoading: isLoadingFiles } = useQuery({
+    queryKey: ["tutanakFiles"],
+    queryFn: async () => {
+      const res = await getTutanakFiles();
+      if (res.error) throw res;
+      return res.files || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
-    if (result.error) {
-      toast.error(result.error);
-      if (result.resetAuth) {
-        router.push("/onboarding?error=Lütfen hesabınızı tekrar bağlayın");
-      }
-    } else if (result.files) {
-      setFiles(result.files);
-    }
-    setIsLoadingFiles(false);
-  };
+  const { data: optionsData } = useQuery({
+    queryKey: ["tutanakOptions"],
+    queryFn: async () => {
+      const res = await getTutanakFormOptions();
+      if (res.error) throw new Error(res.error);
+      return {
+        employees: (res.employees || []) as TutanakEmployee[],
+        templates: res.templates || [],
+        workspaceName: res.workspaceName || "",
+        hotelName: res.hotelName || "",
+        driveFolderId: res.driveFolderId || ""
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchOptions = async () => {
-    const opts = await getTutanakFormOptions();
-    if (!opts.error) {
-      setEmployees(opts.employees || []);
-      setTemplates(opts.templates || []);
-      setWorkspaceName(opts.workspaceName || "");
-      setHotelName(opts.hotelName || "");
-      if (opts.driveFolderId) {
-        setDriveFolderId(opts.driveFolderId);
-      }
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      await Promise.all([fetchFiles(), fetchOptions()]);
-    };
-    if (mounted) {
-      load();
-    }
-    return () => { mounted = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleEmployeeSelect = (empId: string, fullName: string) => {
-    setSelectedEmployeeId(empId);
-    setEmployeeSearchQuery(fullName);
-  };
-
-  // Watch for category change to auto-fill olayYeri
-  useEffect(() => {
-    if (selectedCategory === "Devamsızlık") {
-      setOlayYeri(hotelName || workspaceName);
-    }
-  }, [selectedCategory, hotelName, workspaceName]);
-
-  const handleTemplateChange = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    const template = templates.find(t => t.id === templateId);
-    if (!template) return;
-
-    let content = template.content;
-
-    // Default to today's date if incidentDate is empty
-    const formattedDate = incidentDate ? new Date(incidentDate).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
-
-    // Replace placeholders
-    if (selectedEmployeeId) {
-      const emp = employees.find(e => e.id === selectedEmployeeId);
-      if (emp) {
-        content = content.replace(/{{personel_adi}}/gi, emp.full_name);
-        content = content.replace(/{{gorevi}}/gi, emp.role_title || "");
-      }
-    }
-    content = content.replace(/{{tarih}}/gi, formattedDate);
-
-    setAciklama(content);
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setFormError(null);
-
-    const formData = new FormData(e.currentTarget);
-    if (selectedEmployeeId) {
-      formData.append("employee_id", selectedEmployeeId);
-    }
-
-    try {
-      const result = await generateTutanak(formData);
-
+  const generateMutation = useMutation({
+    mutationFn: (data: FormData) => generateTutanak(data),
+    onSuccess: (result) => {
       if (result.error) {
         setFormError(result.error);
         if (result.resetAuth) {
@@ -142,14 +76,68 @@ export default function TutanakPage() {
           },
         });
         setIsModalOpen(false);
-        fetchFiles();
+        queryClient.invalidateQueries({ queryKey: ["tutanakFiles"] });
       }
-    } catch (err: unknown) {
+    },
+    onError: (err: unknown) => {
       setFormError(err instanceof Error ? err.message : "Bilinmeyen hata");
-    } finally {
-      setIsSubmitting(false);
+    }
+  });
+
+  const employees = optionsData?.employees || [];
+  const templates = optionsData?.templates || [];
+  const workspaceName = optionsData?.workspaceName || "";
+  const hotelName = optionsData?.hotelName || "";
+  const driveFolderId = optionsData?.driveFolderId || "";
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setSelectedTemplateId("");
+    setAciklama("");
+    if (cat === "Devamsızlık") {
+      setOlayYeri(hotelName || workspaceName);
     }
   };
+
+  const handleEmployeeSelect = (empId: string, fullName: string) => {
+    setSelectedEmployeeId(empId);
+    setEmployeeSearchQuery(fullName);
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    let content = template.content;
+    const todayStr = incidentDate ? new Date(incidentDate).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR');
+    content = content.replace(/{{tarih}}/gi, todayStr);
+
+    if (selectedEmployeeId) {
+      const emp = employees.find(e => e.id === selectedEmployeeId);
+      if (emp) {
+        content = content.replace(/{{personel_adi}}/gi, emp.full_name);
+        content = content.replace(/{{gorevi}}/gi, emp.role_title || "");
+      }
+    }
+
+    setAciklama(content);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const formData = new FormData(e.currentTarget);
+    if (selectedEmployeeId) {
+      formData.append("employee_id", selectedEmployeeId);
+    }
+
+    generateMutation.mutate(formData);
+  };
+
+  const isSubmitting = generateMutation.isPending;
+  const files = filesData || [];
 
   return (
     <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
@@ -176,7 +164,6 @@ export default function TutanakPage() {
         <Dialog open={isModalOpen} onOpenChange={(open) => {
           setIsModalOpen(open);
           if (!open) {
-            // Reset form
             setEmployeeSearchQuery("");
             setSelectedEmployeeId(null);
             setSelectedCategory("");
@@ -196,7 +183,7 @@ export default function TutanakPage() {
             <div className="px-6 py-6 border-b border-border/50 bg-stone-50/30">
               <DialogTitle className="text-xl font-bold">Yeni Tutanak Oluştur</DialogTitle>
               <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
-                Tutanak detaylarını eksiksiz doldurun. Belge otomatik olarak Google Drive'a kaydedilecektir.
+                Tutanak detaylarını eksiksiz doldurun. Belge otomatik olarak Google Drive&apos;a kaydedilecektir.
               </DialogDescription>
             </div>
 
@@ -217,11 +204,7 @@ export default function TutanakPage() {
                       <button
                         key={cat}
                         type="button"
-                        onClick={() => {
-                          setSelectedCategory(cat);
-                          setSelectedTemplateId("");
-                          setAciklama("");
-                        }}
+                        onClick={() => handleCategoryChange(cat)}
                         className={`p-3 rounded-xl border text-sm font-medium transition-all duration-200 flex flex-col items-center gap-2
                           ${selectedCategory === cat
                             ? 'border-primary bg-primary/5 text-primary shadow-sm ring-1 ring-primary/20'
@@ -242,7 +225,7 @@ export default function TutanakPage() {
                   <div className="space-y-2">
                     <Label htmlFor="adSoyad" className="text-muted-foreground">Personel Adı Soyadı</Label>
                     <EmployeeAutocomplete
-                      employees={employees}
+                      employees={employees as unknown as {id: string, full_name: string, role_title: string, department_outlet: string}[]}
                       searchQuery={employeeSearchQuery}
                       onSearchQueryChange={setEmployeeSearchQuery}
                       selectedEmployeeId={selectedEmployeeId}
