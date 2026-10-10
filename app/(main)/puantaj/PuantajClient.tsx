@@ -152,6 +152,24 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
   const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
 
+  const dossierEmpId = searchParams.get("dossierEmpId");
+
+  useEffect(() => {
+    if (dossierEmpId && employees.length > 0) {
+      const emp = employees.find(e => e.id === dossierEmpId);
+      if (emp && !isDossierOpen) {
+        setDossierEmployee(emp);
+        setIsDossierOpen(true);
+
+        // Clean up URL
+        const params = new URLSearchParams(searchParams);
+        params.delete("dossierEmpId");
+        router.replace(`${pathname}?${params.toString()}`);
+      }
+    }
+  }, [dossierEmpId, employees, isDossierOpen, pathname, router, searchParams]);
+
+
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [employeeModalMode, setEmployeeModalMode] = useState<"create" | "edit">("create");
   const [employeeFormData, setEmployeeFormData] = useState({ id: "", full_name: "", role_title: "", phone: "", department_outlet: "", hire_date: "" });

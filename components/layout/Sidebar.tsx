@@ -1,3 +1,4 @@
+import { GlobalSearch } from "./GlobalSearch";
 "use client";
 
 import { useState, useEffect } from "react";
@@ -212,17 +213,7 @@ export function Sidebar() {
       </div>
 
       {/* Global Search Dialog */}
-      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen} showCloseButton={false}>
-        <CommandInput placeholder="Personel, belge veya işlem ara..." />
-        <CommandList>
-          <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
-          <CommandGroup heading="Son Aramalar">
-            <CommandItem value="ahmet-yilmaz">Ahmet Yılmaz</CommandItem>
-            <CommandItem value="ayse-demir">Ayşe Demir</CommandItem>
-            <CommandItem value="puantaj-raporu">Puantaj Raporu</CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
