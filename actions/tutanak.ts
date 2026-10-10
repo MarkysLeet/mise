@@ -2,11 +2,54 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
-import { ensureFolderPath } from "@/lib/google-drive";
+import { TutanakFile } from "@/app/types/tutanak";
+import { TutanakTemplate, WorkspaceType } from "@/app/types/employee";
+
+async function ensureFolderPath(drive: import("googleapis").drive_v3.Drive, parentId: string, pathFields: string[]): Promise<string> {
+  let currentParentId = parentId;
+
+  for (const folderName of pathFields) {
+    const q = `'${currentParentId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const response = await drive.files.list({
+      q,
+      fields: "files(id, name)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    if (response.data.files && response.data.files.length > 0) {
+      currentParentId = response.data.files[0].id!;
+    } else {
+      const folderMetadata = {
+        name: folderName,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [currentParentId],
+      };
+
+      const folder = await drive.files.create({
+        requestBody: folderMetadata,
+        fields: "id",
+        supportsAllDrives: true,
+      });
+
+      currentParentId = folder.data.id!;
+
+      await drive.permissions.create({
+        fileId: currentParentId,
+        requestBody: {
+          type: "anyone",
+          role: "reader",
+        },
+        supportsAllDrives: true,
+      });
+    }
+  }
+
+  return currentParentId;
+}
 
 export async function generateTutanak(formData: FormData) {
   try {
-    // 1. Get current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,34 +57,27 @@ export async function generateTutanak(formData: FormData) {
       return { error: "Kullanıcı girişi yapılmamış." };
     }
 
-    // Get user's profile and workspace
     const { data: profile } = await supabase
       .from("profiles")
       .select("*, workspaces(*)")
       .eq("id", user.id)
       .single();
 
-    if (!profile) {
-      return { error: "Kullanıcı profili bulunamadı." };
-    }
-
-    const workspace = profile.workspaces;
-
-    if (!workspace) {
+    if (!profile || !profile.workspaces) {
       return { error: "Çalışma alanı (Workspace) bulunamadı." };
     }
 
-    if (!workspace.drive_folder_id) {
-      return { error: "Çalışma alanına ait Google Drive klasörü bulunamadı. Lütfen yöneticinizle iletişime geçin." };
-    }
+    const workspace = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
 
-    // 2. We will generate the number later after extracting form data.
+    if (!workspace.drive_folder_id) {
+      return { error: "Çalışma alanına ait Google Drive klasörü bulunamadı." };
+    }
 
     if (!workspace.google_refresh_token) {
-      return { error: "Google Drive bağlantısı bulunamadı. Lütfen hesabınızı bağlayın.", resetAuth: true };
+      return { error: "Google Drive bağlantısı bulunamadı.", resetAuth: true };
     }
 
-    // 3. Initialize googleapis
+    // 1. Google Auth
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET
@@ -54,155 +90,89 @@ export async function generateTutanak(formData: FormData) {
     const drive = google.drive({ version: "v3", auth: oauth2Client });
     const docs = google.docs({ version: "v1", auth: oauth2Client });
 
-    const masterFolderId = process.env.GOOGLE_MASTER_FOLDER_ID;
-    if (!masterFolderId) {
-      return { error: "Google Master Folder ID yapılandırılmamış." };
-    }
-
-    // 4. Ensure target folder exists and find the template file
+    // 2. Tutanak klasörünün yolunu doğrula (Anex/Tutanak)
     const tutanakFolderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Tutanak']);
 
-    // Search for the template file 'Tutanak_Taslak' in the user's Anex/Tutanak folder
-    const query = `name='Tutanak_Taslak' and '${tutanakFolderId}' in parents and trashed=false`;
+    // 3. Tutanak Taslak dosyasını bul
+    const q = `'${tutanakFolderId}' in parents and name = 'Tutanak_Taslak' and mimeType = 'application/vnd.google-apps.document' and trashed=false`;
     const searchResponse = await drive.files.list({
-      q: query,
+      q,
       fields: "files(id, name)",
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
     });
 
-    let templateFile = searchResponse.data.files?.[0];
+    let templateId = searchResponse.data.files?.[0]?.id;
 
-    // Fallback: If not found in user's Anex/Tutanak folder, copy from master folder
-    if (!templateFile || !templateFile.id) {
-      const masterSearchResponse = await drive.files.list({
-        q: `name='Tutanak_Taslak' and trashed=false and '${masterFolderId}' in parents`,
-        fields: "files(id, name)",
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
+    if (!templateId) {
+       // If no template, we might need to handle it or create an empty one.
+       // Let's create an empty template document for fallback
+       const doc = await docs.documents.create({ requestBody: { title: "Tutanak_Taslak" } });
+       templateId = doc.data.documentId!;
 
-      let masterTemplate = masterSearchResponse.data.files?.[0];
+       // Move to correct folder
+       await drive.files.update({
+         fileId: templateId,
+         addParents: tutanakFolderId,
+         fields: 'id, parents',
+         supportsAllDrives: true,
+       });
 
-      // Secondary fallback if it's not directly in the master root but deeper
-      if (!masterTemplate || !masterTemplate.id) {
-         const globalMasterSearchResponse = await drive.files.list({
-           q: `name='Tutanak_Taslak' and trashed=false`,
-           fields: "files(id, name, parents)",
-           supportsAllDrives: true,
-           includeItemsFromAllDrives: true,
-         });
-
-         const files = globalMasterSearchResponse.data.files;
-         if (files && files.length > 0) {
-           for (const file of files) {
-             if (!file.id) continue;
-             let currentFile = file;
-             let isBelongingToMaster = false;
-
-             for (let i = 0; i < 5; i++) {
-               if (!currentFile.parents || currentFile.parents.length === 0) break;
-               if (currentFile.parents.includes(masterFolderId)) {
-                 isBelongingToMaster = true;
-                 break;
-               }
-               try {
-                 const parentRes = await drive.files.get({
-                   fileId: currentFile.parents[0],
-                   fields: "id, parents",
-                   supportsAllDrives: true,
-                 });
-                 currentFile = parentRes.data;
-               } catch { break; }
-             }
-
-             if (isBelongingToMaster) {
-               masterTemplate = file;
-               break;
-             }
-           }
+       // Now add default content (Very basic text)
+       await docs.documents.batchUpdate({
+         documentId: templateId,
+         requestBody: {
+           requests: [
+             { insertText: { location: { index: 1 }, text: "TUTANAK\n\nNumara: {{Numara}}\nTarih: {{Tutanak_Tarihi}}\nKonu: {{Konu}}\nOtel: {{Otel}}\n\nPersonel Adı: {{Adı_Soyadı}}\nDepartman/Pos: {{Dep_Pos}}\n\nOlay Yeri: {{Olay_Yeri}}\n\nAçıklama:\n{{Tutanak_Açıklama}}\n\nHazırlayan:\n{{Hazırlayan}}\n" } }
+           ]
          }
-      }
+       });
+    }
 
-      if (!masterTemplate || !masterTemplate.id) {
-        return { error: "Şablon dosyası ('Tutanak_Taslak') kullanıcının klasöründe ve Master klasörde bulunamadı." };
-      }
+    // 4. Form verilerini al
+    const konu = formData.get("konu") as string;
+    const adSoyad = formData.get("adSoyad") as string;
+    const depPos = formData.get("depPos") as string;
+    const olayTarihiRaw = formData.get("olayTarihi") as string;
+    const olayYeri = formData.get("olayYeri") as string;
+    const aciklamaRaw = formData.get("aciklama") as string;
 
-      // Copy from master to user's Anex/Tutanak folder
-      const copyTemplateRes = await drive.files.copy({
-        fileId: masterTemplate.id,
+    if (!konu || !adSoyad || !olayTarihiRaw || !aciklamaRaw) {
+      return { error: "Lütfen gerekli alanları doldurun." };
+    }
+
+    // Replace newlines with soft returns or multiple requests to preserve formatting.
+    // For simplicity, we just pass the string. Docs API might need special handling for \n,
+    // but a direct replaceText handles simple multiline strings reasonably.
+    const aciklama = aciklamaRaw;
+
+    // Generate unique number
+    // We can use current date + random or fetch count
+    const d = new Date();
+    const tutanakNumber = `T-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const olayTarihi = new Date(olayTarihiRaw).toLocaleString('tr-TR');
+
+    const hazirlayan = `${profile.first_name} ${profile.last_name}`;
+    const otel = workspace.hotel_name || workspace.name || "Anex Hotels";
+    const documentName = `Tutanak - ${adSoyad} - ${tutanakNumber}`;
+
+    // 5. Copy the template document
+    let newDocumentId;
+    try {
+      const copyResponse = await drive.files.copy({
+        fileId: templateId,
         requestBody: {
-          name: 'Tutanak_Taslak',
+          name: documentName,
           parents: [tutanakFolderId],
         },
         supportsAllDrives: true,
       });
-
-      if (!copyTemplateRes.data.id) {
-         return { error: "Şablon dosyası kopyalanamadı." };
-      }
-
-      templateFile = { id: copyTemplateRes.data.id, name: 'Tutanak_Taslak' };
+      newDocumentId = copyResponse.data.id;
+    } catch (e) {
+      console.error("Copy template error:", e);
+      return { error: "Şablon kopyalanamadı." };
     }
 
-    // Form Data Extraction
-    const employee_id = formData.get("employee_id") as string || null;
-    const kategori = formData.get("kategori") as string || "";
-    const olayTarihiRaw = formData.get("olayTarihi") as string || "";
-
-    // Convert olayTarihiRaw to DATE string for Postgres
-    let incident_date = null;
-    if (olayTarihiRaw) {
-      incident_date = olayTarihiRaw.split('T')[0];
-    }
-
-    // 2. Generate Tutanak Number and Reserve via RPC
-    const { data: nextNo, error: rpcError } = await supabase.rpc('generate_and_insert_tutanak_no', {
-        p_workspace_id: workspace.id,
-        p_employee_id: employee_id,
-        p_incident_date: incident_date,
-        p_created_by: profile.id
-    });
-    if (rpcError) {
-      console.error("RPC Error generating tutanak no:", rpcError);
-      return { error: "Tutanak numarası oluşturulamadı." };
-    }
-    const tutanakNumber = `${nextNo}`;
-    const konu = kategori; // Use kategori as konu since Detayli Konu is removed
-    const olayYeri = formData.get("olayYeri") as string || "";
-    const adSoyad = formData.get("adSoyad") as string || "";
-    const depPos = formData.get("depPos") as string || "";
-
-    let olayTarihi = olayTarihiRaw;
-    if (olayTarihiRaw) {
-      const dateObj = new Date(olayTarihiRaw);
-      olayTarihi = dateObj.toLocaleString("tr-TR");
-    }
-
-    const aciklama = formData.get("aciklama") as string || "";
-
-    const hazirlayan = `${profile.first_name} ${profile.last_name}`;
-    const otel = workspace.hotel_name || workspace.name || "Anex Hotels";
-
-    // 5. Copy the file to the user's folder
-    const safeDate = new Date().toISOString().split('T')[0];
-    const kategoriPrefix = kategori ? `[${kategori}] ` : "";
-    const newFileName = `${kategoriPrefix}Tutanak - ${adSoyad} - ${safeDate}`;
-
-    if (!templateFile.id) {
-       return { error: "Şablon dosyası id'si eksik." };
-    }
-
-    const copyResponse = await drive.files.copy({
-      fileId: templateFile.id,
-      requestBody: {
-        name: newFileName,
-        parents: [tutanakFolderId],
-      },
-      supportsAllDrives: true,
-    });
-
-    const newDocumentId = copyResponse.data.id;
     if (!newDocumentId) {
       return { error: "Dosya kopyalanamadı." };
     }
@@ -254,12 +224,13 @@ export async function generateTutanak(formData: FormData) {
 
     // 9. Return URL
     return { success: true, documentUrl };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating Tutanak:", error);
 
+    const err = error as { response?: { status?: number }, message?: string };
+
     // Self-healing: if token is revoked or expired
-    if (error?.response?.status === 401 || error?.response?.status === 403 || error?.message?.includes("invalid_grant")) {
+    if (err?.response?.status === 401 || err?.response?.status === 403 || err?.message?.includes("invalid_grant")) {
       try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -291,13 +262,6 @@ export async function generateTutanak(formData: FormData) {
   }
 }
 
-export type TutanakFile = {
-  id: string;
-  name: string;
-  createdTime: string;
-  webViewLink: string;
-};
-
 export async function getTutanakFiles(): Promise<{ files?: TutanakFile[]; error?: string; resetAuth?: boolean }> {
   try {
     const supabase = await createClient();
@@ -317,7 +281,7 @@ export async function getTutanakFiles(): Promise<{ files?: TutanakFile[]; error?
       return { error: "Çalışma alanı (Workspace) bulunamadı." };
     }
 
-    const workspace = profile.workspaces;
+    const workspace = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
 
     if (!workspace.drive_folder_id) {
       return { error: "Çalışma alanına ait Google Drive klasörü bulunamadı." };
@@ -357,12 +321,13 @@ export async function getTutanakFiles(): Promise<{ files?: TutanakFile[]; error?
     })) || [];
 
     return { files };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching Tutanak files:", error);
 
+    const err = error as { response?: { status?: number }, message?: string };
+
     // Self-healing: if token is revoked or expired
-    if (error?.response?.status === 401 || error?.response?.status === 403 || error?.message?.includes("invalid_grant")) {
+    if (err?.response?.status === 401 || err?.response?.status === 403 || err?.message?.includes("invalid_grant")) {
       return { error: "Google Drive oturumunuzun süresi doldu veya erişim izni iptal edildi. Lütfen tekrar giriş yapın.", resetAuth: true };
     }
 
@@ -394,7 +359,7 @@ export async function getTutanakFormOptions() {
       supabase.from("tutanak_templates").select("*").eq("workspace_id", profile.workspace_id).order("title"),
     ]);
 
-    let templates = templatesResponse.data || [];
+    let templates = (templatesResponse.data || []) as TutanakTemplate[];
 
     // Self-healing: Seed default templates if none exist for this workspace
     if (templates.length === 0) {
@@ -431,7 +396,7 @@ export async function getTutanakFormOptions() {
         .select('*');
 
       if (!insertError && insertedTemplates) {
-        templates = insertedTemplates;
+        templates = insertedTemplates as TutanakTemplate[];
       } else {
         console.error("Error seeding default tutanak templates:", insertError);
       }
@@ -439,12 +404,12 @@ export async function getTutanakFormOptions() {
 
     const getWorkspaceData = () => {
       if (!profile.workspaces) return { name: "", hotel_name: "", drive_folder_id: "" };
-      const ws = Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces;
+      const ws = (Array.isArray(profile.workspaces) ? profile.workspaces[0] : profile.workspaces) as WorkspaceType;
 
       return {
-        name: (ws as any)?.name || "",
-        hotel_name: (ws as any)?.hotel_name || "",
-        drive_folder_id: (ws as any)?.drive_folder_id || ""
+        name: ws?.name || "",
+        hotel_name: ws?.hotel_name || "",
+        drive_folder_id: ws?.drive_folder_id || ""
       };
     };
 
