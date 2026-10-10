@@ -150,7 +150,6 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
-  const [hasUnsavedDriveChanges, setHasUnsavedDriveChanges] = useState(false);
 
 
 
@@ -220,59 +219,11 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
     currentMonth,
     employees,
     entries,
-    hasUnsavedDriveChanges
-  });
+      });
 
   useEffect(() => {
-    stateRef.current = { currentYear, currentMonth, employees, entries, hasUnsavedDriveChanges };
-  }, [currentYear, currentMonth, employees, entries, hasUnsavedDriveChanges]);
-
-  // Debounced auto-sync
-  useEffect(() => {
-    if (!hasUnsavedDriveChanges) return;
-
-    const timer = setTimeout(async () => {
-      // Fire and forget auto-sync
-      const current = stateRef.current;
-      if (current.hasUnsavedDriveChanges) {
-        try {
-          const res = await syncPuantajToDrive(current.currentYear, current.currentMonth, current.employees, current.entries);
-          if (res && res.success) {
-            setHasUnsavedDriveChanges(false);
-            setSyncUrl(res.spreadsheetUrl || null);
-            toast.success("Drive ile otomatik senkronize edildi", { duration: 2000, position: 'bottom-right' });
-          }
-        } catch (e) {
-          console.error("Auto-sync error", e);
-        }
-      }
-    }, 15000); // 15 seconds
-
-    return () => clearTimeout(timer);
-  }, [hasUnsavedDriveChanges, employees, entries]); // Reset timer on any change
-
-  // beforeunload listener for window close/refresh
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (stateRef.current.hasUnsavedDriveChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
-  // component unmount cleanup for Next.js routing
-  useEffect(() => {
-    return () => {
-      const current = stateRef.current;
-      if (current.hasUnsavedDriveChanges) {
-        // fire and forget sync on unmount
-        syncPuantajToDrive(current.currentYear, current.currentMonth, current.employees, current.entries).catch(console.error);
-      }
-    };
-  }, []);
+    stateRef.current = { currentYear, currentMonth, employees, entries };
+  }, [currentYear, currentMonth, employees, entries]);
 
   // Navigate Months
   const changeMonth = (offset: number) => {
@@ -375,7 +326,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
 
       if (existingStatus === valueToSet) return prev;
 
-      setHasUnsavedDriveChanges(true); // Mark as unsaved for drive sync
+       // Mark as unsaved for drive sync
 
       return {
         ...prev,
@@ -494,8 +445,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
         toast.success("Personel güncellendi.");
       }
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setHasUnsavedDriveChanges(true);
-      setIsEmployeeModalOpen(false);
+            setIsEmployeeModalOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Personel işlemi başarısız.");
     }
@@ -510,8 +460,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
 
       toast.success("Personel tamamen silindi");
       setIsDeleteOpen(false);
-      setHasUnsavedDriveChanges(true);
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
     } catch (err: any) {
@@ -527,8 +476,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
       await terminateEmployee(employeeToTerminate.id, terminationDate);
       toast.success("Personel işten çıkarıldı");
       setIsTerminateOpen(false);
-      setHasUnsavedDriveChanges(true);
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
     } catch (err: any) {
@@ -557,8 +505,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
          toast.error(res.error || "Senkronizasyon hatası");
       } else {
          setSyncUrl(res.spreadsheetUrl || null);
-         setHasUnsavedDriveChanges(false);
-         if (res.spreadsheetUrl) {
+                  if (res.spreadsheetUrl) {
            toast.success("Drive ile senkronize edildi", {
              action: {
                label: "Tabloyu Aç",
