@@ -703,91 +703,125 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
         </div>
       </div>
 
-      {/* Header Panel */}
-      <div className="hidden md:flex flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(-1)} onMouseEnter={() => prefetchMonth(-1)} disabled={!hasPrevMonth}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-medium text-slate-900 w-48 text-center tracking-tight">
-            {MONTH_NAMES[currentMonth - 1]} {currentYear}
-          </h1>
-          <Button variant="ghost" size="icon" className="hover:bg-slate-200" onClick={() => changeMonth(1)} onMouseEnter={() => prefetchMonth(1)} disabled={!hasNextMonth}>
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-
-          {showInitButton && (
-            <Button onClick={() => setIsInitMonthOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white ml-2">
-              {MONTH_NAMES[monthToInitializeDate.getMonth()]} Ayını Başlat
-            </Button>
-          )}
-
-          <div className="hidden md:flex items-center gap-2 ml-4">
-            <div className="w-[220px]">
-              <EmployeeAutocomplete
-                employees={roleFilteredEmployees}
-                searchQuery={searchQuery}
-                onSearchQueryChange={handleSearchQueryChange}
-                selectedEmployeeId={selectedEmployeeId}
-                onSelectEmployee={handleSelectEmployeeAutocomplete}
-                onClear={handleClearAutocomplete}
-              />
+      {/* Header Panel (Desktop 2-Row Layout) */}
+      <div className="hidden md:flex flex-col gap-3 w-full pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+        {/* ROW 1: Month Navigation & Primary Actions */}
+        <div className="flex flex-row items-center justify-between gap-4 w-full">
+          <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-700"
+                onClick={() => changeMonth(-1)}
+                onMouseEnter={() => prefetchMonth(-1)}
+                disabled={!hasPrevMonth}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h1 className="text-base lg:text-lg font-semibold text-slate-900 dark:text-slate-100 px-3 min-w-[150px] text-center tracking-tight select-none">
+                {MONTH_NAMES[currentMonth - 1]} {currentYear}
+              </h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-700"
+                onClick={() => changeMonth(1)}
+                onMouseEnter={() => prefetchMonth(1)}
+                disabled={!hasNextMonth}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
 
-            <Select value={selectedRoleFilter} onValueChange={(val) => handleSelectRole(val || "Tümü")}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Görev seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Tümü">Tümü (Tüm Görevler)</SelectItem>
-                {roles?.map((role: any) => (
-                  <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {showInitButton && (
+              <Button
+                onClick={() => setIsInitMonthOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs font-medium"
+              >
+                {MONTH_NAMES[monthToInitializeDate.getMonth()]} Ayını Başlat
+              </Button>
+            )}
+          </div>
 
-            <Select value={selectedOutletFilter} onValueChange={(val) => handleSelectOutlet(val || "Tümü")}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Bölüm / Outlet seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Tümü">Tümü (Tüm Bölümler)</SelectItem>
-                {uniqueOutlets.map((outlet) => (
-                  <SelectItem key={outlet} value={outlet}>{outlet}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 font-medium shadow-sm"
+              onClick={openCreateEmployeeModal}
+              disabled={!isCurrentMonthInitialized}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Personel Ekle
+            </Button>
+
+            <Button
+              variant="outline"
+              className="flex items-center gap-1.5 h-9"
+              onClick={handleSync}
+              disabled={isSyncing || !isCurrentMonthInitialized}
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+              <span>Dışa Aktar</span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <div className="flex items-center gap-1.5 h-9 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium">
+                  <Settings2 className="h-4 w-4" />
+                  <span className="hidden lg:inline">Diğer İşlemler</span>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handleImport} disabled={!isCurrentMonthInitialized} className="cursor-pointer">
+                  <Download className="mr-2 h-4 w-4" /> Tablodan İçe Aktar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
+                  <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={openCreateEmployeeModal} disabled={!isCurrentMonthInitialized}>
-            <Plus className="mr-2 h-4 w-4" /> Personel Ekle
-          </Button>
+        {/* ROW 2: Filter Toolbar */}
+        <div className="flex items-center gap-2.5 flex-wrap w-full bg-slate-50/80 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+          <div className="w-full sm:w-60 md:w-56 lg:w-64">
+            <EmployeeAutocomplete
+              employees={roleFilteredEmployees}
+              searchQuery={searchQuery}
+              onSearchQueryChange={handleSearchQueryChange}
+              selectedEmployeeId={selectedEmployeeId}
+              onSelectEmployee={handleSelectEmployeeAutocomplete}
+              onClear={handleClearAutocomplete}
+            />
+          </div>
 
-          <Button variant="outline" className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing || !isCurrentMonthInitialized}>
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            Dışa Aktar
-          </Button>
+          <Select value={selectedRoleFilter} onValueChange={(val) => handleSelectRole(val || "Tümü")}>
+            <SelectTrigger className="w-full sm:w-44 md:w-48 h-9 text-xs">
+              <SelectValue placeholder="Görev seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tümü">Tümü (Tüm Görevler)</SelectItem>
+              {roles?.map((role: any) => (
+                <SelectItem key={role.id} value={role.title}>{role.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="outline" className="flex items-center gap-2 pointer-events-none">
-                <Settings2 className="h-4 w-4" />
-                Diğer İşlemler
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={handleImport} disabled={!isCurrentMonthInitialized} className="cursor-pointer">
-                <Download className="mr-2 h-4 w-4" /> Tablodan İçe Aktar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleOpenDrive} className="cursor-pointer">
-                <ExternalLink className="mr-2 h-4 w-4" /> Tabloyu Drive&apos;da Aç
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Select value={selectedOutletFilter} onValueChange={(val) => handleSelectOutlet(val || "Tümü")}>
+            <SelectTrigger className="w-full sm:w-44 md:w-48 h-9 text-xs">
+              <SelectValue placeholder="Bölüm / Outlet seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tümü">Tümü (Tüm Bölümler)</SelectItem>
+              {uniqueOutlets.map((outlet) => (
+                <SelectItem key={outlet} value={outlet}>{outlet}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-          <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
+      <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
             <DialogContent>
               <DialogHeader><DialogTitle>{employeeModalMode === "create" ? "Personel Ekle" : "Personeli Düzenle"}</DialogTitle></DialogHeader>
               <form onSubmit={handleEmployeeSubmit} className="space-y-4">
@@ -832,8 +866,6 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
               </form>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
 
       {/* Legend */}
       <div className="hidden md:flex flex-wrap items-center gap-4 p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs">
