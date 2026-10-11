@@ -5,7 +5,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Clock, FileText, BookOpen, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen, Search, Bell, UserCircle } from "lucide-react";
+import { LayoutDashboard, Clock, CalendarDays, FileText, BookOpen, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen, Search, Bell, UserCircle } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Playfair_Display } from "next/font/google";
@@ -42,7 +42,7 @@ const playfair = Playfair_Display({ subsets: ["latin"] });
 
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Puantaj", href: "/puantaj", icon: Clock },
+  { name: "Puantaj", href: "/puantaj", icon: CalendarDays },
   { name: "Fazla Mesai", href: "/fazla-mesai", icon: Clock },
   { name: "Tutanak", href: "/tutanak", icon: FileText },
   { name: "Bilgi Bankası", href: "/base", icon: BookOpen },

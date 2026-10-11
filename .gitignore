@@ -6,3 +6,4 @@ server.log
 public/sw.js
 public/workbox-*.js
 public/fallback-*.js
+dev_server.log
