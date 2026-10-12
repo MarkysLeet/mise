@@ -51,7 +51,7 @@ const categories = [
 
 export default function BasePage() {
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-4 md:p-8 pb-24 md:pb-10">
       {/* Header */}
       <header className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export default function BasePage() {
       </header>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-2 gap-6 mt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-4">
         {categories.map((category, idx) => (
           <Card key={idx} className="border-none shadow-sm rounded-2xl overflow-hidden flex flex-col">
             <CardHeader className="pb-4 bg-stone-50/30 border-b border-border/50">

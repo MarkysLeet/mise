@@ -119,7 +119,7 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-stone-50/30 p-4 md:p-6 lg:p-8">
+    <div className="flex-1 bg-stone-50/30 p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
       <div className="mx-auto max-w-4xl space-y-6 md:space-y-8">
         <div className="flex items-center gap-3 pb-2 border-b border-border/50">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5">

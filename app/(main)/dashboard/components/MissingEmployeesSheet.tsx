@@ -7,7 +7,7 @@ export function MissingEmployeesSheet({ missingEmployees, onLeaveCount, children
   return (
     <Sheet>
       <SheetTrigger render={children as React.ReactElement} />
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-full max-w-[90vw] sm:max-w-[540px]">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <UserX className="h-5 w-5" />

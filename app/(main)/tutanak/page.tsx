@@ -152,7 +152,7 @@ export default function TutanakPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-4 md:p-8 pb-24 md:pb-10">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ export default function TutanakPage() {
                 </div>
 
                 {/* 2. Employee Selection (Visible if category is selected) */}
-                <div className={`grid grid-cols-2 gap-6 transition-all duration-500 ease-in-out ${selectedCategory ? 'opacity-100 max-h-[200px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 transition-all duration-500 ease-in-out ${selectedCategory ? 'opacity-100 max-h-[200px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
                   <div className="space-y-2">
                     <Label htmlFor="adSoyad" className="text-muted-foreground">Personel Adı Soyadı</Label>
                     <EmployeeAutocomplete
@@ -276,7 +276,7 @@ export default function TutanakPage() {
 
                 {/* 3. Details (Visible if employee is selected) */}
                 <div className={`grid gap-6 transition-all duration-500 ease-in-out ${selectedEmployeeId ? 'opacity-100 max-h-[800px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="olayTarihi" className="text-muted-foreground">Olay Tarihi ve Saati</Label>
                       <div className="relative">
