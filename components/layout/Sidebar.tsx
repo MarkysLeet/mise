@@ -5,7 +5,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Clock, FileText, BookOpen, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen, Search, Bell, UserCircle } from "lucide-react";
+import { LayoutDashboard, Clock, CalendarDays, FileText, BookOpen, Settings as SettingsIcon, PanelLeftClose, PanelLeftOpen, Search, Bell, UserCircle } from "lucide-react";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Playfair_Display } from "next/font/google";
@@ -14,6 +14,7 @@ import { useSidebar } from "@/components/providers/SidebarProvider";
 import { SyncIndicator } from "@/components/layout/SyncIndicator";
 import { getOvertimeAlerts } from "@/actions/fazla_mesai";
 import { Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
   DropdownMenu,
@@ -42,7 +43,7 @@ const playfair = Playfair_Display({ subsets: ["latin"] });
 
 const navigation = [
   { name: "Panel", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Puantaj", href: "/puantaj", icon: Clock },
+  { name: "Puantaj", href: "/puantaj", icon: CalendarDays },
   { name: "Fazla Mesai", href: "/fazla-mesai", icon: Clock },
   { name: "Tutanak", href: "/tutanak", icon: FileText },
   { name: "Bilgi Bankası", href: "/base", icon: BookOpen },
@@ -81,65 +82,78 @@ export function Sidebar() {
         onClick={toggleSidebar}
         className="absolute -right-3 top-7 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-secondary text-muted-foreground hover:text-foreground z-10"
       >
-        {isCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
+        <PanelLeftClose className={cn("h-3 w-3 transition-transform duration-300", isCollapsed ? "rotate-180" : "rotate-0")} />
       </button>
 
       <div className={cn("flex items-center gap-3 mb-6", isCollapsed ? "justify-center" : "px-2")}>
         <div className="flex shrink-0 items-center justify-center">
           <img src="/logo.svg" alt="Mise Logo" className="h-10 w-10" />
         </div>
-        {!isCollapsed && (
-          <div className="truncate">
-            <h1 className={cn("text-2xl font-semibold text-foreground tracking-wide", playfair.className)}>Mise</h1>
-            <p className="text-xs text-muted-foreground">Operasyon Merkezi</p>
-          </div>
-        )}
+        <div className={cn("transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden", isCollapsed ? "w-0 opacity-0" : "w-[140px] opacity-100")}>
+          <h1 className={cn("text-2xl font-semibold text-foreground tracking-wide", playfair.className)}>Mise</h1>
+          <p className="text-xs text-muted-foreground">Operasyon Merkezi</p>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1">
-        <button
-          onClick={() => setSearchOpen(true)}
-          title={isCollapsed ? "Hızlı Arama" : undefined}
-          className={cn(
-            "group w-full flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 mb-2",
-            isCollapsed ? "justify-center px-0" : "gap-3 px-3",
-            "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        <Tooltip>
+          <TooltipTrigger render={
+            <button
+              onClick={() => setSearchOpen(true)}
+              className={cn(
+                "group w-full flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 mb-2",
+                isCollapsed ? "justify-center px-0" : "px-3",
+                "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+            />
+          }>
+            <Search
+              className={cn(
+                "flex-shrink-0 transition-all duration-200",
+                isCollapsed ? "h-6 w-6" : "h-5 w-5 mr-3",
+                "text-muted-foreground group-hover:text-foreground"
+              )}
+            />
+            <span className={cn("transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden", isCollapsed ? "w-0 opacity-0" : "w-[120px] opacity-100 text-left")}>Hızlı Arama</span>
+          </TooltipTrigger>
+          {isCollapsed && (
+            <TooltipContent side="right" align="center">
+              Hızlı Arama
+            </TooltipContent>
           )}
-        >
-          <Search
-            className={cn(
-              "flex-shrink-0 transition-colors duration-200",
-              isCollapsed ? "h-6 w-6" : "h-5 w-5",
-              "text-muted-foreground group-hover:text-foreground"
-            )}
-          />
-          {!isCollapsed && <span>Hızlı Arama</span>}
-        </button>
+        </Tooltip>
 
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              title={isCollapsed ? item.name : undefined}
-              className={cn(
-                "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200",
-                isCollapsed ? "justify-center px-0" : "gap-3 px-3",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            <Tooltip key={item.name}>
+              <TooltipTrigger render={
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200",
+                    isCollapsed ? "justify-center px-0" : "px-3",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  )}
+                />
+              }>
+                <item.icon
+                  className={cn(
+                    "flex-shrink-0 transition-all duration-200",
+                    isCollapsed ? "h-6 w-6" : "h-5 w-5 mr-3",
+                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  )}
+                />
+                <span className={cn("transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden", isCollapsed ? "w-0 opacity-0" : "w-[120px] opacity-100")}>{item.name}</span>
+              </TooltipTrigger>
+              {isCollapsed && (
+                <TooltipContent side="right" align="center">
+                  {item.name}
+                </TooltipContent>
               )}
-            >
-              <item.icon
-                className={cn(
-                  "flex-shrink-0 transition-colors duration-200",
-                  isCollapsed ? "h-6 w-6" : "h-5 w-5",
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                )}
-              />
-              {!isCollapsed && <span>{item.name}</span>}
-            </Link>
+            </Tooltip>
           );
         })}
       </nav>
