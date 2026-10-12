@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle, Clock, Edit2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { Calendar } from "@/components/ui/calendar";
@@ -269,7 +269,7 @@ export default function FazlaMesaiPage() {
         {/* Raporlar */}
         <div className="md:col-span-2 space-y-6">
           <Card className="shadow-sm border-zinc-200">
-            <CardHeader className="flex flex-row items-center justify-between py-4 border-b">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b gap-3">
               <div className="space-y-1">
                 <CardTitle className="text-lg">Aylık Rapor</CardTitle>
                 <CardDescription>Mevcut ayın özet tablosu ve detayları</CardDescription>
@@ -333,7 +333,7 @@ export default function FazlaMesaiPage() {
                       <p>Bu tarihte mesai kaydı bulunmuyor.</p>
                     </div>
                   ) : (
-                    <div className="rounded-xl border overflow-hidden">
+                    <div className="rounded-xl border overflow-hidden overflow-x-auto">
                       <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
                           <tr>
@@ -368,7 +368,7 @@ export default function FazlaMesaiPage() {
                                 <td className="px-4 py-3 text-right">
                                   <div className="flex justify-end gap-1">
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(mesai)}>
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit2 w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                                      <Edit2 className="w-4 h-4" />
                                     </Button>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(mesai.id)}>
                                       <Trash2 className="w-4 h-4" />

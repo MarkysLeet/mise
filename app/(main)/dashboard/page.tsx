@@ -1,4 +1,4 @@
-import { Users, AlertCircle, Clock, FileText, CalendarOff, Info } from "lucide-react";
+import { Users, AlertCircle, Clock, FileText, CalendarOff, Info, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -235,10 +235,10 @@ export default async function DashboardPage() {
               <CardTitle className="text-xl font-medium text-zinc-900">Hızlı İşlemler</CardTitle>
               <CardDescription>Sık kullanılan operasyonel araçlar</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3 md:gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <Link href="/puantaj" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-all duration-200 cursor-pointer">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Clock className="h-4 w-4 md:h-5 md:w-5" />
+                  <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-medium text-zinc-900">Puantaj Yönetimi</h3>

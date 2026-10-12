@@ -278,7 +278,7 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
                     <Button variant="outline" size="icon" onClick={openDriveFolder} title="Yeni Sekmede Aç" className="h-11 w-11 shrink-0 rounded-xl">
                       <ExternalLink className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={handleCheckFolder} title="Проверка папки" className="h-11 w-11 shrink-0 rounded-xl">
+                    <Button variant="outline" size="icon" onClick={handleCheckFolder} title="Klasörü Doğrula" className="h-11 w-11 shrink-0 rounded-xl">
                       <FileSearch className="h-4 w-4" />
                     </Button>
                   </div>
