@@ -140,7 +140,7 @@ export default function TutanakClient() {
   const files = filesData || [];
 
   return (
-    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-8 pb-10">
+    <div className="flex flex-col gap-8 h-full max-w-6xl mx-auto p-4 md:p-8 pb-24 md:pb-10">
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
