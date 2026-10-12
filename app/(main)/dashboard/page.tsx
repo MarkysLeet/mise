@@ -1,4 +1,4 @@
-import { Users, AlertCircle, Clock, FileText, CalendarOff, Info, CalendarDays } from "lucide-react";
+import { Users, AlertCircle, Clock, FileText, CalendarOff, Info, CalendarDays, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -185,7 +185,7 @@ export default async function DashboardPage() {
           {/* Shift Overview Row */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             <ActiveEmployeesDialog activeEmployees={activeEmployees}>
-              <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-1 cursor-pointer hover:bg-muted/50 transition-colors">
+              <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-1 cursor-pointer hover:shadow-md hover:border-border/80 transition-all duration-200 active:scale-[0.99]">
                 <CardHeader className="pb-2">
                   <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
                     <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
             </ActiveEmployeesDialog>
             
             <MissingEmployeesSheet missingEmployees={missingEmployees} onLeaveCount={onLeaveToday}>
-              <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors col-span-1">
+              <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 cursor-pointer hover:shadow-md hover:border-border/80 transition-all duration-200 active:scale-[0.99] col-span-1">
                 <CardHeader className="pb-2">
                   <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
                     <div className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
               </Card>
             </MissingEmployeesSheet>
 
-            <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-2 lg:col-span-1">
+            <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-2 lg:col-span-1 cursor-pointer hover:shadow-md hover:border-border/80 transition-all duration-200 active:scale-[0.99]">
               <CardHeader className="pb-2">
                 <CardDescription className="font-medium flex items-center gap-2 text-muted-foreground">
                   <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
               <CardDescription>Sık kullanılan operasyonel araçlar</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-              <Link href="/puantaj" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/60 transition-all duration-200 cursor-pointer">
+              <Link href="/puantaj" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/60 transition-all duration-200 active:scale-[0.98] cursor-pointer">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-foreground text-background flex items-center justify-center group-hover:scale-105 transition-transform">
                   <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
                 </div>
               </Link>
               
-              <Link href="/tutanak" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/60 transition-all duration-200 cursor-pointer">
+              <Link href="/tutanak" className="group flex flex-col gap-2 md:gap-3 p-3 md:p-5 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/60 transition-all duration-200 active:scale-[0.98] cursor-pointer">
                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-foreground text-background flex items-center justify-center group-hover:scale-105 transition-transform">
                   <FileText className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
@@ -289,7 +289,7 @@ export default async function DashboardPage() {
                   );
                 })
               ) : (
-                <div className="text-sm text-muted-foreground py-4 text-center">Tüm operasyonel işlemler güncel.</div>
+                <div className="flex flex-col items-center justify-center py-6 text-center"><div className="h-10 w-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5"><CheckCircle2 className="h-5 w-5" /></div><p className="text-sm font-medium text-foreground">Dikkat gerektiren durum yok</p><p className="text-xs text-muted-foreground mt-0.5">Tüm personel devam durumu güncel.</p></div>
               )}
             </CardContent>
           </Card>
@@ -318,7 +318,7 @@ export default async function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-muted-foreground py-4 text-center">Henüz işlem bulunmuyor.</div>
+                <div className="flex flex-col items-center justify-center py-6 text-center"><Clock className="h-5 w-5 text-muted-foreground/60 mb-2" /><p className="text-sm font-medium text-foreground">Henüz kayıtlı işlem yok</p></div>
               )}
             </CardContent>
           </Card>

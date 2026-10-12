@@ -343,9 +343,12 @@ export default function FazlaMesaiPage() {
                       <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                     </div>
                   ) : dailyMesaiList.length === 0 ? (
-                    <div className="rounded-xl border border-dashed flex flex-col items-center justify-center p-8 text-center text-slate-500">
-                      <Clock className="w-8 h-8 mb-2 opacity-50" />
-                      <p>Bu tarihte mesai kaydı bulunmuyor.</p>
+                    <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center p-8 text-center">
+                      <div className="h-10 w-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mb-3">
+                        <Clock className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Bu tarihte mesai kaydı bulunmuyor</p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Yeni kayıt eklemek için soldaki formu kullanabilirsiniz.</p>
                     </div>
                   ) : (
                     <div className="rounded-xl border overflow-hidden overflow-x-auto">

@@ -369,7 +369,7 @@ export default function TutanakPage() {
       {isLoadingFiles ? (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="border-border/50 shadow-sm rounded-xl">
+            <Card key={i} className="rounded-2xl border border-border/40">
               <CardHeader className="p-4 pb-2">
                 <Skeleton className="h-4 w-10/12 mb-1" />
                 <Skeleton className="h-3 w-1/2" />

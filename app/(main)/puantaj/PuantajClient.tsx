@@ -890,7 +890,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
             key={status.code}
             size="sm"
             variant={activeBrush === status.code ? "default" : "outline"}
-            className={`h-8 px-3 rounded-full ${activeBrush === status.code ? status.color : ''}`}
+            className={`h-8 px-3 rounded-full active:scale-95 transition-transform duration-150 ${activeBrush === status.code ? `${status.color} ring-2 ring-primary/40 ring-offset-2 ring-offset-background` : ''}`}
             onClick={() => setActiveBrush(activeBrush === status.code ? null : status.code)}
           >
             {status.code} - {status.label}
@@ -899,7 +899,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
         <Button
           size="sm"
           variant={activeBrush === "ERASER" ? "default" : "outline"}
-          className={`h-8 px-3 rounded-full ${activeBrush === "ERASER" ? 'bg-gray-800 text-white' : ''}`}
+          className={`h-8 px-3 rounded-full active:scale-95 transition-transform duration-150 ${activeBrush === "ERASER" ? 'bg-gray-800 text-white ring-2 ring-primary/40 ring-offset-2 ring-offset-background' : ''}`}
           onClick={() => setActiveBrush(activeBrush === "ERASER" ? null : "ERASER")}
         >
           <Eraser className="h-4 w-4 mr-1" /> Silici
