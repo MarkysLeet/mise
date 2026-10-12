@@ -192,7 +192,7 @@ export default function TutanakPage() {
               <Plus className="mr-2 h-4 w-4" /> Yeni Oluştur
             </Button>
           } />
-          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-border/50 shadow-2xl rounded-2xl">
+          <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-border/50 shadow-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-6 border-b border-border/50 bg-stone-50/30">
               <DialogTitle className="text-xl font-bold">Yeni Tutanak Oluştur</DialogTitle>
               <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
@@ -309,10 +309,10 @@ export default function TutanakPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <Label htmlFor="aciklama" className="text-muted-foreground">Detaylı Açıklama</Label>
 
-                      <div className="w-48 shrink-0 ml-4">
+                      <div className="w-full sm:w-48 sm:ml-4 sm:shrink-0">
                         <Select
                           value={selectedTemplateId}
                           onValueChange={(val) => handleTemplateChange(val || "")}
