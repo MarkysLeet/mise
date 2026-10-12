@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trash2, AlertTriangle, Clock, Edit2 } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle, Clock, Edit2, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { Calendar } from "@/components/ui/calendar";
@@ -186,7 +186,7 @@ export default function FazlaMesaiPage() {
         {/* Ekleme Formu */}
         <div className="md:col-span-1">
           <div className="sticky top-6">
-            <Card className="shadow-sm border-zinc-200">
+            <Card className="shadow-sm border-border/60 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-lg">Kayıt Ekle</CardTitle>
                 <CardDescription>Yeni bir mesai kaydı oluşturun</CardDescription>
@@ -268,13 +268,13 @@ export default function FazlaMesaiPage() {
 
         {/* Raporlar */}
         <div className="md:col-span-2 space-y-6">
-          <Card className="shadow-sm border-zinc-200">
+          <Card className="shadow-sm border-border/60 rounded-2xl">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b gap-3">
               <div className="space-y-1">
                 <CardTitle className="text-lg">Aylık Rapor</CardTitle>
                 <CardDescription>Mevcut ayın özet tablosu ve detayları</CardDescription>
               </div>
-              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border">
+              <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border/60">
                 <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-8 w-8">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -305,18 +305,33 @@ export default function FazlaMesaiPage() {
               <div className="p-4 space-y-8">
                 {/* Global Statistics Cards */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                    <h3 className="text-sm font-medium text-blue-800 mb-1">Seçili Gün Toplamı</h3>
-                    <p className="text-3xl font-bold text-blue-900">
-                      {dailyMesaiList.reduce((acc, curr) => acc + curr.hours, 0)} <span className="text-sm font-normal text-blue-700">saat</span>
-                    </p>
-                  </div>
-                  <div className="bg-white border rounded-xl p-4 shadow-sm">
-                    <h3 className="text-sm font-medium text-slate-500 mb-1">Aylık Toplam</h3>
-                    <p className="text-3xl font-bold text-slate-900">
-                      {monthlyTotal} <span className="text-sm font-normal text-slate-500">saat</span>
-                    </p>
-                  </div>
+                  <Card className="border-border/60 shadow-sm rounded-2xl bg-card">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-primary" /> Seçili Gün Toplamı
+                        </div>
+                      </CardDescription>
+                      <CardTitle className="text-3xl font-light text-foreground tabular-nums">
+                        {dailyMesaiList.reduce((acc, curr) => acc + curr.hours, 0)}{" "}
+                        <span className="text-sm font-normal text-muted-foreground font-sans">saat</span>
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="border-border/60 shadow-sm rounded-2xl bg-card">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-muted-foreground" /> Aylık Toplam
+                        </div>
+                      </CardDescription>
+                      <CardTitle className="text-3xl font-light text-foreground tabular-nums">
+                        {monthlyTotal}{" "}
+                        <span className="text-sm font-normal text-muted-foreground font-sans">saat</span>
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
                 </div>
 
                 {/* Details Section */}
