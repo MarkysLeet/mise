@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { SyncModal } from "@/components/SyncModal";
 import { updateProfile, updateWorkspace, deleteAccount } from "@/actions/settings";
@@ -178,33 +179,30 @@ export default function SettingsClientPage({ initialWorkspace, initialProfile, i
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hotelGroup">Otel Grubu</Label>
-                  <select
-                    id="hotelGroup"
-                    value={hotelGroup}
-                    onChange={e => setHotelGroup(e.target.value)}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    required
-                  >
-                    <option value="Anex Hotels">Anex Hotels</option>
-                  </select>
+                  <Select value={hotelGroup} onValueChange={(val) => setHotelGroup(val || "")} required>
+                    <SelectTrigger id="hotelGroup" className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <SelectValue placeholder="Otel Grubu Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Anex Hotels">Anex Hotels</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Departman</Label>
-                  <select
-                    id="department"
-                    value={department}
-                    onChange={e => setDepartment(e.target.value)}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    required
-                  >
-                    <option value="" disabled>Departman Seçin</option>
-                    <option value="Ön Büro">Ön Büro</option>
-                    <option value="Kat Hizmetleri">Kat Hizmetleri</option>
-                    <option value="F&B">F&B</option>
-                    <option value="Misafir İlişkileri">Misafir İlişkileri</option>
-                    <option value="Teknik Servis">Teknik Servis</option>
-                    <option value="Diğer">Diğer</option>
-                  </select>
+                  <Select value={department} onValueChange={(val) => setDepartment(val || "")} required>
+                    <SelectTrigger id="department" className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <SelectValue placeholder="Departman Seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ön Büro">Ön Büro</SelectItem>
+                      <SelectItem value="Kat Hizmetleri">Kat Hizmetleri</SelectItem>
+                      <SelectItem value="F&B">F&B</SelectItem>
+                      <SelectItem value="Misafir İlişkileri">Misafir İlişkileri</SelectItem>
+                      <SelectItem value="Teknik Servis">Teknik Servis</SelectItem>
+                      <SelectItem value="Diğer">Diğer</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" disabled={isUpdatingWorkspace} className="w-full">
                   {isUpdatingWorkspace ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
