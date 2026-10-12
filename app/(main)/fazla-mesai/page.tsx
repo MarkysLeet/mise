@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
@@ -26,7 +27,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function FazlaMesaiPage() {
+function FazlaMesaiPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get("action");
+  const formRef = useRef<HTMLDivElement>(null);
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [dailyMesaiList, setDailyMesaiList] = useState<any[]>([]);
   const [monthlyTotal, setMonthlyTotal] = useState<number>(0);
@@ -40,6 +46,20 @@ export default function FazlaMesaiPage() {
 
   // Filter State
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  useEffect(() => {
+    if (actionParam === "new") {
+      // Small delay to ensure render
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Optionally focus the employee input if we had a ref for it
+      }, 100);
+
+      const params = new URLSearchParams(searchParams);
+      params.delete("action");
+      router.replace(`?${params.toString()}`);
+    }
+  }, [actionParam, router, searchParams]);
 
   // Automatically update the default form date when selectedDate changes
   useEffect(() => {
@@ -184,7 +204,7 @@ export default function FazlaMesaiPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Ekleme Formu */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-1" ref={formRef}>
           <div className="md:sticky md:top-6">
             <Card className="shadow-sm border-border/60 rounded-2xl">
               <CardHeader>
@@ -407,5 +427,13 @@ export default function FazlaMesaiPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FazlaMesaiPage() {
+  return (
+    <Suspense fallback={<div className="p-8 flex justify-center"><div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
+      <FazlaMesaiPageContent />
+    </Suspense>
   );
 }

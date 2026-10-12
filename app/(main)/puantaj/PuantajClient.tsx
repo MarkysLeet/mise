@@ -162,6 +162,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
   const [dossierEmployee, setDossierEmployee] = useState<any>(null);
 
   const dossierEmpId = searchParams.get("dossierEmpId");
+  const actionParam = searchParams.get("action");
 
   useEffect(() => {
     if (dossierEmpId && employees.length > 0) {
@@ -177,6 +178,16 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
       }
     }
   }, [dossierEmpId, employees, isDossierOpen, pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (actionParam === "new-employee" && !isEmployeeModalOpen) {
+      setEmployeeModalMode("create");
+      setIsEmployeeModalOpen(true);
+      const params = new URLSearchParams(searchParams);
+      params.delete("action");
+      router.replace(`${pathname}?${params.toString()}`);
+    }
+  }, [actionParam, isEmployeeModalOpen, pathname, router, searchParams]);
 
   const [isTerminateOpen, setIsTerminateOpen] = useState(false);
   const [employeeToTerminate, setEmployeeToTerminate] = useState<any>(null);
