@@ -164,9 +164,9 @@ export default function TutanakPage() {
             <p className="text-muted-foreground text-sm mt-0.5">Devamsızlık ve olay tutanaklarını Google Docs üzerinden oluşturun.</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           {driveFolderId && (
-            <Link href={`https://drive.google.com/drive/folders/${driveFolderId}`} target="_blank" rel="noopener noreferrer">
+            <Link href={`https://drive.google.com/drive/folders/${driveFolderId}`} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                <Button variant="outline" className="rounded-xl w-full sm:w-auto border-border/50 bg-muted/30 hover:bg-muted/60">
                  <Folder className="mr-2 h-4 w-4" /> Drive Klasörü
                </Button>

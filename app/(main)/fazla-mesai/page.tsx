@@ -176,7 +176,7 @@ export default function FazlaMesaiPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Fazla Mesai</h1>
         <p className="text-sm text-muted-foreground mt-1">Personel fazla mesai kayıtları ve aylık özet raporu</p>
@@ -185,7 +185,7 @@ export default function FazlaMesaiPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Ekleme Formu */}
         <div className="md:col-span-1">
-          <div className="sticky top-6">
+          <div className="md:sticky md:top-6">
             <Card className="shadow-sm border-border/60 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-lg">Kayıt Ekle</CardTitle>
@@ -213,7 +213,7 @@ export default function FazlaMesaiPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Tarih</Label>
                   <Input
@@ -304,7 +304,7 @@ export default function FazlaMesaiPage() {
             <CardContent className="p-0">
               <div className="p-4 space-y-8">
                 {/* Global Statistics Cards */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <Card className="border-border/60 shadow-sm rounded-2xl bg-card">
                     <CardHeader className="p-4 pb-2">
                       <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
@@ -351,8 +351,8 @@ export default function FazlaMesaiPage() {
                       <p className="text-xs text-muted-foreground mt-1 max-w-xs">Yeni kayıt eklemek için soldaki formu kullanabilirsiniz.</p>
                     </div>
                   ) : (
-                    <div className="rounded-xl border overflow-hidden overflow-x-auto">
-                      <table className="w-full text-sm text-left">
+                    <div className="rounded-xl border overflow-x-auto">
+                      <table className="w-full min-w-[540px] text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
                           <tr>
                             <th className="px-4 py-3 font-medium">Personel</th>
