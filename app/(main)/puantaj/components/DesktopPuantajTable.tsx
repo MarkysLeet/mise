@@ -71,7 +71,7 @@ export function DesktopPuantajTable({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden select-none">
-      <div className="overflow-x-auto h-[65vh]">
+      <div className="overflow-x-auto h-[calc(100vh-270px)] min-h-[460px]">
         <table className="w-full text-sm text-left border-collapse table-fixed">
           <thead className="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 z-20">
             <tr>
@@ -122,15 +122,15 @@ export function DesktopPuantajTable({
                     }
 
                     return (
-                      <tr key={emp.id} className={`border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
-                        <td className={`px-1 py-2 border-r sticky left-0 z-10 font-medium w-8 text-center ${!emp.is_active ? 'bg-red-50/80 text-red-400' : 'bg-white text-slate-400'}`}>{idx + 1}</td>
-                        <td className={`px-2 py-2 border-r sticky left-8 z-10 font-medium truncate w-40 ${!emp.is_active ? 'bg-red-50/80 text-red-700/80' : 'bg-white text-slate-800'}`}>
+                      <tr key={emp.id} className={`group border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
+                        <td className={`px-1 py-2 border-r sticky left-0 z-10 font-medium w-8 text-center ${!emp.is_active ? 'bg-red-50/80 text-red-400 group-hover:bg-red-100/80' : 'bg-white text-slate-400 group-hover:bg-slate-50'}`}>{idx + 1}</td>
+                        <td className={`px-2 py-2 border-r sticky left-8 z-10 font-medium truncate w-40 ${!emp.is_active ? 'bg-red-50/80 text-red-700/80 group-hover:bg-red-100/80' : 'bg-white text-slate-800 group-hover:bg-slate-50'}`}>
                           <button onClick={() => openDossier(emp)} className="hover:underline text-left outline-none focus:ring-1 focus:ring-primary rounded px-1 -ml-1 inline-flex items-center">
                             {emp.full_name}
                           </button>
                         </td>
-                        <td className={`px-2 py-2 border-r sticky left-48 z-10 truncate w-28 ${!emp.is_active ? 'bg-red-50/80 text-red-600/70' : 'bg-white text-slate-500'}`}>{emp.role_title}</td>
-                        <td className={`px-1 py-1 border-r sticky left-[304px] z-10 text-center w-14 ${!emp.is_active ? 'bg-red-50/80' : 'bg-white'}`}>
+                        <td className={`px-2 py-2 border-r sticky left-48 z-10 truncate w-28 ${!emp.is_active ? 'bg-red-50/80 text-red-600/70 group-hover:bg-red-100/80' : 'bg-white text-slate-500 group-hover:bg-slate-50'}`}>{emp.role_title}</td>
+                        <td className={`px-1 py-1 border-r sticky left-[304px] z-10 text-center w-14 ${!emp.is_active ? 'bg-red-50/80 group-hover:bg-red-100/80' : 'bg-white group-hover:bg-slate-50'}`}>
                           <DropdownMenu>
                             <DropdownMenuTrigger render={
                               <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0">
@@ -205,10 +205,10 @@ export function DesktopPuantajTable({
                           );
                         })}
 
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-blue-50/50 w-8">{totals.work > 0 ? totals.work : ''}</td>
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-green-50/50 text-green-700 w-8">{totals.hi > 0 ? totals.hi : ''}</td>
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-orange-50/50 text-orange-700 w-8">{totals.ui > 0 ? totals.ui : ''}</td>
-                        <td className="px-1 py-2 text-center text-xs font-bold bg-red-50/50 text-red-600 w-8">{totals.d > 0 ? totals.d : ''}</td>
+                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-blue-50/50 w-8 tabular-nums font-mono">{totals.work > 0 ? totals.work : ''}</td>
+                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-green-50/50 text-green-700 w-8 tabular-nums font-mono">{totals.hi > 0 ? totals.hi : ''}</td>
+                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-orange-50/50 text-orange-700 w-8 tabular-nums font-mono">{totals.ui > 0 ? totals.ui : ''}</td>
+                        <td className="px-1 py-2 text-center text-xs font-bold bg-red-50/50 text-red-600 w-8 tabular-nums font-mono">{totals.d > 0 ? totals.d : ''}</td>
                       </tr>
                     );
                   })}

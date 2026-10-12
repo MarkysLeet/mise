@@ -202,26 +202,6 @@ export function MobilePuantajView({
                           </div>
 
                           <div className="flex items-start gap-2">
-                            {/* Counters Grid */}
-                            <div className="grid grid-cols-2 gap-2 text-center bg-slate-50/50 p-1.5 rounded-lg">
-                              <div className="flex flex-col items-center justify-center">
-                                <span className="text-[10px] text-emerald-600 font-semibold leading-tight">Ç</span>
-                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.work || '-'}</span>
-                              </div>
-                              <div className="flex flex-col items-center justify-center">
-                                <span className="text-[10px] text-blue-600 font-semibold leading-tight">Hİ</span>
-                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.hi || '-'}</span>
-                              </div>
-                              <div className="flex flex-col items-center justify-center">
-                                <span className="text-[10px] text-orange-500 font-semibold leading-tight">Üİ</span>
-                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.ui || '-'}</span>
-                              </div>
-                              <div className="flex flex-col items-center justify-center">
-                                <span className="text-[10px] text-red-600 font-semibold leading-tight">D</span>
-                                <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.d || '-'}</span>
-                              </div>
-                            </div>
-
                             {/* Actions Menu */}
                             <DropdownMenu>
                               <DropdownMenuTrigger render={
@@ -256,8 +236,29 @@ export function MobilePuantajView({
                           </div>
                         </div>
 
+                        {/* Counters Grid Strip */}
+                        <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2 rounded-lg text-center mt-1">
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="text-[10px] text-emerald-600 font-semibold leading-tight">Ç</span>
+                            <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.work || '-'}</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="text-[10px] text-blue-600 font-semibold leading-tight">Hİ</span>
+                            <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.hi || '-'}</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="text-[10px] text-orange-500 font-semibold leading-tight">Üİ</span>
+                            <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.ui || '-'}</span>
+                          </div>
+                          <div className="flex flex-col items-center justify-center">
+                            <span className="text-[10px] text-red-600 font-semibold leading-tight">D</span>
+                            <span className="font-bold text-sm text-slate-700 leading-none mt-0.5">{totals.d || '-'}</span>
+                          </div>
+                        </div>
+
                         {/* Days Grid (Read-only) */}
-                        <div className="flex overflow-x-auto gap-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        <div className="relative">
+                          <div className="flex overflow-x-auto gap-1 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                           {daysArray.map((day) => {
                             if (day > daysInMonth) return null;
                             const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -295,6 +296,8 @@ export function MobilePuantajView({
                               </div>
                             );
                           })}
+                          </div>
+                          <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white to-transparent" />
                         </div>
                       </div>
                     );
