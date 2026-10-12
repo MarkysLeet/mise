@@ -167,7 +167,7 @@ export default function TutanakPage() {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {driveFolderId && (
             <Link href={`https://drive.google.com/drive/folders/${driveFolderId}`} target="_blank" rel="noopener noreferrer">
-               <Button variant="outline" className="rounded-xl w-full sm:w-auto border-border/50 bg-stone-50/50 hover:bg-stone-100/50">
+               <Button variant="outline" className="rounded-xl w-full sm:w-auto border-border/50 bg-muted/30 hover:bg-muted/60">
                  <Folder className="mr-2 h-4 w-4" /> Drive Klasörü
                </Button>
             </Link>
@@ -193,7 +193,7 @@ export default function TutanakPage() {
             </Button>
           } />
           <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-border/50 shadow-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-6 border-b border-border/50 bg-stone-50/30">
+            <div className="px-6 py-6 border-b border-border/50 bg-muted/10">
               <DialogTitle className="text-xl font-bold">Yeni Tutanak Oluştur</DialogTitle>
               <DialogDescription className="mt-1.5 text-sm text-muted-foreground">
                 Tutanak detaylarını eksiksiz doldurun. Belge otomatik olarak Google Drive'a kaydedilecektir.
@@ -225,7 +225,7 @@ export default function TutanakPage() {
                         className={`p-3 rounded-xl border text-sm font-medium transition-all duration-200 flex flex-col items-center gap-2
                           ${selectedCategory === cat
                             ? 'border-primary bg-primary/5 text-primary shadow-sm ring-1 ring-primary/20'
-                            : 'border-border/50 bg-stone-50/50 text-muted-foreground hover:bg-stone-100 hover:border-border'
+                            : 'border-border/50 bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:border-border'
                           }
                         `}
                       >
@@ -250,7 +250,7 @@ export default function TutanakPage() {
                       onClear={() => { setSelectedEmployeeId(null); setEmployeeSearchQuery(""); }}
                       placeholder="Personel Ara..."
                       className="w-full"
-                      inputClassName="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                      inputClassName="h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                     />
                     <input type="hidden" name="adSoyad" value={employees.find(e => e.id === selectedEmployeeId)?.full_name || employeeSearchQuery} />
                   </div>
@@ -268,7 +268,7 @@ export default function TutanakPage() {
                         readOnly
                         placeholder="Otomatik Doldurulur"
                         required={!!selectedCategory}
-                        className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl bg-slate-100"
+                        className="h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                       />
                     </div>
                   </div>
@@ -287,7 +287,7 @@ export default function TutanakPage() {
                           value={incidentDate}
                           onChange={(e) => setIncidentDate(e.target.value)}
                           required={!!selectedEmployeeId}
-                          className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                          className="h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                         />
                       </div>
                     </div>
@@ -302,7 +302,7 @@ export default function TutanakPage() {
                           onChange={(e) => setOlayYeri(e.target.value)}
                           placeholder="Örn. Ana Restoran, Kat 3"
                           required={!!selectedEmployeeId}
-                          className="h-11 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl"
+                          className="h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-xl"
                         />
                       </div>
                     </div>
@@ -318,7 +318,7 @@ export default function TutanakPage() {
                           onValueChange={(val) => handleTemplateChange(val || "")}
                           disabled={!selectedCategory || templates.filter(t => t.category === selectedCategory).length === 0}
                         >
-                          <SelectTrigger className="h-8 text-xs bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
+                          <SelectTrigger className="h-8 text-xs bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-lg w-full">
                             <SelectValue placeholder="Şablon Seç..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -337,7 +337,7 @@ export default function TutanakPage() {
                       rows={6}
                       required={!!selectedEmployeeId}
                       placeholder="Lütfen olayı objektif bir şekilde açıklayın..."
-                      className="w-full p-4 bg-stone-50/50 border-border/50 focus-visible:ring-primary/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                      className="w-full p-4 bg-muted/30 border-border/50 focus-visible:ring-primary/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                     />
                   </div>
                 </div>
@@ -387,7 +387,7 @@ export default function TutanakPage() {
           ))}
         </div>
       ) : files.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-stone-50/50 border border-dashed border-border/50 rounded-2xl text-center">
+        <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed border-border/60 rounded-2xl text-center">
           <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
             <FileText className="h-6 w-6 text-muted-foreground" />
           </div>
