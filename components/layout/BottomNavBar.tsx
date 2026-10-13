@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Clock, CalendarDays, FileText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
+import { getEmployees, getPuantajEntries, getPuantajMonths } from "@/actions/puantaj";
 import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth } from "@/actions/fazla_mesai";
 import { getTutanakFormOptions, getTutanakFiles } from "@/actions/tutanak";
 
@@ -35,6 +35,7 @@ export function BottomNavBar() {
       queryClient.prefetchQuery({ queryKey: ["tutanak_options"], queryFn: () => getTutanakFormOptions() });
       queryClient.prefetchQuery({ queryKey: ["tutanaks"], queryFn: () => getTutanakFiles() });
     } else if (href === "/puantaj") {
+      queryClient.prefetchQuery({ queryKey: ["puantaj_months", year, month], queryFn: () => getPuantajMonths(year, month) });
       queryClient.prefetchQuery({ queryKey: ["employees", year, month], queryFn: () => getEmployees(year, month) });
       queryClient.prefetchQuery({ queryKey: ["entries", year, month], queryFn: () => getPuantajEntries(year, month) });
     }

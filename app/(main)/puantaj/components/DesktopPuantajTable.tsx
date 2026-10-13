@@ -10,6 +10,141 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+
+
+interface EmployeeRowProps {
+  emp: any;
+  idx: number;
+  currentYear: number;
+  currentMonth: number;
+  daysArray: number[];
+  daysInMonth: number;
+  STATUSES: any[];
+  pendingChanges: any;
+  activeBrush: string | null;
+  totals: any;
+  entriesMap: Map<string, any>;
+  openDossier: (emp: any) => void;
+  setEmployeeToEdit: (emp: any) => void;
+  setIsEditEmployeeModalOpen: (isOpen: boolean) => void;
+  setEmployeeToTerminate: (emp: any) => void;
+  setIsTerminateOpen: (isOpen: boolean) => void;
+  setEmployeeToDelete: (emp: any) => void;
+  setIsDeleteOpen: (isOpen: boolean) => void;
+  setIsMouseDown: (isDown: boolean) => void;
+  isMouseDown: boolean;
+  applyBrush: (empId: string, day: number) => void;
+}
+
+const EmployeeRow = React.memo(({
+  emp, idx, currentYear, currentMonth, daysArray, daysInMonth, STATUSES, pendingChanges, activeBrush, totals, entriesMap,
+  openDossier, setEmployeeToEdit, setIsEditEmployeeModalOpen, setEmployeeToTerminate, setIsTerminateOpen, setEmployeeToDelete, setIsDeleteOpen, setIsMouseDown, isMouseDown, applyBrush
+}: EmployeeRowProps) => {
+  return (
+    <tr className={`group border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
+      <td className={`px-1 py-2 border-r sticky left-0 z-10 font-medium w-8 text-center ${!emp.is_active ? 'bg-red-50/80 text-red-400 group-hover:bg-red-100/80' : 'bg-white text-slate-400 group-hover:bg-slate-50'}`}>{idx + 1}</td>
+      <td className={`px-2 py-2 border-r sticky left-8 z-10 font-medium truncate w-40 ${!emp.is_active ? 'bg-red-50/80 text-red-700/80 group-hover:bg-red-100/80' : 'bg-white text-slate-800 group-hover:bg-slate-50'}`}>
+        <button onClick={() => openDossier(emp)} className="hover:underline text-left outline-none focus:ring-1 focus:ring-primary rounded px-1 -ml-1 inline-flex items-center">
+          {emp.full_name}
+        </button>
+      </td>
+      <td className={`px-2 py-2 border-r sticky left-48 z-10 truncate w-28 ${!emp.is_active ? 'bg-red-50/80 text-red-600/70 group-hover:bg-red-100/80' : 'bg-white text-slate-500 group-hover:bg-slate-50'}`}>{emp.role_title}</td>
+      <td className={`px-1 py-1 border-r sticky left-[304px] z-10 text-center w-14 ${!emp.is_active ? 'bg-red-50/80 group-hover:bg-red-100/80' : 'bg-white group-hover:bg-slate-50'}`}>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={
+            <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0">
+              <MoreHorizontal className="h-4 w-4 text-slate-500" />
+            </Button>
+          } />
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => {
+              setEmployeeToEdit(emp);
+              setIsEditEmployeeModalOpen(true);
+            }}>
+              <Edit2 className="h-4 w-4 mr-2" /> Düzenle
+            </DropdownMenuItem>
+            {emp.is_active && (
+              <DropdownMenuItem onClick={() => {
+                setEmployeeToTerminate(emp);
+                setIsTerminateOpen(true);
+              }}>
+                <LogOut className="h-4 w-4 mr-2 text-orange-500" /> İş Çıkışı Ver
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
+              setEmployeeToDelete(emp);
+              setIsDeleteOpen(true);
+            }} className="text-red-600 focus:bg-red-50 focus:text-red-700">
+              <Trash2 className="h-4 w-4 mr-2" /> Tamamen Sil
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+
+      {daysArray.map((day: number) => {
+        if (day > daysInMonth) {
+          return <td key={day} className="border-r bg-gray-100"></td>;
+        }
+
+        const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        let statusCode = pendingChanges[emp.id]?.[day] || undefined; // Adjust according to logic
+
+        if (statusCode === undefined) {
+          const entry = entriesMap.get(`${emp.id}_${dateStr}`);
+          statusCode = entry ? entry.status : "";
+        }
+
+        const statusDef = STATUSES.find(s => s.code === statusCode);
+        const isTerminatedCell = statusCode === 'TERMINATED';
+
+        const isWeekend = [0, 6].includes(new Date(currentYear, currentMonth - 1, day).getDay());
+        const weekendClass = isWeekend ? 'bg-slate-50 dark:bg-slate-900/50' : '';
+        const isNeutral = statusDef?.color.includes('bg-transparent');
+
+        return (
+          <td
+            key={day}
+            className={`border-r cursor-pointer text-center font-medium text-xs
+              ${isTerminatedCell ? 'bg-black text-black' : (isNeutral ? `${weekendClass} ${statusDef?.color}` : (statusDef?.color || weekendClass))}
+              ${activeBrush ? 'hover:ring-2 hover:ring-inset hover:ring-indigo-400' : ''}
+            `}
+            onMouseDown={() => {
+              if (!activeBrush) return;
+              setIsMouseDown(true);
+              applyBrush(emp.id, day);
+            }}
+            onMouseEnter={() => {
+              if (isMouseDown) applyBrush(emp.id, day);
+            }}
+          >
+            {isTerminatedCell ? '' : statusCode}
+          </td>
+        );
+      })}
+
+      <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-blue-50/50 w-8 tabular-nums font-mono">{totals.work > 0 ? totals.work : ''}</td>
+      <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-green-50/50 text-green-700 w-8 tabular-nums font-mono">{totals.hi > 0 ? totals.hi : ''}</td>
+      <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-orange-50/50 text-orange-700 w-8 tabular-nums font-mono">{totals.ui > 0 ? totals.ui : ''}</td>
+      <td className="px-1 py-2 text-center text-xs font-bold bg-red-50/50 text-red-600 w-8 tabular-nums font-mono">{totals.d > 0 ? totals.d : ''}</td>
+    </tr>
+  );
+}, (prevProps, nextProps) => {
+  if (prevProps.activeBrush !== nextProps.activeBrush) return false;
+  if (prevProps.isMouseDown !== nextProps.isMouseDown) return false;
+  if (prevProps.pendingChanges[prevProps.emp.id] !== nextProps.pendingChanges[nextProps.emp.id]) return false;
+
+  // Custom deep check could be needed, but for now strict checking pending changes for this employee is enough for cell updates.
+  // Totals usually change if pendingChanges change or entriesMap changes, assuming entriesMap changes rarely.
+  if (prevProps.totals.work !== nextProps.totals.work) return false;
+  if (prevProps.totals.hi !== nextProps.totals.hi) return false;
+  if (prevProps.totals.ui !== nextProps.totals.ui) return false;
+  if (prevProps.totals.d !== nextProps.totals.d) return false;
+
+  return true;
+});
+
 export function DesktopPuantajTable({
   employees,
   entries,
@@ -33,6 +168,14 @@ export function DesktopPuantajTable({
   openDossier,
   roles
 }: DesktopPuantajTableProps) {
+  const entriesMap = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const entry of entries) {
+      map.set(`${entry.employee_id}_${entry.date}`, entry);
+    }
+    return map;
+  }, [entries]);
+
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (role: string) => {
@@ -122,94 +265,29 @@ export function DesktopPuantajTable({
                     }
 
                     return (
-                      <tr key={emp.id} className={`group border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
-                        <td className={`px-1 py-2 border-r sticky left-0 z-10 font-medium w-8 text-center ${!emp.is_active ? 'bg-red-50/80 text-red-400 group-hover:bg-red-100/80' : 'bg-white text-slate-400 group-hover:bg-slate-50'}`}>{idx + 1}</td>
-                        <td className={`px-2 py-2 border-r sticky left-8 z-10 font-medium truncate w-40 ${!emp.is_active ? 'bg-red-50/80 text-red-700/80 group-hover:bg-red-100/80' : 'bg-white text-slate-800 group-hover:bg-slate-50'}`}>
-                          <button onClick={() => openDossier(emp)} className="hover:underline text-left outline-none focus:ring-1 focus:ring-primary rounded px-1 -ml-1 inline-flex items-center">
-                            {emp.full_name}
-                          </button>
-                        </td>
-                        <td className={`px-2 py-2 border-r sticky left-48 z-10 truncate w-28 ${!emp.is_active ? 'bg-red-50/80 text-red-600/70 group-hover:bg-red-100/80' : 'bg-white text-slate-500 group-hover:bg-slate-50'}`}>{emp.role_title}</td>
-                        <td className={`px-1 py-1 border-r sticky left-[304px] z-10 text-center w-14 ${!emp.is_active ? 'bg-red-50/80 group-hover:bg-red-100/80' : 'bg-white group-hover:bg-slate-50'}`}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger render={
-                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0">
-                                <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                              </Button>
-                            } />
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuItem onClick={() => {
-                                setEmployeeToEdit(emp);
-                                setIsEditEmployeeModalOpen(true);
-                              }}>
-                                <Edit2 className="h-4 w-4 mr-2" /> Düzenle
-                              </DropdownMenuItem>
-                              {emp.is_active && (
-                                <DropdownMenuItem onClick={() => {
-                                  setEmployeeToTerminate(emp);
-                                  setIsTerminateOpen(true);
-                                }}>
-                                  <LogOut className="h-4 w-4 mr-2 text-orange-500" /> İş Çıkışı Ver
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => {
-                                setEmployeeToDelete(emp);
-                                setIsDeleteOpen(true);
-                              }} className="text-red-600 focus:bg-red-50 focus:text-red-700">
-                                <Trash2 className="h-4 w-4 mr-2" /> Tamamen Sil
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-
-                        {daysArray.map((day: number) => {
-                          if (day > daysInMonth) {
-                            return <td key={day} className="border-r bg-gray-100"></td>;
-                          }
-
-                          const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-                          let statusCode = pendingChanges[emp.id]?.[day] || undefined; // Adjust according to logic
-
-                          if (statusCode === undefined) {
-                            const entry = entries.find(e => e.employee_id === emp.id && e.date === dateStr);
-                            statusCode = entry ? entry.status : "";
-                          }
-
-                          const statusDef = STATUSES.find(s => s.code === statusCode);
-                          const isTerminatedCell = statusCode === 'TERMINATED';
-
-                          const isWeekend = [0, 6].includes(new Date(currentYear, currentMonth - 1, day).getDay());
-                          const weekendClass = isWeekend ? 'bg-slate-50 dark:bg-slate-900/50' : '';
-                          const isNeutral = statusDef?.color.includes('bg-transparent');
-
-                          return (
-                            <td
-                              key={day}
-                              className={`border-r cursor-pointer text-center font-medium text-xs
-                                ${isTerminatedCell ? 'bg-black text-black' : (isNeutral ? `${weekendClass} ${statusDef?.color}` : (statusDef?.color || weekendClass))}
-                                ${activeBrush ? 'hover:ring-2 hover:ring-inset hover:ring-indigo-400' : ''}
-                              `}
-                              onMouseDown={() => {
-                                if (!activeBrush) return;
-                                setIsMouseDown(true);
-                                applyBrush(emp.id, day);
-                              }}
-                              onMouseEnter={() => {
-                                if (isMouseDown) applyBrush(emp.id, day);
-                              }}
-                            >
-                              {isTerminatedCell ? '' : statusCode}
-                            </td>
-                          );
-                        })}
-
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-blue-50/50 w-8 tabular-nums font-mono">{totals.work > 0 ? totals.work : ''}</td>
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-green-50/50 text-green-700 w-8 tabular-nums font-mono">{totals.hi > 0 ? totals.hi : ''}</td>
-                        <td className="px-1 py-2 border-r text-center text-xs font-semibold bg-orange-50/50 text-orange-700 w-8 tabular-nums font-mono">{totals.ui > 0 ? totals.ui : ''}</td>
-                        <td className="px-1 py-2 text-center text-xs font-bold bg-red-50/50 text-red-600 w-8 tabular-nums font-mono">{totals.d > 0 ? totals.d : ''}</td>
-                      </tr>
+                      <EmployeeRow
+                        emp={emp}
+                        idx={idx}
+                        currentYear={currentYear}
+                        currentMonth={currentMonth}
+                        daysArray={daysArray}
+                        daysInMonth={daysInMonth}
+                        STATUSES={STATUSES}
+                        pendingChanges={pendingChanges}
+                        activeBrush={activeBrush}
+                        totals={totals}
+                        entriesMap={entriesMap}
+                        openDossier={openDossier}
+                        setEmployeeToEdit={setEmployeeToEdit}
+                        setIsEditEmployeeModalOpen={setIsEditEmployeeModalOpen}
+                        setEmployeeToTerminate={setEmployeeToTerminate}
+                        setIsTerminateOpen={setIsTerminateOpen}
+                        setEmployeeToDelete={setEmployeeToDelete}
+                        setIsDeleteOpen={setIsDeleteOpen}
+                        setIsMouseDown={setIsMouseDown}
+                        isMouseDown={isMouseDown}
+                        applyBrush={applyBrush}
+                      />
                     );
                   })}
                 </React.Fragment>

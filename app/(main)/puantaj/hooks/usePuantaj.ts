@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { getPuantajEntries, bulkUpsertPuantaj } from "@/actions/puantaj";
+import { getPuantajEntries, bulkUpsertPuantaj, getPuantajMonths } from "@/actions/puantaj";
 import { useEmployees } from "@/hooks/use-employees";
 import { Database } from "@/types/database";
 import { addToQueue } from "@/lib/syncManager";
@@ -86,4 +86,14 @@ export function usePuantaj(year: number, month: number) {
     updateEntryAsync: updateEntryMutation.mutateAsync,
     isUpdatingEntry: updateEntryMutation.isPending,
   };
+}
+
+
+export function usePuantajMonths(year: number, month: number) {
+  return useQuery({
+    queryKey: ["puantaj_months", year, month],
+    queryFn: () => getPuantajMonths(year, month),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 }

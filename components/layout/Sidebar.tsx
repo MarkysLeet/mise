@@ -14,7 +14,7 @@ import { useSidebar } from "@/components/providers/SidebarProvider";
 import { SyncIndicator } from "@/components/layout/SyncIndicator";
 import { useOvertimeAlerts } from "@/hooks/use-overtime";
 import { useQueryClient } from "@tanstack/react-query";
-import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
+import { getEmployees, getPuantajEntries, getPuantajMonths } from "@/actions/puantaj";
 import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth } from "@/actions/fazla_mesai";
 import { getTutanakFormOptions, getTutanakFiles } from "@/actions/tutanak";
 import { Loader2 } from "lucide-react";
@@ -75,6 +75,7 @@ export function Sidebar() {
       queryClient.prefetchQuery({ queryKey: ["tutanak_options"], queryFn: () => getTutanakFormOptions() });
       queryClient.prefetchQuery({ queryKey: ["tutanaks"], queryFn: () => getTutanakFiles() });
     } else if (href === "/puantaj") {
+      queryClient.prefetchQuery({ queryKey: ["puantaj_months", year, month], queryFn: () => getPuantajMonths(year, month) });
       queryClient.prefetchQuery({ queryKey: ["employees", year, month], queryFn: () => getEmployees(year, month) });
       queryClient.prefetchQuery({ queryKey: ["entries", year, month], queryFn: () => getPuantajEntries(year, month) });
     }
