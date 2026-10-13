@@ -14,8 +14,10 @@ import { useSidebar } from "@/components/providers/SidebarProvider";
 import { SyncIndicator } from "@/components/layout/SyncIndicator";
 import { useOvertimeAlerts } from "@/hooks/use-overtime";
 import { useQueryClient } from "@tanstack/react-query";
+import { DASHBOARD_QUERY_KEY } from "@/hooks/use-dashboard";
 import { getEmployees, getPuantajEntries, getPuantajMonths } from "@/actions/puantaj";
 import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth } from "@/actions/fazla_mesai";
+import { getDashboardData } from "@/actions/dashboard";
 import { getTutanakFormOptions, getTutanakFiles } from "@/actions/tutanak";
 import { Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -67,7 +69,9 @@ export function Sidebar() {
     const month = now.getMonth() + 1;
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    if (href === "/fazla-mesai") {
+    if (href === "/dashboard") {
+      queryClient.prefetchQuery({ queryKey: DASHBOARD_QUERY_KEY, queryFn: () => getDashboardData(), staleTime: 5 * 60 * 1000 });
+    } else if (href === "/fazla-mesai") {
       queryClient.prefetchQuery({ queryKey: ["employees", year, month], queryFn: () => getEmployees(year, month) });
       queryClient.prefetchQuery({ queryKey: ["fazla_mesai", dateStr], queryFn: () => getFazlaMesaiByDate(dateStr) });
       queryClient.prefetchQuery({ queryKey: ["fazla_mesai_total", year, month], queryFn: () => getFazlaMesaiTotalByMonth(year, month) });

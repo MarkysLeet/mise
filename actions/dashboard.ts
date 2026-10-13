@@ -45,7 +45,7 @@ export async function getDashboardData() {
       if (!e.termination_date) return false;
       const termDate = new Date(e.termination_date);
       termDate.setHours(0, 0, 0, 0);
-      return termDate >= todayForStats;
+      return termDate > todayForStats; // Fixed: strict > to ensure only tomorrow or later
     }).map(e => ({
       id: e.id,
       full_name: e.full_name,
@@ -57,37 +57,36 @@ export async function getDashboardData() {
     const lastDay = new Date(currentYear, currentMonth, 0).getDate();
     const endDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-    let allEntries: { date: string, employee_id: string, status: string }[] = [];
-    let hasMore = true;
-    let from = 0;
-    const pageSize = 1000;
-
-    while (hasMore) {
-      const to = from + pageSize - 1;
-      const { data: entriesChunk } = await supabase
+    // Direct queries instead of while loop
+    const [
+      { data: todayEntriesChunk },
+      { data: devamsizlikChunk },
+      totalFazlaMesai,
+      { data: tutanaks }
+    ] = await Promise.all([
+      supabase
+        .from("puantaj_entries")
+        .select("date, employee_id, status")
+        .eq("workspace_id", workspace.id)
+        .eq("date", todayStr),
+      supabase
         .from("puantaj_entries")
         .select("date, employee_id, status")
         .eq("workspace_id", workspace.id)
         .gte("date", startDate)
         .lte("date", endDate)
-        .range(from, to);
+        .eq("status", "D"),
+      getDashboardTotalFazlaMesai(),
+      supabase
+        .from("tutanaks")
+        .select("*")
+        .eq("workspace_id", workspace.id)
+        .gte("created_at", `${startDate}T00:00:00Z`)
+    ]);
 
-      if (entriesChunk && entriesChunk.length > 0) {
-        allEntries = allEntries.concat(entriesChunk);
-        if (entriesChunk.length < pageSize) {
-          hasMore = false;
-        } else {
-          from += pageSize;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
-
-    const todayEntries = allEntries.filter(e => e.date === todayStr);
+    const todayEntries = todayEntriesChunk || [];
     const missingEmployeesEntries = todayEntries.filter(e => e.status && e.status !== "" && e.status !== 'X' && e.status !== 'Hİ');
     const onLeaveToday = missingEmployeesEntries.length;
-    const totalFazlaMesai = await getDashboardTotalFazlaMesai();
 
     const missingEmployees: MissingEmployee[] = missingEmployeesEntries.map(entry => {
       const emp = employees.find(e => e.id === entry.employee_id);
@@ -99,18 +98,10 @@ export async function getDashboardData() {
       };
     });
 
-    const devamsizlikThisMonth = allEntries
-      .filter(e => e.status === "D")
-      .map(e => ({
-        employee_id: e.employee_id,
-        date: e.date.split("-").reverse().join(".")
-      }));
-
-    const { data: tutanaks } = await supabase
-      .from("tutanaks")
-      .select("*")
-      .eq("workspace_id", workspace.id)
-      .gte("created_at", `${currentYear}-${String(currentMonth).padStart(2, '0')}-01T00:00:00Z`);
+    const devamsizlikThisMonth = (devamsizlikChunk || []).map(e => ({
+      employee_id: e.employee_id,
+      date: e.date.split("-").reverse().join(".")
+    }));
 
     const activityLog: ActivityLogEntry[] = [];
     if (tutanaks) {
