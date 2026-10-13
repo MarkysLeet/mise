@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { getEmployees, getPuantajEntries, bulkUpsertPuantaj } from "@/actions/puantaj";
+import { getPuantajEntries, bulkUpsertPuantaj } from "@/actions/puantaj";
+import { useEmployees } from "@/hooks/use-employees";
 import { Database } from "@/types/database";
 import { addToQueue } from "@/lib/syncManager";
 
@@ -17,12 +18,7 @@ export function usePuantaj(year: number, month: number) {
   const entriesKey = ["entries", year, month];
   const rolesKey = ["roles"];
 
-  const employeesQuery = useQuery({
-    queryKey: employeesKey,
-    queryFn: () => getEmployees(year, month),
-    staleTime: 5 * 60 * 1000,
-    placeholderData: keepPreviousData,
-  });
+  const employeesQuery = useEmployees(year, month);
 
   const entriesQuery = useQuery({
     queryKey: entriesKey,
@@ -75,6 +71,7 @@ export function usePuantaj(year: number, month: number) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: entriesKey });
+      queryClient.invalidateQueries({ queryKey: employeesKey });
     },
   });
 

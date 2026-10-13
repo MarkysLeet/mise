@@ -12,7 +12,11 @@ import { Playfair_Display } from "next/font/google";
 import { logoutUser } from "@/actions/auth";
 import { useSidebar } from "@/components/providers/SidebarProvider";
 import { SyncIndicator } from "@/components/layout/SyncIndicator";
-import { getOvertimeAlerts } from "@/actions/fazla_mesai";
+import { useOvertimeAlerts } from "@/hooks/use-overtime";
+import { useQueryClient } from "@tanstack/react-query";
+import { getEmployees, getPuantajEntries } from "@/actions/puantaj";
+import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth } from "@/actions/fazla_mesai";
+import { getTutanakFormOptions, getTutanakFiles } from "@/actions/tutanak";
 import { Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -54,22 +58,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [alertsLoading, setAlertsLoading] = useState(true);
+  const { data: alerts = [], isLoading: alertsLoading } = useOvertimeAlerts();
 
-  useEffect(() => {
-    async function fetchAlerts() {
-      try {
-        const data = await getOvertimeAlerts();
-        setAlerts(data);
-      } catch (error) {
-        console.error("Failed to fetch alerts:", error);
-      } finally {
-        setAlertsLoading(false);
-      }
-    }
-    fetchAlerts();
-  }, []);
+
 
   return (
     <div
@@ -201,7 +192,7 @@ export function Sidebar() {
               <button title="Bildirimler" className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" />
             }>
               <Bell className="h-5 w-5" />
-              {alerts.length > 0 && (
+              {(alerts || []).length > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-red-500" />
               )}
             </PopoverTrigger>
@@ -214,11 +205,11 @@ export function Sidebar() {
                   <div className="flex justify-center p-4">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
-                ) : alerts.length > 0 ? (
-                  alerts.map((alert) => (
+                ) : (alerts || []).length > 0 ? (
+                  (alerts || []).map((alert) => (
                     <div key={alert.id} className="flex flex-col gap-1 p-4 hover:bg-muted/50 border-b border-border transition-colors last:border-b-0">
                       <p className="text-sm font-medium text-foreground">
-                        {alert.mesai_date.split('-').reverse().join('.')} — {alert.employees?.full_name} günlük mesai limitini aştı ({alert.hours} saat)
+                        {alert.mesai_date.split('-').reverse().join('.')} — {(alert.employees as any)?.full_name || "-"} günlük mesai limitini aştı ({alert.hours} saat)
                       </p>
                       <span className="text-xs text-muted-foreground">Sistem Bildirimi</span>
                     </div>

@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { getFazlaMesaiByDate, getFazlaMesaiTotalByMonth, addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
-import { getEmployees } from "@/actions/puantaj";
+import { addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
+import { useEmployees } from "@/hooks/use-employees";
+import { useDailyOvertime, useMonthlyOvertimeTotal } from "@/hooks/use-overtime";
+import { useQueryClient } from "@tanstack/react-query";
 import { Employee } from "@/app/(main)/puantaj/types";
 import { toast } from "sonner";
 import {
@@ -33,19 +35,32 @@ function FazlaMesaiPageContent() {
   const actionParam = searchParams.get("action");
   const formRef = useRef<HTMLDivElement>(null);
 
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [dailyMesaiList, setDailyMesaiList] = useState<any[]>([]);
-  const [monthlyTotal, setMonthlyTotal] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const dateParam = searchParams.get("date");
+  const [selectedDate, setSelectedDate] = useState<Date>(() => dateParam ? new Date(dateParam) : new Date());
 
-  // Form State
+  useEffect(() => {
+    const newDateStr = format(selectedDate, "yyyy-MM-dd");
+    if (newDateStr !== searchParams.get("date")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("date", newDateStr);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [selectedDate, searchParams, router]);
+
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const month = selectedDate.getMonth() + 1;
+  const year = selectedDate.getFullYear();
+
+  const { data: employees = [] } = useEmployees(year, month);
+  const { data: dailyMesaiList = [], isLoading: isDailyLoading } = useDailyOvertime(dateStr);
+  const { data: monthlyTotal = 0 } = useMonthlyOvertimeTotal(year, month);
+  const isLoading = isDailyLoading;
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
   const [formData, setFormData] = useState({ id: "", date: format(new Date(), "yyyy-MM-dd"), hours: "", description: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Filter State
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (actionParam === "new") {
@@ -68,20 +83,18 @@ function FazlaMesaiPageContent() {
     }
   }, [selectedDate, formData.id]);
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
+
 
   const filterYear = selectedDate.getFullYear();
   const filterMonth = selectedDate.getMonth() + 1;
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
   useEffect(() => {
-    fetchDailyData(dateString);
+
   }, [dateString]);
 
   useEffect(() => {
-    fetchMonthlyTotal(filterYear, filterMonth);
+
   }, [filterYear, filterMonth]);
 
   const handlePrevDay = () => {
@@ -96,39 +109,15 @@ function FazlaMesaiPageContent() {
     setSelectedDate(next);
   };
 
-  const fetchEmployees = async () => {
-    try {
-      const empRes = await getEmployees();
-      setEmployees(empRes || []);
-    } catch (error) {
-      toast.error("Personel listesi yüklenirken hata oluştu.");
-    }
-  };
 
-  const fetchDailyData = async (dateStr: string) => {
-    setIsLoading(true);
-    try {
-      const mesaiRes = await getFazlaMesaiByDate(dateStr);
-      setDailyMesaiList(mesaiRes || []);
-    } catch (error) {
-      toast.error("Günlük veriler yüklenirken hata oluştu.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const fetchMonthlyTotal = async (year: number, month: number) => {
-    try {
-      const total = await getFazlaMesaiTotalByMonth(year, month);
-      setMonthlyTotal(total || 0);
-    } catch (error) {
-      toast.error("Aylık toplam yüklenirken hata oluştu.");
-    }
-  };
+
+
+
 
   const refreshData = () => {
-    fetchDailyData(dateString);
-    fetchMonthlyTotal(filterYear, filterMonth);
+
+
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -159,7 +148,7 @@ function FazlaMesaiPageContent() {
         setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
         setSelectedEmployeeId("");
         setSelectedEmployeeName("");
-        refreshData();
+
       }
     } catch (error) {
       toast.error("Bir hata oluştu.");
@@ -170,7 +159,7 @@ function FazlaMesaiPageContent() {
 
   const handleEdit = (mesai: any) => {
     setSelectedEmployeeId(mesai.employee_id);
-    setSelectedEmployeeName(mesai.employees?.full_name || "");
+    setSelectedEmployeeName((mesai.employees as any)?.full_name || "-" || "");
     setFormData({
       id: mesai.id,
       date: mesai.mesai_date,
@@ -188,7 +177,7 @@ function FazlaMesaiPageContent() {
         toast.error(res.error);
       } else {
         toast.success("Kayıt silindi.");
-        refreshData();
+
       }
     } catch (error) {
       toast.error("Bir hata oluştu.");
@@ -387,8 +376,8 @@ function FazlaMesaiPageContent() {
                             return (
                               <tr key={mesai.id} className={`hover:bg-slate-50/50 transition-colors ${isOverLimit ? 'bg-red-50/30' : ''}`}>
                                 <td className="px-4 py-3">
-                                  <div className="font-medium text-slate-900">{mesai.employees?.full_name}</div>
-                                  <div className="text-xs text-slate-500">{mesai.employees?.role_title}</div>
+                                  <div className="font-medium text-slate-900">{(mesai.employees as any)?.full_name || "-"}</div>
+                                  <div className="text-xs text-slate-500">{(mesai.employees as any)?.role_title || "-"}</div>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
