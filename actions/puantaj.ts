@@ -396,3 +396,117 @@ export async function bulkUpsertPuantaj(entries: { employee_id: string; date: st
    return { success: false, error: err.message || "Bir hata oluştu" };
  }
 }
+
+
+export async function getPuantajMonths(requestedYear: number, requestedMonth: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Oturum açmanız gerekiyor." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single();
+
+  const { data: workspace } = await supabase
+    .from("workspaces")
+    .select("initialized_months")
+    .eq("id", profile?.workspace_id)
+    .single();
+
+  const initializedMonths = workspace?.initialized_months || [];
+
+  const requestedMonthKey = `${requestedYear}-${String(requestedMonth).padStart(2, '0')}`;
+
+  const daysInMonth = new Date(requestedYear, requestedMonth, 0).getDate();
+  const monthStart = `${requestedYear}-${String(requestedMonth).padStart(2, '0')}-01`;
+  const monthEnd = `${requestedYear}-${String(requestedMonth).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
+  // Verify if requested month has entries in DB, as a fallback (auto-migration/self-healing)
+  const { data: monthEntries } = await supabase
+    .from("puantaj_entries")
+    .select("id")
+    .gte("date", monthStart)
+    .lte("date", monthEnd)
+    .limit(1);
+
+  const hasEntriesInDb = monthEntries && monthEntries.length > 0;
+
+  let redirectUrl = null;
+
+  if (initializedMonths.length > 0) {
+    if (!initializedMonths.includes(requestedMonthKey)) {
+      if (hasEntriesInDb) {
+        // Self-healing: if entries exist but month is not in initialized_months, add it
+        initializedMonths.push(requestedMonthKey);
+        await supabase
+          .from("workspaces")
+          .update({ initialized_months: initializedMonths })
+          .eq("id", profile?.workspace_id);
+      } else {
+        // Sort initialized months to find the latest
+        const sortedMonths = [...initializedMonths].sort();
+        const latestMonthKey = sortedMonths[sortedMonths.length - 1]; // format: YYYY-MM
+        const [latestYear, latestMonth] = latestMonthKey.split('-');
+
+        redirectUrl = `/puantaj?month=${parseInt(latestMonth)}&year=${parseInt(latestYear)}`;
+      }
+    }
+  } else {
+    if (hasEntriesInDb) {
+       // Self-healing: array is empty but entries exist. Start building the array.
+       initializedMonths.push(requestedMonthKey);
+       await supabase
+         .from("workspaces")
+         .update({ initialized_months: initializedMonths })
+         .eq("id", profile?.workspace_id);
+    } else {
+       // Check if there are ANY entries in the DB to redirect to the latest existing month
+       const { data: latestEntry } = await supabase
+         .from("puantaj_entries")
+         .select("date")
+         .order("date", { ascending: false })
+         .limit(1);
+
+       if (latestEntry && latestEntry.length > 0) {
+         const latestDateStr = latestEntry[0].date;
+         const [latestYear, latestMonth] = latestDateStr.split('-');
+         redirectUrl = `/puantaj?month=${parseInt(latestMonth)}&year=${parseInt(latestYear)}`;
+       } else {
+         const realDate = new Date();
+         const realMonth = realDate.getMonth() + 1;
+         const realYear = realDate.getFullYear();
+         // If completely empty database, force redirect to real current month if they are not already there
+         if (requestedMonth !== realMonth || requestedYear !== realYear) {
+           redirectUrl = `/puantaj?month=${realMonth}&year=${realYear}`;
+         }
+       }
+    }
+  }
+
+  // Prev month logic for arrow unlock
+  const prevMonthDateObj = new Date(requestedYear, requestedMonth - 2, 1);
+  const prevMonthDays = new Date(prevMonthDateObj.getFullYear(), prevMonthDateObj.getMonth() + 1, 0).getDate();
+  const prevMonthStart = `${prevMonthDateObj.getFullYear()}-${String(prevMonthDateObj.getMonth() + 1).padStart(2, '0')}-01`;
+  const prevMonthEnd = `${prevMonthDateObj.getFullYear()}-${String(prevMonthDateObj.getMonth() + 1).padStart(2, '0')}-${String(prevMonthDays).padStart(2, '0')}`;
+  const prevMonthKey = `${prevMonthDateObj.getFullYear()}-${String(prevMonthDateObj.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: prevMonthEntries } = await supabase
+    .from("puantaj_entries")
+    .select("id")
+    .gte("date", prevMonthStart)
+    .lte("date", prevMonthEnd)
+    .limit(1);
+
+  const dbMonths = prevMonthEntries && prevMonthEntries.length > 0 ? [prevMonthKey] : [];
+
+  return {
+    initializedMonths,
+    dbMonths,
+    redirectUrl
+  };
+}

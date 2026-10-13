@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { SyncProvider } from "@/components/providers/SyncProvider";
+import { RealtimeSyncProvider } from "@/components/providers/RealtimeSyncProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -36,10 +37,12 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground flex h-screen overflow-hidden`}>
         <QueryProvider>
           <SyncProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster />
-            </TooltipProvider>
+            <RealtimeSyncProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </RealtimeSyncProvider>
           </SyncProvider>
         </QueryProvider>
       </body>

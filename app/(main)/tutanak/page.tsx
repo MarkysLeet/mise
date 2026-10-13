@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateTutanak, getTutanakFiles, getTutanakFormOptions } from "@/actions/tutanak";
+import { generateTutanak } from "@/actions/tutanak";
+import { useTutanakOptions, useTutanakFiles } from "@/hooks/use-tutanak";
+import { useQueryClient } from "@tanstack/react-query";
 import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -22,19 +24,26 @@ function TutanakPageContent() {
   const actionParam = searchParams.get("action");
 
 
-  const [files, setFiles] = useState<any[]>([]);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: filesData, isLoading: isLoadingFiles } = useTutanakFiles();
+  const { data: options } = useTutanakOptions();
+
+  const files = filesData?.files || [];
+
+  useEffect(() => {
+    if (filesData?.resetAuth) {
+      router.push("/onboarding?error=google_auth_expired");
+    }
+  }, [filesData, router]);
+  const employees = options?.employees || [];
+  const templates = options?.templates || [];
+  const workspaceName = options?.workspaceName || "";
+  const hotelName = options?.hotelName || "";
+  const driveFolderId = options?.driveFolderId || "";
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  // Options state
-  const [employees, setEmployees] = useState<{id: string, full_name: string, role_title: string, department_outlet: string}[]>([]);
-  const [templates, setTemplates] = useState<{id: string, category: string, title: string, content: string}[]>([]);
-  const [workspaceName, setWorkspaceName] = useState<string>("");
-  const [hotelName, setHotelName] = useState<string>("");
-  const [driveFolderId, setDriveFolderId] = useState<string>("");
 
   // Form state
   const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
@@ -55,38 +64,14 @@ function TutanakPageContent() {
     }
   }, [actionParam, isModalOpen, router, searchParams]);
 
-  const fetchFiles = async () => {
-    setIsLoadingFiles(true);
-    const result = await getTutanakFiles();
 
-    if (result.error) {
-      toast.error(result.error);
-      if (result.resetAuth) {
-        router.push("/onboarding?error=Lütfen hesabınızı tekrar bağlayın");
-      }
-    } else if (result.files) {
-      setFiles(result.files);
-    }
-    setIsLoadingFiles(false);
-  };
 
-  const fetchOptions = async () => {
-    const opts = await getTutanakFormOptions();
-    if (!opts.error) {
-      setEmployees(opts.employees || []);
-      setTemplates(opts.templates || []);
-      setWorkspaceName(opts.workspaceName || "");
-      setHotelName(opts.hotelName || "");
-      if (opts.driveFolderId) {
-        setDriveFolderId(opts.driveFolderId);
-      }
-    }
-  };
+
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      await Promise.all([fetchFiles(), fetchOptions()]);
+
     };
     if (mounted) {
       load();
@@ -149,6 +134,7 @@ function TutanakPageContent() {
            router.push("/onboarding?error=Lütfen hesabınızı tekrar bağlayın");
         }
       } else if (result.success && result.documentUrl) {
+        queryClient.invalidateQueries({ queryKey: ["tutanaks"] });
         toast.success("Belge başarıyla oluşturuldu!", {
           action: {
             label: "Dokümanı Aç",
@@ -156,7 +142,7 @@ function TutanakPageContent() {
           },
         });
         setIsModalOpen(false);
-        fetchFiles();
+
       }
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : "Bilinmeyen hata");
