@@ -145,6 +145,9 @@ function FazlaMesaiPageContent() {
         toast.error(res.error);
       } else {
         toast.success(formData.id ? "Fazla mesai güncellendi." : "Fazla mesai eklendi.");
+        queryClient.invalidateQueries({ queryKey: ["fazla_mesai"] });
+        queryClient.invalidateQueries({ queryKey: ["fazla_mesai_total"] });
+        queryClient.invalidateQueries({ queryKey: ["sidebar_alerts", "overtime"] });
         setFormData({ id: "", date: format(selectedDate, "yyyy-MM-dd"), hours: "", description: "" });
         setSelectedEmployeeId("");
         setSelectedEmployeeName("");
@@ -177,6 +180,9 @@ function FazlaMesaiPageContent() {
         toast.error(res.error);
       } else {
         toast.success("Kayıt silindi.");
+        queryClient.invalidateQueries({ queryKey: ["fazla_mesai"] });
+        queryClient.invalidateQueries({ queryKey: ["fazla_mesai_total"] });
+        queryClient.invalidateQueries({ queryKey: ["sidebar_alerts", "overtime"] });
 
       }
     } catch (error) {

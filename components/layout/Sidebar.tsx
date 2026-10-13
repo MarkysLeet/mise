@@ -59,6 +59,26 @@ export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchOpen, setSearchOpen] = useState(false);
   const { data: alerts = [], isLoading: alertsLoading } = useOvertimeAlerts();
+  const queryClient = useQueryClient();
+
+  const handlePrefetch = (href: string) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    if (href === "/fazla-mesai") {
+      queryClient.prefetchQuery({ queryKey: ["employees", year, month], queryFn: () => getEmployees(year, month) });
+      queryClient.prefetchQuery({ queryKey: ["fazla_mesai", dateStr], queryFn: () => getFazlaMesaiByDate(dateStr) });
+      queryClient.prefetchQuery({ queryKey: ["fazla_mesai_total", year, month], queryFn: () => getFazlaMesaiTotalByMonth(year, month) });
+    } else if (href === "/tutanak") {
+      queryClient.prefetchQuery({ queryKey: ["tutanak_options"], queryFn: () => getTutanakFormOptions() });
+      queryClient.prefetchQuery({ queryKey: ["tutanaks"], queryFn: () => getTutanakFiles() });
+    } else if (href === "/puantaj") {
+      queryClient.prefetchQuery({ queryKey: ["employees", year, month], queryFn: () => getEmployees(year, month) });
+      queryClient.prefetchQuery({ queryKey: ["entries", year, month], queryFn: () => getPuantajEntries(year, month) });
+    }
+  };
 
 
 
@@ -92,7 +112,7 @@ export function Sidebar() {
             <button
               onClick={() => setSearchOpen(true)}
               className={cn(
-                "group w-full flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 mb-2",
+                    "group w-full flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200 mb-2",
                 isCollapsed ? "justify-center px-0" : "px-3",
                 "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
@@ -130,6 +150,9 @@ export function Sidebar() {
               <TooltipTrigger render={
                 <Link
                   href={item.href}
+                  onMouseEnter={() => handlePrefetch(item.href)}
+                  onTouchStart={() => handlePrefetch(item.href)}
+                  onFocus={() => handlePrefetch(item.href)}
                   className={cn(
                     "group flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200",
                     isCollapsed ? "justify-center px-0" : "px-3",

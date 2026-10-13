@@ -134,6 +134,7 @@ function TutanakPageContent() {
            router.push("/onboarding?error=Lütfen hesabınızı tekrar bağlayın");
         }
       } else if (result.success && result.documentUrl) {
+        queryClient.invalidateQueries({ queryKey: ["tutanaks"] });
         toast.success("Belge başarıyla oluşturuldu!", {
           action: {
             label: "Dokümanı Aç",
