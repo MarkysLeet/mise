@@ -11,12 +11,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateTutanak, getTutanakFiles, getTutanakFormOptions } from "@/actions/tutanak";
 import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 
-export default function TutanakPage() {
+function TutanakPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get("action");
+
 
   const [files, setFiles] = useState<any[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(true);
@@ -40,6 +44,16 @@ export default function TutanakPage() {
   const [aciklama, setAciklama] = useState("");
   const [incidentDate, setIncidentDate] = useState("");
   const [olayYeri, setOlayYeri] = useState("");
+
+  useEffect(() => {
+    if (actionParam === "new" && !isModalOpen) {
+      setIsModalOpen(true);
+      // Clean up URL
+      const params = new URLSearchParams(searchParams);
+      params.delete("action");
+      router.replace(`?${params.toString()}`);
+    }
+  }, [actionParam, isModalOpen, router, searchParams]);
 
   const fetchFiles = async () => {
     setIsLoadingFiles(true);
@@ -423,5 +437,13 @@ export default function TutanakPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TutanakPage() {
+  return (
+    <Suspense fallback={<div className="p-8 flex justify-center"><div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
+      <TutanakPageContent />
+    </Suspense>
   );
 }

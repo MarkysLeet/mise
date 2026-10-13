@@ -107,14 +107,23 @@ export function Sidebar() {
               )}
             />
           }>
-            <Search
-              className={cn(
-                "flex-shrink-0 transition-all duration-200",
-                isCollapsed ? "h-6 w-6" : "h-5 w-5 mr-3",
-                "text-muted-foreground group-hover:text-foreground"
+            <div className={cn("flex items-center w-full", isCollapsed ? "justify-center" : "justify-between")}>
+              <div className="flex items-center">
+                <Search
+                  className={cn(
+                    "flex-shrink-0 transition-all duration-200",
+                    isCollapsed ? "h-6 w-6" : "h-5 w-5 mr-3",
+                    "text-muted-foreground group-hover:text-foreground"
+                  )}
+                />
+                <span className={cn("transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden", isCollapsed ? "w-0 opacity-0 hidden" : "opacity-100 text-left")}>Hızlı Arama</span>
+              </div>
+              {!isCollapsed && (
+                <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-border/50 bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto group-hover:border-border/80 group-hover:bg-muted transition-colors">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
               )}
-            />
-            <span className={cn("transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden", isCollapsed ? "w-0 opacity-0" : "w-[120px] opacity-100 text-left")}>Hızlı Arama</span>
+            </div>
           </TooltipTrigger>
           {isCollapsed && (
             <TooltipContent side="right" align="center">

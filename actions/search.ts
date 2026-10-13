@@ -7,11 +7,11 @@ export async function searchEmployees(query: string) {
 
   const supabase = await createClient();
 
-  // Search by first name or last name
+  // Search by first name, last name, role title, department outlet, phone
   const { data, error } = await supabase
     .from("employees")
-    .select("id, full_name, role_title, department_outlet")
-    .ilike("full_name", `%${query}%`)
+    .select("id, full_name, role_title, department_outlet, phone")
+    .or(`full_name.ilike.%${query}%,role_title.ilike.%${query}%,department_outlet.ilike.%${query}%,phone.ilike.%${query}%`)
     .limit(10);
 
   if (error) {
