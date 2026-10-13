@@ -100,7 +100,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
       <DialogTitle className="sr-only">Hızlı Arama</DialogTitle>
       <DialogDescription className="sr-only">Sistemde arama yapın</DialogDescription>
       <DialogContent
-        className="p-0 overflow-hidden md:max-w-2xl md:rounded-2xl w-full h-[100dvh] md:h-auto rounded-none fixed inset-0 md:inset-auto md:top-1/3 md:-translate-y-1/3 flex flex-col bg-background/95 backdrop-blur-xl border-none md:border md:border-border/50 shadow-2xl z-[100]"
+        className="p-0 overflow-hidden w-full max-w-none h-[100dvh] rounded-none fixed top-0 left-0 translate-x-0 translate-y-0 md:inset-auto md:top-1/3 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/3 md:max-w-2xl md:h-auto md:rounded-2xl flex flex-col bg-background/95 backdrop-blur-xl border-none md:border md:border-border/50 shadow-2xl z-[100]"
         showCloseButton={false}
       >
         <CommandPrimitive className="flex flex-col h-full w-full outline-none">
