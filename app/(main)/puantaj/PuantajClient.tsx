@@ -206,18 +206,22 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
   const daysArray = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  const uniqueOutlets = Array.from(new Set(employees.map(emp => emp.department_outlet || "Belirtilmemiş"))).sort();
+  const uniqueOutlets = Array.from(new Set(employees.map(emp => emp.department_outlet?.trim() || "(boş)"))).sort();
 
   const roleFilteredEmployees = employees.filter(emp => {
     if (selectedRoleFilter !== "Tümü" && emp.role_title !== selectedRoleFilter) return false;
-    const empOutlet = emp.department_outlet || "Belirtilmemiş";
+    const empOutlet = emp.department_outlet?.trim() || "(boş)";
     if (selectedOutletFilter !== "Tümü" && empOutlet !== selectedOutletFilter) return false;
     return true;
   });
 
   const filteredEmployees = roleFilteredEmployees.filter(emp => {
-    if (selectedEmployeeId && emp.id !== selectedEmployeeId) return false;
-    if (!selectedEmployeeId && searchQuery && !emp.full_name.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR'))) return false;
+    if (selectedEmployeeId) {
+      return emp.id === selectedEmployeeId;
+    }
+    if (searchQuery && !emp.full_name.toLocaleLowerCase('tr-TR').includes(searchQuery.toLocaleLowerCase('tr-TR'))) {
+      return false;
+    }
     return true;
   });
 
