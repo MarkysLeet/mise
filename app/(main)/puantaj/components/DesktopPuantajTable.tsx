@@ -266,6 +266,7 @@ export function DesktopPuantajTable({
 
                     return (
                       <EmployeeRow
+                        key={emp.id}
                         emp={emp}
                         idx={idx}
                         currentYear={currentYear}
