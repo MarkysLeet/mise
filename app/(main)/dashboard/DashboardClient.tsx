@@ -9,6 +9,7 @@ import Link from "next/link";
 import { MissingEmployeesSheet } from "./components/MissingEmployeesSheet";
 import { FutureTerminationsPopover } from "./components/FutureTerminationsPopover";
 import { ActiveEmployeesDialog } from "./components/ActiveEmployeesDialog";
+import { FazlaMesaiDialog } from "./components/FazlaMesaiDialog";
 
 export function DashboardClient() {
   const { data, isLoading, error } = useDashboardData();
@@ -31,7 +32,8 @@ export function DashboardClient() {
     missingEmployees,
     devamsizlikThisMonth,
     recentActivities,
-    employees
+    employees,
+    fazlaMesaiByDepartment
   } = data;
 
   const now = new Date();
@@ -94,16 +96,21 @@ export function DashboardClient() {
               </Card>
             </MissingEmployeesSheet>
 
-            <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-2 lg:col-span-1 cursor-pointer hover:shadow-md hover:border-border/80 transition-all duration-200 active:scale-[0.99]">
-              <CardHeader className="pb-2">
-                <CardDescription className="font-medium flex items-center gap-2 text-muted-foreground">
-                  <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
-                </CardDescription>
-                <CardTitle className="text-3xl font-light text-foreground tabular-nums">
-                  {totalFazlaMesai} <span className="text-base font-normal text-muted-foreground">saat</span>
-                </CardTitle>
-              </CardHeader>
-            </Card>
+            <FazlaMesaiDialog fazlaMesaiByDepartment={fazlaMesaiByDepartment} totalFazlaMesai={totalFazlaMesai}>
+              <Card className="border-border/60 shadow-sm rounded-2xl bg-muted/30 col-span-2 lg:col-span-1 cursor-pointer hover:shadow-md hover:border-border/80 transition-all duration-200 active:scale-[0.99]">
+                <CardHeader className="pb-2">
+                  <CardDescription className="font-medium flex items-center justify-between text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" /> Aylık Fazla Mesai
+                    </div>
+                    <Info className="h-4 w-4 text-muted-foreground/60" />
+                  </CardDescription>
+                  <CardTitle className="text-3xl font-light text-foreground tabular-nums">
+                    {totalFazlaMesai} <span className="text-base font-normal text-muted-foreground">saat</span>
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </FazlaMesaiDialog>
           </div>
 
           {/* Quick Actions */}

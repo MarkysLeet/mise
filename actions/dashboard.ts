@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { getDashboardTotalFazlaMesai } from "@/actions/fazla_mesai";
 import { ActivityLogEntry, MissingEmployee, DashboardEmployee } from "@/app/types/dashboard";
 
 export async function getDashboardData() {
@@ -61,7 +60,7 @@ export async function getDashboardData() {
     const [
       { data: todayEntriesChunk },
       { data: devamsizlikChunk },
-      totalFazlaMesai,
+      { data: fazlaMesaiData },
       { data: tutanaks }
     ] = await Promise.all([
       supabase
@@ -76,13 +75,32 @@ export async function getDashboardData() {
         .gte("date", startDate)
         .lte("date", endDate)
         .eq("status", "D"),
-      getDashboardTotalFazlaMesai(),
+      supabase
+        .from("fazla_mesai")
+        .select("employee_id, hours")
+        .eq("workspace_id", workspace.id)
+        .gte("mesai_date", startDate)
+        .lte("mesai_date", endDate),
       supabase
         .from("tutanaks")
         .select("*")
         .eq("workspace_id", workspace.id)
         .gte("created_at", `${startDate}T00:00:00Z`)
     ]);
+
+    const totalFazlaMesai = (fazlaMesaiData || []).reduce((acc, row) => acc + (row.hours || 0), 0);
+
+    const departmentFazlaMesai = (fazlaMesaiData || []).reduce((acc, row) => {
+      const emp = employees.find(e => e.id === row.employee_id);
+      const outlet = emp?.department_outlet || "Belirtilmemiş";
+      acc[outlet] = (acc[outlet] || 0) + (row.hours || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const fazlaMesaiByDepartment = Object.entries(departmentFazlaMesai)
+      .map(([outlet, hours]) => ({ outlet, hours }))
+      .sort((a, b) => b.hours - a.hours);
+
 
     const todayEntries = todayEntriesChunk || [];
     const missingEmployeesEntries = todayEntries.filter(e => e.status && e.status !== "" && e.status !== 'X' && e.status !== 'Hİ');
@@ -158,7 +176,8 @@ export async function getDashboardData() {
       missingEmployees,
       devamsizlikThisMonth,
       recentActivities,
-      employees
+      employees,
+      fazlaMesaiByDepartment
     };
 
   } catch (error: unknown) {
