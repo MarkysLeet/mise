@@ -21,4 +21,5 @@ export interface DashboardEmployee {
   termination_date: string | null;
   created_at?: string;
   is_active?: boolean;
+  department_outlet?: string | null;
 }
