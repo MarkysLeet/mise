@@ -23,6 +23,12 @@ function colToLetter(colIndex: number): string {
 
 const createStringCell = (val: string) => ({ userEnteredValue: { stringValue: val } });
 
+function getEmployeeInfo(empRel: any): { full_name?: string; role_title?: string } {
+  if (!empRel) return {};
+  if (Array.isArray(empRel)) return empRel[0] || {};
+  return empRel;
+}
+
 async function getOrCreateUserFazlaMesaiSpreadsheet(drive: any, workspace: any, month: number, year: number) {
   const folderId = await ensureFolderPath(drive, workspace.drive_folder_id, ['Anex', 'Fazla mesai']);
   const monthNameUpper = MONTH_NAMES_TR[month - 1].toLocaleUpperCase('tr-TR');
@@ -295,12 +301,13 @@ export async function syncFazlaMesaiToDrive(year: number, month: number) {
       for (let k = 0; k < maxDayRows; k++) {
         if (k < dayRecords.length) {
           const r = dayRecords[k];
+          const emp = getEmployeeInfo((r as any).employees);
           dayRowsData.push({
             values: [
-              createStringCell(r.employees?.full_name || ""),
+              createStringCell(emp.full_name || ""),
               createStringCell(""), // TCKN (empty for now)
               createStringCell(dept),
-              createStringCell(r.employees?.role_title || ""),
+              createStringCell(emp.role_title || ""),
               createStringCell(r.description || ""),
               { userEnteredValue: { numberValue: Number(r.hours) || 0 } },
               createStringCell("OK")
@@ -339,8 +346,9 @@ export async function syncFazlaMesaiToDrive(year: number, month: number) {
     // 2.2 Update TOPLAM Sheet
     const empMap = new Map<string, any>();
     for (const r of (records || [])) {
-      if (r.employees && !empMap.has(r.employee_id)) {
-        empMap.set(r.employee_id, r.employees);
+      const emp = getEmployeeInfo((r as any).employees);
+      if (emp && emp.full_name && !empMap.has(r.employee_id)) {
+        empMap.set(r.employee_id, emp);
       }
     }
     const uniqueEmployees = Array.from(empMap.values()).sort((a, b) => {
