@@ -287,6 +287,8 @@ export async function syncFazlaMesaiToDrive(year: number, month: number) {
     const dept = workspace.name || "F&B";
 
     // 2.1 Update each daily sheet
+    const masterSheetId = dailySheetsInfo[0]?.sheetId;
+
     for (let day = 1; day <= daysInMonth; day++) {
       const dayStr = String(day).padStart(2, '0');
       const targetDateStr = `${year}-${monthStr}-${dayStr}`;
@@ -341,6 +343,51 @@ export async function syncFazlaMesaiToDrive(year: number, month: number) {
           fields: "userEnteredValue"
         }
       });
+
+      // Copy master styling & borders from Day 1 / Row 3 to all populated record rows
+      const rowCountToFormat = Math.max(1, dayRecords.length);
+      const styleSourceSheetId = masterSheetId || dSheet.sheetId;
+
+      dataRequests.push({
+        copyPaste: {
+          source: {
+            sheetId: styleSourceSheetId,
+            startRowIndex: 2, // Row 3
+            endRowIndex: 3,
+            startColumnIndex: 0,
+            endColumnIndex: 7
+          },
+          destination: {
+            sheetId: dSheet.sheetId,
+            startRowIndex: 2, // Row 3
+            endRowIndex: 2 + rowCountToFormat,
+            startColumnIndex: 0,
+            endColumnIndex: 7
+          },
+          pasteType: "PASTE_FORMAT"
+        }
+      });
+
+      // Clean borders on empty rows beyond the records
+      const clearFromRow = 2 + rowCountToFormat;
+      if (2 + maxDayRows > clearFromRow) {
+        dataRequests.push({
+          updateBorders: {
+            range: {
+              sheetId: dSheet.sheetId,
+              startRowIndex: clearFromRow,
+              endRowIndex: 2 + maxDayRows,
+              startColumnIndex: 0,
+              endColumnIndex: 7
+            },
+            bottom: { style: "NONE" },
+            left: { style: "NONE" },
+            right: { style: "NONE" },
+            innerHorizontal: { style: "NONE" },
+            innerVertical: { style: "NONE" }
+          }
+        });
+      }
     }
 
     // 2.2 Update TOPLAM Sheet
