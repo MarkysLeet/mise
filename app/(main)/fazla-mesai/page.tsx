@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { addFazlaMesai, updateFazlaMesai, deleteFazlaMesai } from "@/actions/fazla_mesai";
+import { syncFazlaMesaiToDrive, getFazlaMesaiSpreadsheetId } from "@/actions/fazla-mesai-sync";
 import { useEmployees } from "@/hooks/use-employees";
 import { useDailyOvertime, useMonthlyOvertimeTotal } from "@/hooks/use-overtime";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmployeeAutocomplete } from "@/app/(main)/puantaj/components/EmployeeAutocomplete";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight, UploadCloud, ExternalLink } from "lucide-react";
 
 function FazlaMesaiPageContent() {
   const router = useRouter();
@@ -61,6 +62,48 @@ function FazlaMesaiPageContent() {
   const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
   const [formData, setFormData] = useState({ id: "", date: format(new Date(), "yyyy-MM-dd"), hours: "", description: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncUrl, setSyncUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    getFazlaMesaiSpreadsheetId(month, year).then(res => {
+      if (isMounted) {
+        if (res.success && res.spreadsheetUrl) {
+          setSyncUrl(res.spreadsheetUrl);
+        } else {
+          setSyncUrl(null);
+        }
+      }
+    });
+    return () => { isMounted = false; };
+  }, [month, year]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await syncFazlaMesaiToDrive(year, month);
+      if (res && !res.success) {
+        toast.error(res.error || "Senkronizasyon hatası");
+      } else {
+        setSyncUrl(res.spreadsheetUrl || null);
+        if (res.spreadsheetUrl) {
+          toast.success("Drive ile senkronize edildi", {
+            action: {
+              label: "Tabloyu Aç",
+              onClick: () => window.open(res.spreadsheetUrl, "_blank")
+            }
+          });
+        } else {
+          toast.success("Drive ile senkronize edildi");
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Senkronizasyon hatası");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (actionParam === "new") {
@@ -289,31 +332,58 @@ function FazlaMesaiPageContent() {
                 <CardTitle className="text-lg">Aylık Rapor</CardTitle>
                 <CardDescription>Mevcut ayın özet tablosu ve detayları</CardDescription>
               </div>
-              <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border/60">
-                <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-8 w-8">
-                  <ChevronLeft className="h-4 w-4" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl border border-border/60">
+                  <Button variant="ghost" size="icon" onClick={handlePrevDay} className="h-8 w-8">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  <Popover>
+                    <PopoverTrigger render={
+                      <Button variant="ghost" className="h-8 min-w-[140px] font-medium justify-center flex gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        {format(selectedDate, "dd MMMM yyyy", { locale: tr })}
+                      </Button>
+                    } />
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        locale={tr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Button variant="ghost" size="icon" onClick={handleNextDay} className="h-8 w-8">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1.5 h-10 px-3 text-sm font-medium shadow-sm hover:bg-accent"
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                >
+                  {isSyncing ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                  ) : (
+                    <UploadCloud className="h-4 w-4 text-emerald-600" />
+                  )}
+                  <span>Dışa Aktar</span>
                 </Button>
 
-                <Popover>
-                  <PopoverTrigger render={
-                    <Button variant="ghost" className="h-8 min-w-[140px] font-medium justify-center flex gap-2">
-                      <CalendarIcon className="h-4 w-4" />
-                      {format(selectedDate, "dd MMMM yyyy", { locale: tr })}
-                    </Button>
-                  } />
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      locale={tr}
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                <Button variant="ghost" size="icon" onClick={handleNextDay} className="h-8 w-8">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                {syncUrl && (
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-1.5 h-10 px-3 text-sm font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                    onClick={() => window.open(syncUrl, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4 text-emerald-600" />
+                    <span className="hidden sm:inline">Drive'da Aç</span>
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-0">
