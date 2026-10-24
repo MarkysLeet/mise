@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { MobilePuantajViewProps, Employee } from "../types";
-import { ChevronDown, ChevronRight, MoreVertical, Edit2, LogOut, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreVertical, Edit2, LogOut, Trash2 , RotateCcw } from "lucide-react";
 import { EmployeeAutocomplete } from "./EmployeeAutocomplete";
 import {
   DropdownMenu,
@@ -38,6 +38,7 @@ export function MobilePuantajView({
   uniqueOutlets,
   selectedOutletFilter,
   setSelectedOutletFilter,
+  handleUndoTerminate
 }: MobilePuantajViewProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
@@ -222,6 +223,12 @@ export function MobilePuantajView({
                                     setIsTerminateOpen(true);
                                   }}>
                                     <LogOut className="h-4 w-4 mr-2 text-orange-500" /> İş Çıkışı Ver
+                                  </DropdownMenuItem>
+                                )}
+
+                                {!emp.is_active && (
+                                  <DropdownMenuItem onClick={() => handleUndoTerminate(emp)}>
+                                    <RotateCcw className="h-4 w-4 mr-2 text-blue-500" /> İş Çıkışını İptal Et
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />

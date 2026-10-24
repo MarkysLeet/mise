@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trash2, Edit2, MoreHorizontal, ChevronDown, ChevronRight } from "lucide-react";
+import { LogOut, Trash2, Edit2, MoreHorizontal, ChevronDown, ChevronRight , RotateCcw } from "lucide-react";
 import { DesktopPuantajTableProps } from "../types";
 import {
   DropdownMenu,
@@ -34,11 +34,12 @@ interface EmployeeRowProps {
   setIsMouseDown: (isDown: boolean) => void;
   isMouseDown: boolean;
   applyBrush: (empId: string, day: number) => void;
+  handleUndoTerminate: (emp: any) => void;
 }
 
 const EmployeeRow = React.memo(({
   emp, idx, currentYear, currentMonth, daysArray, daysInMonth, STATUSES, pendingChanges, activeBrush, totals, entriesMap,
-  openDossier, setEmployeeToEdit, setIsEditEmployeeModalOpen, setEmployeeToTerminate, setIsTerminateOpen, setEmployeeToDelete, setIsDeleteOpen, setIsMouseDown, isMouseDown, applyBrush
+  openDossier, setEmployeeToEdit, setIsEditEmployeeModalOpen, setEmployeeToTerminate, setIsTerminateOpen, setEmployeeToDelete, setIsDeleteOpen, setIsMouseDown, isMouseDown, applyBrush, handleUndoTerminate
 }: EmployeeRowProps) => {
   return (
     <tr className={`group border-b hover:bg-slate-50 ${!emp.is_active ? 'opacity-75' : ''}`}>
@@ -69,6 +70,12 @@ const EmployeeRow = React.memo(({
                 setIsTerminateOpen(true);
               }}>
                 <LogOut className="h-4 w-4 mr-2 text-orange-500" /> İş Çıkışı Ver
+              </DropdownMenuItem>
+            )}
+
+            {!emp.is_active && (
+              <DropdownMenuItem onClick={() => handleUndoTerminate(emp)}>
+                <RotateCcw className="h-4 w-4 mr-2 text-blue-500" /> İş Çıkışını İptal Et
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -166,6 +173,7 @@ export function DesktopPuantajTable({
   isMouseDown,
   applyBrush,
   openDossier,
+  handleUndoTerminate,
   roles
 }: DesktopPuantajTableProps) {
   const entriesMap = useMemo(() => {
@@ -288,6 +296,7 @@ export function DesktopPuantajTable({
                         setIsMouseDown={setIsMouseDown}
                         isMouseDown={isMouseDown}
                         applyBrush={applyBrush}
+                        handleUndoTerminate={handleUndoTerminate}
                       />
                     );
                   })}
