@@ -27,7 +27,7 @@ import {
   Loader2
 } from "lucide-react";
 
-import { addEmployee, terminateEmployee, deleteEmployee, updateEmployee, getEmployees, getPuantajEntries } from "@/actions/puantaj";
+import { addEmployee, terminateEmployee, undoTerminateEmployee, deleteEmployee, updateEmployee, getEmployees, getPuantajEntries } from "@/actions/puantaj";
 import { syncPuantajToDrive, getPuantajSpreadsheetId } from "@/actions/puantaj-sync";
 import { ImportModal } from "./components/import/ImportModal";
 import { initializeNewMonth } from "@/actions/puantaj-init";
@@ -191,6 +191,10 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
 
   const [isTerminateOpen, setIsTerminateOpen] = useState(false);
   const [employeeToTerminate, setEmployeeToTerminate] = useState<any>(null);
+
+  const [isUndoTerminateOpen, setIsUndoTerminateOpen] = useState(false);
+  const [employeeToUndoTerminate, setEmployeeToUndoTerminate] = useState<any>(null);
+
   const [terminationDate, setTerminationDate] = useState("");
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -492,6 +496,27 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
       toast.success("Personel işten çıkarıldı");
       setIsTerminateOpen(false);
             queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+
+  const handleUndoTerminateModal = (emp: any) => {
+    setEmployeeToUndoTerminate(emp);
+    setIsUndoTerminateOpen(true);
+  };
+
+  const submitUndoTerminate = async () => {
+    if (!employeeToUndoTerminate) return;
+    try {
+      const res = await undoTerminateEmployee(employeeToUndoTerminate.id);
+      if (!res?.success) throw new Error(res.error || "İşlem başarısız");
+      toast.success("İş çıkışı iptal edildi");
+      setIsUndoTerminateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["entries"] });
       router.refresh();
     } catch (err: any) {
@@ -959,6 +984,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
         activeBrush={activeBrush}
         calculateTotals={calculateTotals}
         setEmployeeToTerminate={setEmployeeToTerminate}
+        handleUndoTerminate={handleUndoTerminateModal}
         setIsTerminateOpen={setIsTerminateOpen}
         setEmployeeToDelete={setEmployeeToDelete}
         setIsDeleteOpen={setIsDeleteOpen}
@@ -995,6 +1021,7 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
         STATUSES={STATUSES}
         calculateTotals={calculateTotals}
         setEmployeeToTerminate={setEmployeeToTerminate}
+        handleUndoTerminate={handleUndoTerminateModal}
         setIsTerminateOpen={setIsTerminateOpen}
         setEmployeeToDelete={setEmployeeToDelete}
         setIsDeleteOpen={setIsDeleteOpen}
@@ -1034,6 +1061,28 @@ export function PuantajClient({ currentMonth, currentYear, initializedMonths = [
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTerminateOpen(false)}>İptal</Button>
             <Button variant="destructive" onClick={handleTerminateEmployee}>Onayla</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* Undo Terminate Modal */}
+      <Dialog open={isUndoTerminateOpen} onOpenChange={setIsUndoTerminateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>İş Çıkışını İptal Et</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-500">
+              <span className="font-semibold text-slate-900">{employeeToUndoTerminate?.full_name}</span> adlı personelin iş çıkışını iptal etmek istediğinize emin misiniz?
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              Bu işlem personeli tekrar aktif duruma getirecektir.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUndoTerminateOpen(false)}>İptal</Button>
+            <Button variant="default" onClick={submitUndoTerminate}>Onayla</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -42,6 +42,7 @@ export interface DesktopPuantajTableProps {
   activeBrush: string | null;
   calculateTotals: (employeeId: string) => Record<string, number>;
   setEmployeeToTerminate: (employee: Employee | null) => void;
+  handleUndoTerminate: (employee: Employee) => void;
   setIsTerminateOpen: (open: boolean) => void;
   setEmployeeToDelete: (employee: Employee | null) => void;
   setIsDeleteOpen: (open: boolean) => void;
@@ -65,6 +66,7 @@ export interface MobilePuantajViewProps {
   STATUSES: Status[];
   calculateTotals: (employeeId: string) => Record<string, number>;
   setEmployeeToTerminate: (employee: Employee | null) => void;
+  handleUndoTerminate: (employee: Employee) => void;
   setIsTerminateOpen: (open: boolean) => void;
   setEmployeeToDelete: (employee: Employee | null) => void;
   setIsDeleteOpen: (open: boolean) => void;
